@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, GraduationCap, LogIn } from "lucide-react";
+import { Menu, X, GraduationCap, LogIn, UserPlus, LayoutDashboard, LogOut } from "lucide-react";
+import { useSchoolSettings } from "@/hooks/useSchoolSettings";
+import { useAuth } from "@/hooks/useAuth";
 
 const navLinks = [
   { to: "/", label: "Home" },
@@ -16,18 +18,51 @@ const navLinks = [
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const { data: settings } = useSchoolSettings();
+  const { user, loading: authLoading, signOut } = useAuth();
+
+  useEffect(() => {
+    const sentinel = document.createElement("div");
+    sentinel.style.position = "absolute";
+    sentinel.style.top = "0";
+    sentinel.style.height = "1px";
+    sentinel.style.width = "1px";
+    document.body.prepend(sentinel);
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setScrolled(!entry.isIntersecting),
+      { threshold: 1 }
+    );
+    observer.observe(sentinel);
+    return () => {
+      observer.disconnect();
+      sentinel.remove();
+    };
+  }, []);
 
   return (
-    <nav className="sticky top-0 z-50 glass border-b border-border">
+    <nav
+      className={`sticky top-0 z-50 border-b transition-all duration-300 ${
+        scrolled
+          ? "bg-card/80 backdrop-blur-xl border-border shadow-card"
+          : "bg-card/60 backdrop-blur-lg border-transparent"
+      }`}
+    >
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
-        <Link to="/" className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl gradient-hero flex items-center justify-center">
-            <GraduationCap className="w-6 h-6 text-primary-foreground" />
-          </div>
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-2.5 shrink-0">
+          {settings?.logo_url ? (
+            <img src={settings.logo_url} alt="Logo" className="w-10 h-10 rounded-xl object-cover" />
+          ) : (
+            <div className="w-10 h-10 rounded-xl gradient-hero flex items-center justify-center">
+              <GraduationCap className="w-6 h-6 text-primary-foreground" />
+            </div>
+          )}
           <div className="hidden sm:block">
             <span className="font-heading font-bold text-lg text-foreground leading-tight block">
-              GHS Babi Khel
+              {settings?.school_name || "GHS Babi Khel"}
             </span>
             <span className="text-xs text-muted-foreground leading-none">
               District Mohmand, KPK
@@ -35,31 +70,73 @@ const Navbar = () => {
           </div>
         </Link>
 
-        {/* Desktop */}
-        <div className="hidden lg:flex items-center gap-1">
-          {navLinks.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                location.pathname === link.to
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
+        {/* Desktop Nav */}
+        <div className="hidden lg:flex items-center gap-0.5">
+          {navLinks.map((link) => {
+            const isActive = location.pathname === link.to;
+            return (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={`relative px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                }`}
+              >
+                {link.label}
+                {isActive && (
+                  <motion.div
+                    layoutId="nav-underline"
+                    className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-primary"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
+              </Link>
+            );
+          })}
         </div>
 
+        {/* Right Side */}
         <div className="flex items-center gap-2">
-          <Link
-            to="/auth/signin"
-            className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium gradient-accent text-primary-foreground shadow-card hover:shadow-elevated transition-all duration-200"
-          >
-            <LogIn className="w-4 h-4" />
-            Login
-          </Link>
+          {!authLoading && (
+            <>
+              {user ? (
+                <div className="hidden sm:flex items-center gap-2">
+                  <Link
+                    to="/dashboard"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium gradient-accent text-primary-foreground shadow-card hover:shadow-elevated transition-all duration-200"
+                  >
+                    <LayoutDashboard className="w-4 h-4" />
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={signOut}
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="hidden sm:flex items-center gap-2">
+                  <Link
+                    to="/auth/signin"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/auth/signup"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium gradient-accent text-primary-foreground shadow-card hover:shadow-elevated transition-all duration-200"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Sign Up
+                  </Link>
+                </div>
+              )}
+            </>
+          )}
           <button
             onClick={() => setOpen(!open)}
             className="lg:hidden p-2 rounded-lg text-foreground hover:bg-secondary transition-colors"
@@ -69,14 +146,15 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile */}
+      {/* Mobile Menu */}
       <AnimatePresence>
         {open && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="lg:hidden overflow-hidden border-t border-border bg-card"
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            className="lg:hidden overflow-hidden border-t border-border bg-card/95 backdrop-blur-xl"
           >
             <div className="p-4 space-y-1">
               {navLinks.map((link) => (
@@ -93,14 +171,46 @@ const Navbar = () => {
                   {link.label}
                 </Link>
               ))}
-              <Link
-                to="/auth/signin"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium gradient-accent text-primary-foreground mt-2"
-              >
-                <LogIn className="w-4 h-4" />
-                Login
-              </Link>
+              <div className="pt-2 border-t border-border mt-2 space-y-1">
+                {user ? (
+                  <>
+                    <Link
+                      to="/dashboard"
+                      onClick={() => setOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium gradient-accent text-primary-foreground"
+                    >
+                      <LayoutDashboard className="w-4 h-4" />
+                      Dashboard
+                    </Link>
+                    <button
+                      onClick={() => { signOut(); setOpen(false); }}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary w-full text-left"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to="/auth/signin"
+                      onClick={() => setOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary"
+                    >
+                      <LogIn className="w-4 h-4" />
+                      Sign In
+                    </Link>
+                    <Link
+                      to="/auth/signup"
+                      onClick={() => setOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium gradient-accent text-primary-foreground"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      Sign Up
+                    </Link>
+                  </>
+                )}
+              </div>
             </div>
           </motion.div>
         )}
