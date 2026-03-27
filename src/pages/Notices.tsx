@@ -1,57 +1,144 @@
-import { motion } from "framer-motion";
-import { Bell, AlertTriangle, Calendar } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Calendar, ChevronDown, ChevronUp, Bell } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import PageBanner from "@/components/shared/PageBanner";
+import { useNotices } from "@/hooks/useNotices";
+import { Skeleton } from "@/components/ui/skeleton";
+import { format } from "date-fns";
 
-const mockNotices = [
-  { id: "1", title: "Exam Schedule Announced", content: "Annual examinations for all classes will begin from March 15, 2026. Students must collect their admit cards from the office.", category: "Exams", is_urgent: true, created_at: "2026-03-20" },
-  { id: "2", title: "Parent-Teacher Meeting", content: "A parent-teacher meeting is scheduled for March 25, 2026. All parents are requested to attend.", category: "General", is_urgent: false, created_at: "2026-03-18" },
-  { id: "3", title: "Holiday Notice - Pakistan Day", content: "School will remain closed on March 23, 2026 on account of Pakistan Day celebrations.", category: "Holiday", is_urgent: false, created_at: "2026-03-15" },
-  { id: "4", title: "Science Fair Registration", content: "Students interested in participating in the Science Fair can register by March 30. Contact your class teacher for details.", category: "Events", is_urgent: false, created_at: "2026-03-12" },
-];
+const tabs = ["All", "Urgent", "General", "Academic", "Events"];
+const PER_PAGE = 10;
 
 const Notices = () => {
+  const { data: allNotices = [], isLoading } = useNotices();
+  const [activeTab, setActiveTab] = useState("All");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+
+  const filtered = allNotices.filter((n) => {
+    if (activeTab === "All") return true;
+    if (activeTab === "Urgent") return n.is_urgent;
+    return n.category === activeTab;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
   return (
     <PageLayout>
       <PageBanner title="Notice Board" subtitle="Stay updated with school announcements" />
 
       <section className="py-16">
         <div className="container mx-auto px-4 max-w-3xl">
-          <div className="space-y-4">
-            {mockNotices.map((n, i) => (
-              <motion.div
-                key={n.id}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08 }}
-                className={`bg-card rounded-2xl p-6 shadow-card border-l-4 ${
-                  n.is_urgent ? "border-l-destructive" : "border-l-primary"
+          {/* Tabs */}
+          <div className="flex flex-wrap gap-2 mb-8">
+            {tabs.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => { setActiveTab(tab); setPage(1); }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === tab
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-secondary-foreground hover:bg-muted"
                 }`}
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {n.is_urgent && (
-                        <span className="inline-flex items-center gap-1 bg-destructive/10 text-destructive text-xs font-medium px-2 py-0.5 rounded-full">
-                          <AlertTriangle className="w-3 h-3" /> Urgent
-                        </span>
-                      )}
-                      <span className="text-xs font-medium bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
-                        {n.category}
-                      </span>
-                    </div>
-                    <h3 className="font-heading font-semibold text-foreground mt-2">{n.title}</h3>
-                    <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{n.content}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
-                  <Calendar className="w-3.5 h-3.5" />
-                  {new Date(n.created_at).toLocaleDateString("en-PK", { year: "numeric", month: "long", day: "numeric" })}
-                </div>
-              </motion.div>
+                {tab}
+                {tab === "Urgent" && (
+                  <span className="ml-1.5 w-2 h-2 rounded-full bg-destructive inline-block animate-pulse" />
+                )}
+              </button>
             ))}
           </div>
+
+          {/* Notices */}
+          <div className="space-y-3">
+            {isLoading
+              ? Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="bg-card rounded-2xl p-6 border-l-4 border-l-muted shadow-card">
+                    <Skeleton className="h-5 w-3/4 mb-2" />
+                    <Skeleton className="h-3 w-1/3" />
+                  </div>
+                ))
+              : paginated.map((n) => (
+                  <motion.div
+                    key={n.id}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={`bg-card rounded-2xl shadow-card border-l-4 overflow-hidden cursor-pointer ${
+                      n.is_urgent ? "border-l-destructive" : "border-l-primary"
+                    }`}
+                    onClick={() => setExpandedId(expandedId === n.id ? null : n.id)}
+                  >
+                    <div className="p-5 flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          {n.is_urgent && (
+                            <span className="inline-flex items-center gap-1 bg-destructive/10 text-destructive text-xs font-semibold px-2 py-0.5 rounded-full">
+                              <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
+                              URGENT
+                            </span>
+                          )}
+                          <span className="text-xs font-medium bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
+                            {n.category}
+                          </span>
+                        </div>
+                        <h3 className="font-heading font-semibold text-foreground">{n.title}</h3>
+                        <div className="flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground">
+                          <Calendar className="w-3.5 h-3.5" />
+                          {format(new Date(n.created_at), "dd MMM yyyy")}
+                        </div>
+                      </div>
+                      {n.content && (
+                        <div className="shrink-0 text-muted-foreground">
+                          {expandedId === n.id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                        </div>
+                      )}
+                    </div>
+                    <AnimatePresence>
+                      {expandedId === n.id && n.content && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="px-5 pb-5 pt-0 text-sm text-muted-foreground leading-relaxed border-t border-border mt-0 pt-4">
+                            {n.content}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                ))}
+          </div>
+
+          {!isLoading && filtered.length === 0 && (
+            <div className="text-center py-16 bg-card rounded-2xl shadow-card">
+              <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">No notices found.</p>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-8">
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setPage(i + 1)}
+                  className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                    page === i + 1
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground hover:bg-muted"
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </PageLayout>
