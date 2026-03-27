@@ -1,46 +1,208 @@
-import { motion } from "framer-motion";
-import { Image } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Image, ChevronLeft, ChevronRight, X, Camera } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import PageBanner from "@/components/shared/PageBanner";
-
-const mockAlbums = [
-  { id: "1", title: "Annual Sports Day 2026", description: "Students competing in various sports events", photo_count: 12 },
-  { id: "2", title: "Science Fair 2025", description: "Innovative projects by our students", photo_count: 8 },
-  { id: "3", title: "Pakistan Day Celebrations", description: "Commemorating March 23rd with pride", photo_count: 15 },
-  { id: "4", title: "Tree Plantation Drive", description: "Making our school campus green", photo_count: 6 },
-];
+import { useGalleryAlbums, useGalleryPhotos } from "@/hooks/useGallery";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { GalleryPhoto } from "@/hooks/useGallery";
 
 const Gallery = () => {
+  const { data: albums = [], isLoading } = useGalleryAlbums();
+  const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
+  const { data: photos = [], isLoading: photosLoading } = useGalleryPhotos(selectedAlbumId);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const selectedAlbum = albums.find((a) => a.id === selectedAlbumId);
+
+  const closeLightbox = useCallback(() => setLightboxIndex(null), []);
+  const prevPhoto = useCallback(() => {
+    setLightboxIndex((i) => (i !== null && i > 0 ? i - 1 : i));
+  }, []);
+  const nextPhoto = useCallback(() => {
+    setLightboxIndex((i) => (i !== null && i < photos.length - 1 ? i + 1 : i));
+  }, [photos.length]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (lightboxIndex === null) return;
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowLeft") prevPhoto();
+      if (e.key === "ArrowRight") nextPhoto();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightboxIndex, closeLightbox, prevPhoto, nextPhoto]);
+
   return (
     <PageLayout>
       <PageBanner title="Photo Gallery" subtitle="Moments captured at GHS Babi Khel" />
 
       <section className="py-16">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockAlbums.map((album, i) => (
-              <motion.div
-                key={album.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="group bg-card rounded-2xl overflow-hidden shadow-card hover:shadow-elevated transition-all duration-300 cursor-pointer"
-              >
-                <div className="aspect-video gradient-hero flex items-center justify-center relative">
-                  <Image className="w-12 h-12 text-primary-foreground/50" />
-                  <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors duration-300" />
+          {/* Back button when viewing album */}
+          {selectedAlbumId && (
+            <button
+              onClick={() => setSelectedAlbumId(null)}
+              className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline mb-6"
+            >
+              <ChevronLeft className="w-4 h-4" /> Back to Albums
+            </button>
+          )}
+
+          {!selectedAlbumId ? (
+            /* Album Grid */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {isLoading
+                ? Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="bg-card rounded-2xl overflow-hidden shadow-card">
+                      <Skeleton className="aspect-video w-full" />
+                      <div className="p-5 space-y-2">
+                        <Skeleton className="h-5 w-2/3" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                    </div>
+                  ))
+                : albums.map((album) => (
+                    <motion.div
+                      key={album.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      onClick={() => setSelectedAlbumId(album.id)}
+                      className="group bg-card rounded-2xl overflow-hidden shadow-card hover:shadow-elevated transition-all duration-300 cursor-pointer"
+                    >
+                      <div className="aspect-video overflow-hidden relative">
+                        {album.cover_url ? (
+                          <img
+                            src={album.cover_url}
+                            alt={album.title}
+                            loading="lazy"
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div className="w-full h-full gradient-hero flex items-center justify-center">
+                            <Camera className="w-12 h-12 text-primary-foreground/40" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/30 transition-colors duration-300 flex items-center justify-center">
+                          <span className="text-white font-heading font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
+                            View Photos
+                          </span>
+                        </div>
+                      </div>
+                      <div className="p-5">
+                        <h3 className="font-heading font-semibold text-foreground">{album.title}</h3>
+                        {album.description && (
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{album.description}</p>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+            </div>
+          ) : (
+            /* Photo Grid */
+            <>
+              {selectedAlbum && (
+                <h2 className="text-2xl font-heading font-bold text-foreground mb-6">{selectedAlbum.title}</h2>
+              )}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {photosLoading
+                  ? Array.from({ length: 8 }).map((_, i) => (
+                      <Skeleton key={i} className="aspect-square rounded-xl" />
+                    ))
+                  : photos.map((photo, i) => (
+                      <motion.div
+                        key={photo.id}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: i * 0.03 }}
+                        onClick={() => setLightboxIndex(i)}
+                        className="aspect-square rounded-xl overflow-hidden cursor-pointer group"
+                      >
+                        <img
+                          src={photo.photo_url}
+                          alt={photo.caption || "Photo"}
+                          loading="lazy"
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        />
+                      </motion.div>
+                    ))}
+              </div>
+
+              {!photosLoading && photos.length === 0 && (
+                <div className="text-center py-16 bg-card rounded-2xl shadow-card">
+                  <Image className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground">No photos in this album yet.</p>
                 </div>
-                <div className="p-5">
-                  <h3 className="font-heading font-semibold text-foreground">{album.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{album.description}</p>
-                  <span className="text-xs text-primary font-medium mt-2 inline-block">{album.photo_count} photos</span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+              )}
+            </>
+          )}
+
+          {!selectedAlbumId && !isLoading && albums.length === 0 && (
+            <div className="text-center py-16 bg-card rounded-2xl shadow-card">
+              <Camera className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">No albums yet.</p>
+            </div>
+          )}
         </div>
       </section>
+
+      {/* Lightbox */}
+      <AnimatePresence>
+        {lightboxIndex !== null && photos[lightboxIndex] && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-foreground/90 backdrop-blur-md flex items-center justify-center"
+            onClick={closeLightbox}
+          >
+            <button
+              onClick={closeLightbox}
+              className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors z-10"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {lightboxIndex > 0 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); prevPhoto(); }}
+                className="absolute left-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors z-10"
+              >
+                <ChevronLeft className="w-8 h-8" />
+              </button>
+            )}
+
+            {lightboxIndex < photos.length - 1 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); nextPhoto(); }}
+                className="absolute right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors z-10"
+              >
+                <ChevronRight className="w-8 h-8" />
+              </button>
+            )}
+
+            <motion.div
+              key={lightboxIndex}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="max-w-[90vw] max-h-[85vh] flex flex-col items-center"
+            >
+              <img
+                src={photos[lightboxIndex].photo_url}
+                alt={photos[lightboxIndex].caption || "Photo"}
+                className="max-w-full max-h-[80vh] object-contain rounded-xl"
+              />
+              {photos[lightboxIndex].caption && (
+                <p className="text-white/80 text-sm mt-3 text-center">{photos[lightboxIndex].caption}</p>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </PageLayout>
   );
 };
