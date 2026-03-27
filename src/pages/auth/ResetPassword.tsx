@@ -1,75 +1,65 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, Lock, GraduationCap, ArrowRight, Loader2 } from "lucide-react";
+import { Lock, Loader2, GraduationCap } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import toast from "react-hot-toast";
 
-const SignIn = () => {
-  const [email, setEmail] = useState("");
+const ResetPassword = () => {
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    // Check for recovery type in URL hash
+    const hash = window.location.hash;
+    if (!hash.includes("type=recovery")) {
+      // No recovery token, redirect
+      navigate("/auth/signin");
+    }
+  }, [navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Signed in successfully!");
+      toast.success("Password updated successfully!");
       navigate("/dashboard");
     }
   };
 
   return (
     <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
-      {/* Blobs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute bottom-20 -left-20 w-80 h-80 rounded-full bg-white/5 blur-3xl" />
-      </div>
-
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
         className="w-full max-w-md relative z-10"
       >
         <div className="bg-card rounded-2xl shadow-elevated p-8">
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <div className="w-14 h-14 rounded-2xl gradient-hero mx-auto mb-4 flex items-center justify-center">
               <GraduationCap className="w-8 h-8 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-heading font-bold text-foreground">Welcome Back</h1>
-            <p className="text-sm text-muted-foreground mt-1">Sign in to your GHS Babi Khel account</p>
+            <h1 className="text-2xl font-heading font-bold text-foreground">Reset Password</h1>
+            <p className="text-sm text-muted-foreground mt-1">Enter your new password</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full rounded-xl border border-input bg-background pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-ring outline-none"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-medium text-foreground">Password</label>
-                <Link to="/auth/forgot-password" className="text-xs text-primary hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">New Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
@@ -79,30 +69,36 @@ const SignIn = () => {
                   placeholder="••••••••"
                   className="w-full rounded-xl border border-input bg-background pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-ring outline-none"
                   required
+                  minLength={6}
                 />
               </div>
             </div>
-
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Confirm Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full rounded-xl border border-input bg-background pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-ring outline-none"
+                  required
+                />
+              </div>
+            </div>
             <button
               type="submit"
               disabled={loading}
               className="w-full gradient-accent text-primary-foreground font-semibold py-3 rounded-xl shadow-card hover:shadow-elevated transition-all flex items-center justify-center gap-2 disabled:opacity-60"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Update Password"}
             </button>
           </form>
-
-          <p className="text-center text-sm text-muted-foreground mt-6">
-            Don't have an account?{" "}
-            <Link to="/auth/signup" className="text-primary font-medium hover:underline">
-              Sign Up
-            </Link>
-          </p>
         </div>
       </motion.div>
     </div>
   );
 };
 
-export default SignIn;
+export default ResetPassword;
