@@ -50,7 +50,9 @@ export function useLibraryFiles(options?: {
 }
 
 export async function incrementDownloadCount(fileId: string) {
-  await supabase.rpc("increment_download_count", { file_id: fileId }).catch(() => {
-    // Fallback: just ignore if RPC doesn't exist
-  });
+  try {
+    await supabase.rpc("increment_download_count", { file_id: fileId });
+  } catch {
+    // Fallback: ignore if RPC doesn't exist
+  }
 }
