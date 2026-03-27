@@ -32,11 +32,7 @@ const UserDashboard = () => {
 
   return (
     <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
-      {isOverview ? (
-        <TabComponent onNavigate={setActiveTab} />
-      ) : (
-        <TabComponent />
-      )}
+      <TabComponent onNavigate={setActiveTab} />
     </DashboardLayout>
   );
 };
