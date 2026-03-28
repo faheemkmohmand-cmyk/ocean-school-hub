@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
@@ -15,7 +16,10 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import UserDashboard from "./pages/dashboard/UserDashboard";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
+import AdminProtectedRoute from "./components/layout/AdminProtectedRoute";
 import NotFound from "./pages/NotFound";
+
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 
 const queryClient = new QueryClient();
 
@@ -42,6 +46,16 @@ const App = () => (
             <ProtectedRoute>
               <UserDashboard />
             </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <AdminProtectedRoute>
+              <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><div className="w-8 h-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}>
+                <AdminDashboard />
+              </Suspense>
+            </AdminProtectedRoute>
           }
         />
         <Route path="*" element={<NotFound />} />
