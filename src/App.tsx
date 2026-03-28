@@ -48,6 +48,16 @@ const App = () => (
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin"
+          element={
+            <AdminProtectedRoute>
+              <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><div className="w-8 h-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}>
+                <AdminDashboard />
+              </Suspense>
+            </AdminProtectedRoute>
+          }
+        />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
