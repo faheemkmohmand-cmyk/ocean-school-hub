@@ -7,14 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Pencil, Trash2, Loader2, Upload } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Pencil, Trash2, Loader2, Upload, Image as ImageIcon } from "lucide-react";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
-import type { NewsItem } from "@/hooks/useNews";
+
+interface NewsItem {
+  id: string; title: string; content: string | null; image_url: string | null;
+  is_published: boolean; created_at: string;
+}
 
 const AdminNews = () => {
   const qc = useQueryClient();
@@ -35,6 +39,14 @@ const AdminNews = () => {
   const deleteMut = useMutation({
     mutationFn: async (id: string) => { const { error } = await supabase.from("news").delete().eq("id", id); if (error) throw error; },
     onSuccess: () => { toast.success("Deleted"); qc.invalidateQueries({ queryKey: ["admin-news"] }); },
+  });
+
+  const togglePublish = useMutation({
+    mutationFn: async ({ id, val }: { id: string; val: boolean }) => {
+      const { error } = await supabase.from("news").update({ is_published: val }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-news"] }),
   });
 
   const openAdd = () => { setEditing(null); setForm({ title: "", content: "", image_url: null, is_published: true }); setImageFile(null); setModalOpen(true); };
@@ -61,7 +73,7 @@ const AdminNews = () => {
     setSaving(false);
   };
 
-  const set = (k: string, v: string | boolean | null) => setForm((p) => ({ ...p, [k]: v }));
+  const set = (k: string, v: string | boolean | null) => setForm(p => ({ ...p, [k]: v }));
 
   if (isLoading) return <div className="space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-12" />)}</div>;
 
@@ -72,45 +84,51 @@ const AdminNews = () => {
         <Button onClick={openAdd} className="gap-1.5"><Plus className="w-4 h-4" /> Add News</Button>
       </div>
 
-      <Card><CardContent className="p-0">
-        <Table>
-          <TableHeader><TableRow>
-            <TableHead>Image</TableHead><TableHead>Title</TableHead><TableHead>Published</TableHead><TableHead>Date</TableHead><TableHead className="text-right">Actions</TableHead>
-          </TableRow></TableHeader>
-          <TableBody>
-            {news.map((n) => (
-              <TableRow key={n.id}>
-                <TableCell>{n.image_url ? <img src={n.image_url} alt="" className="w-12 h-8 rounded object-cover" /> : <div className="w-12 h-8 bg-muted rounded" />}</TableCell>
-                <TableCell className="font-medium max-w-[250px] truncate">{n.title}</TableCell>
-                <TableCell><span className={`text-xs px-2 py-0.5 rounded-full ${n.is_published ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}>{n.is_published ? "Yes" : "Draft"}</span></TableCell>
-                <TableCell className="text-sm text-muted-foreground">{format(new Date(n.created_at), "dd MMM yyyy")}</TableCell>
-                <TableCell className="text-right space-x-1">
-                  <Button size="icon" variant="ghost" onClick={() => openEdit(n)}><Pencil className="w-4 h-4" /></Button>
-                  <AlertDialog><AlertDialogTrigger asChild><Button size="icon" variant="ghost" className="text-destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
-                    <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete this news?</AlertDialogTitle><AlertDialogDescription>This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-                      <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deleteMut.mutate(n.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
-                    </AlertDialogContent></AlertDialog>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent></Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {news.map(n => (
+          <Card key={n.id} className={`border-border overflow-hidden ${!n.is_published ? "opacity-60" : ""}`}>
+            <div className="aspect-video bg-muted relative">
+              {n.image_url
+                ? <img src={n.image_url} alt="" className="w-full h-full object-cover" />
+                : <div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-8 h-8 text-muted-foreground/30" /></div>}
+              <Badge className={`absolute top-2 right-2 ${n.is_published ? "bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]" : "bg-muted-foreground"}`}>
+                {n.is_published ? "Published" : "Draft"}
+              </Badge>
+            </div>
+            <CardContent className="p-4 space-y-2">
+              <h3 className="font-heading font-semibold text-foreground truncate">{n.title}</h3>
+              <p className="text-xs text-muted-foreground">{format(new Date(n.created_at), "dd MMM yyyy")}</p>
+              {n.content && <p className="text-sm text-muted-foreground line-clamp-2">{n.content}</p>}
+              <div className="flex items-center gap-2 pt-2">
+                <Switch checked={n.is_published} onCheckedChange={v => togglePublish.mutate({ id: n.id, val: v })} />
+                <Button size="icon" variant="ghost" onClick={() => openEdit(n)}><Pencil className="w-4 h-4" /></Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild><Button size="icon" variant="ghost" className="text-destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader><AlertDialogTitle>Delete this news?</AlertDialogTitle><AlertDialogDescription>This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
+                    <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deleteMut.mutate(n.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editing ? "Edit News" : "Add News"}</DialogTitle></DialogHeader>
           <div className="grid gap-3">
-            <div><Label>Title *</Label><Input value={form.title} onChange={(e) => set("title", e.target.value)} /></div>
-            <div><Label>Content</Label><Textarea rows={5} value={form.content} onChange={(e) => set("content", e.target.value)} /></div>
-            <div className="flex items-center gap-2"><Switch checked={form.is_published} onCheckedChange={(v) => set("is_published", v)} /><Label>Published</Label></div>
+            <div><Label>Title *</Label><Input value={form.title} onChange={e => set("title", e.target.value)} /></div>
+            <div><Label>Content</Label><Textarea rows={5} value={form.content} onChange={e => set("content", e.target.value)} /></div>
+            <div className="flex items-center gap-2"><Switch checked={form.is_published} onCheckedChange={v => set("is_published", v)} /><Label>Published</Label></div>
             <div>
               <Label>Image</Label>
               <div className="flex items-center gap-3 mt-1">
                 {(form.image_url || imageFile) && <img src={imageFile ? URL.createObjectURL(imageFile) : form.image_url!} alt="" className="w-16 h-10 rounded object-cover" />}
                 <label className="flex items-center gap-1.5 text-sm text-primary cursor-pointer hover:underline">
                   <Upload className="w-4 h-4" /> Choose Image
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
+                  <input type="file" accept="image/*" className="hidden" onChange={e => setImageFile(e.target.files?.[0] || null)} />
                 </label>
               </div>
             </div>
