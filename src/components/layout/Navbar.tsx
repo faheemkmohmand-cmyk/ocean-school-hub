@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, GraduationCap, LogIn, UserPlus, LayoutDashboard, LogOut } from "lucide-react";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 import { useAuth } from "@/hooks/useAuth";
+import NotificationBell from "@/components/shared/NotificationBell";
 
 const navLinks = [
   { to: "/", label: "Home" },
@@ -103,6 +104,7 @@ const Navbar = () => {
             <>
               {user ? (
                 <div className="hidden sm:flex items-center gap-2">
+                  <NotificationBell />
                   <Link
                     to="/dashboard"
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium gradient-accent text-primary-foreground shadow-card hover:shadow-elevated transition-all duration-200"

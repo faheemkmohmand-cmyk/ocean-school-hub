@@ -6,6 +6,7 @@ import PageBanner from "@/components/shared/PageBanner";
 import { useNotices } from "@/hooks/useNotices";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
+import TextToSpeechPlayer, { ListenButton } from "@/components/shared/TextToSpeechPlayer";
 
 const tabs = ["All", "Urgent", "General", "Academic", "Events"];
 const PER_PAGE = 10;
@@ -15,6 +16,7 @@ const Notices = () => {
   const [activeTab, setActiveTab] = useState("All");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [ttsNotice, setTtsNotice] = useState<{ title: string; content: string } | null>(null);
 
   const filtered = allNotices.filter((n) => {
     if (activeTab === "All") return true;
@@ -104,8 +106,11 @@ const Notices = () => {
                           transition={{ duration: 0.2 }}
                           className="overflow-hidden"
                         >
-                          <div className="px-5 pb-5 pt-0 text-sm text-muted-foreground leading-relaxed border-t border-border mt-0 pt-4">
+                        <div className="px-5 pb-5 pt-0 text-sm text-muted-foreground leading-relaxed border-t border-border mt-0 pt-4">
                             {n.content}
+                            <div className="mt-3">
+                              <ListenButton onClick={() => setTtsNotice({ title: n.title, content: n.content! })} />
+                            </div>
                           </div>
                         </motion.div>
                       )}
@@ -141,6 +146,9 @@ const Notices = () => {
           )}
         </div>
       </section>
+      {ttsNotice && (
+        <TextToSpeechPlayer text={ttsNotice.content} title={ttsNotice.title} onClose={() => setTtsNotice(null)} />
+      )}
     </PageLayout>
   );
 };

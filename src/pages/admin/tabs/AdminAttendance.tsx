@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { CalendarIcon, Check, X, Clock, Palmtree, Loader2, Download } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend } from "date-fns";
 import toast from "react-hot-toast";
-import confetti from "canvas-confetti";
+import { triggerConfetti } from "@/lib/confetti";
 
 type Status = "present" | "absent" | "late" | "leave";
 
@@ -91,7 +91,8 @@ const AdminAttendance = () => {
 
     const allPresent = Object.values(statuses).every(s => s === "present");
     if (allPresent && students.length > 0) {
-      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      triggerConfetti("sides");
+      toast.success("🌟 Perfect Attendance Today!");
     }
     setSaving(false);
   };
