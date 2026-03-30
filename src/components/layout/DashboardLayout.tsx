@@ -5,6 +5,7 @@ import {
   Users, User, LogOut, GraduationCap, Menu, X, Shield
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import NotificationBell from "@/components/shared/NotificationBell";
 
 const navItems = [
   { id: "overview", label: "Overview", icon: Home },
@@ -128,12 +129,7 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
             {navItems.find((n) => n.id === activeTab)?.label || "Dashboard"}
           </h1>
           <div className="ml-auto flex items-center gap-2">
-            <button
-              onClick={() => onTabChange("notices")}
-              className="p-2 rounded-lg hover:bg-secondary text-muted-foreground relative"
-            >
-              <Bell className="w-5 h-5" />
-            </button>
+            <NotificationBell />
             <button
               onClick={() => onTabChange("profile")}
               className="p-1"

@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Download, FileText, BookOpen, Search, File } from "lucide-react";
+import { triggerConfetti } from "@/lib/confetti";
 import PageLayout from "@/components/layout/PageLayout";
 import PageBanner from "@/components/shared/PageBanner";
 import { useLibraryFiles, incrementDownloadCount } from "@/hooks/useLibrary";
@@ -39,6 +40,7 @@ const Library = () => {
   const handleDownload = async (file: typeof files[0]) => {
     incrementDownloadCount(file.id);
     window.open(file.file_url, "_blank");
+    triggerConfetti("mini");
   };
 
   const getFileIcon = (type: string | null) => {
