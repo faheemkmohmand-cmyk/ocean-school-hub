@@ -16,6 +16,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Loader2, Upload, Search } from "lucide-react";
 import toast from "react-hot-toast";
+import { triggerConfetti } from "@/lib/confetti";
 import { getGradeFromPercentage, getGradeColor } from "@/hooks/useResults";
 
 const classes = ["6", "7", "8", "9", "10"];
@@ -124,7 +125,7 @@ const AdminResults = () => {
       ? await supabase.from("results").update(payload).eq("id", editing.id)
       : await supabase.from("results").insert(payload);
     if (error) toast.error(error.message);
-    else { toast.success(editing ? "Updated" : "Added"); qc.invalidateQueries({ queryKey }); setModalOpen(false); }
+    else { toast.success(editing ? "Updated" : "Result added! 🎉"); triggerConfetti("burst"); qc.invalidateQueries({ queryKey }); setModalOpen(false); }
     setSaving(false);
   };
 

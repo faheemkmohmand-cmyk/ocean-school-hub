@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Loader2, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
+import { triggerConfetti } from "@/lib/confetti";
 
 interface Notice {
   id: string; title: string; content: string | null; category: string;
@@ -78,7 +79,7 @@ const AdminNotices = () => {
       ? await supabase.from("notices").update(payload).eq("id", editing.id)
       : await supabase.from("notices").insert(payload);
     if (error) toast.error("Save failed");
-    else { toast.success(editing ? "Updated" : "Added"); qc.invalidateQueries({ queryKey: ["admin-notices"] }); setModalOpen(false); }
+    else { toast.success(editing ? "Updated" : "Notice published! 📋"); if (!editing) triggerConfetti("mini"); qc.invalidateQueries({ queryKey: ["admin-notices"] }); setModalOpen(false); }
     setSaving(false);
   };
 
