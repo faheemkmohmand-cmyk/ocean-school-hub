@@ -52,7 +52,7 @@ export function useResults(options: {
       return (data ?? []) as ResultWithStudent[];
     },
     enabled: !!classFilter && !!examType,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
     placeholderData: [],
   });
 }

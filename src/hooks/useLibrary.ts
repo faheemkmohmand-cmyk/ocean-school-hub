@@ -44,7 +44,7 @@ export function useLibraryFiles(options?: {
       if (error) throw error;
       return { data: data ?? [], count: count ?? 0 };
     },
-    staleTime: 2 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
     placeholderData: { data: [], count: 0 },
   });
 }
