@@ -1,10 +1,9 @@
-import { lazy, Suspense } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
-  ArrowRight, MapPin, BookOpen, Bell, Users, GraduationCap,
-  Trophy, Calendar, ChevronRight, Microscope, FileText, Laptop,
-  Award, Star, Sparkles
+  ArrowRight, Bell, Users, GraduationCap,
+  Trophy, ChevronRight, Microscope, FileText, Laptop,
+  BookOpen, Sparkles
 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
@@ -13,8 +12,10 @@ import { useNews } from "@/hooks/useNews";
 import { useTeachers } from "@/hooks/useTeachers";
 import { useAchievements } from "@/hooks/useAchievements";
 import { useCountUp } from "@/hooks/useCountUp";
+import { useTypingAnimation } from "@/hooks/useTypingAnimation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
+import NewsTicker from "@/components/shared/NewsTicker";
 
 /* ─── Stagger helpers ─── */
 const stagger = {
@@ -48,6 +49,15 @@ const features = [
   { icon: FileText, title: "Online Notes", desc: "Downloadable class notes and assignments for every subject." },
 ];
 
+/* ─── Typing words for hero ─── */
+const TYPING_WORDS = [
+  "Excellence in Education",
+  "Nurturing Future Leaders",
+  "Quality Learning Since 2018",
+  "District Mohmand's Pride",
+  "Building Tomorrow Today",
+];
+
 /* ─── MAIN ─── */
 const Home = () => {
   const { data: settings, isLoading: settingsLoading } = useSchoolSettings();
@@ -56,8 +66,20 @@ const Home = () => {
   const { data: teachers = [], isLoading: teachersLoading } = useTeachers(4);
   const { data: achievements = [], isLoading: achievementsLoading } = useAchievements(3);
 
+  // ✅ Typing animation for hero tagline
+  const { displayed, isDeleting } = useTypingAnimation({
+    words: TYPING_WORDS,
+    typingSpeed: 70,
+    deletingSpeed: 35,
+    pauseTime: 2500,
+  });
+
   return (
     <PageLayout>
+
+      {/* ════════ NEWS TICKER ════════ */}
+      <NewsTicker />
+
       {/* ════════ HERO ════════ */}
       <section className="relative min-h-[100vh] flex items-center overflow-hidden">
         {/* Background */}
@@ -103,7 +125,7 @@ const Home = () => {
               </span>
             </motion.div>
 
-            {/* H1 */}
+            {/* H1 — School Name */}
             <motion.h1
               variants={stagger.child}
               className="mt-6 text-5xl md:text-7xl lg:text-8xl font-heading font-extrabold italic text-white leading-[0.95]"
@@ -113,12 +135,23 @@ const Home = () => {
               </span>
             </motion.h1>
 
-            {/* H2 */}
+            {/* ✅ H2 — Typing Animation */}
             <motion.h2
               variants={stagger.child}
-              className="mt-4 text-xl md:text-2xl font-heading font-semibold text-white/90"
+              className="mt-4 text-xl md:text-2xl font-heading font-semibold text-white/90 min-h-[2rem]"
             >
-              {settings?.tagline || "Excellence in Education"}
+              {displayed}
+              {/* Blinking cursor */}
+              <span
+                className="inline-block w-0.5 h-6 bg-white/80 ml-1 align-middle"
+                style={{ animation: "blink 1s step-end infinite" }}
+              />
+              <style>{`
+                @keyframes blink {
+                  0%, 100% { opacity: 1; }
+                  50% { opacity: 0; }
+                }
+              `}</style>
             </motion.h2>
 
             {/* Desc */}
@@ -235,6 +268,12 @@ const Home = () => {
                     </div>
                   </div>
                 ))
+              : notices.length === 0
+              ? (
+                <div className="bg-card rounded-xl p-8 text-center text-muted-foreground shadow-card">
+                  No notices published yet.
+                </div>
+              )
               : notices.map((notice) => (
                   <motion.div
                     key={notice.id}
@@ -442,9 +481,7 @@ const Home = () => {
       <section className="py-20">
         <div className="container mx-auto px-4">
           <div className="gradient-hero rounded-3xl p-12 md:p-20 text-center relative overflow-hidden">
-            {/* Glow */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -469,6 +506,7 @@ const Home = () => {
           </div>
         </div>
       </section>
+
     </PageLayout>
   );
 };
