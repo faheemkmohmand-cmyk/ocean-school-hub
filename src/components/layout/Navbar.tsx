@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, GraduationCap, LogIn, UserPlus, LayoutDashboard, LogOut } from "lucide-react";
+import { Menu, X, GraduationCap, LogIn, UserPlus, LayoutDashboard, LogOut, Shield } from "lucide-react";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
@@ -22,7 +22,10 @@ const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const { data: settings } = useSchoolSettings();
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, profile, loading: authLoading, signOut } = useAuth();
+
+  // ✅ Check if current user is admin
+  const isAdmin = profile?.role === "admin";
 
   useEffect(() => {
     const sentinel = document.createElement("div");
@@ -105,6 +108,18 @@ const Navbar = () => {
               {user ? (
                 <div className="hidden sm:flex items-center gap-2">
                   <NotificationBell />
+
+                  {/* ✅ Show Admin Panel button if admin */}
+                  {isAdmin && (
+                    <Link
+                      to="/admin"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-amber-500 text-white shadow-card hover:bg-amber-600 transition-all duration-200"
+                    >
+                      <Shield className="w-4 h-4" />
+                      Admin Panel
+                    </Link>
+                  )}
+
                   <Link
                     to="/dashboard"
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium gradient-accent text-primary-foreground shadow-card hover:shadow-elevated transition-all duration-200"
@@ -176,6 +191,17 @@ const Navbar = () => {
               <div className="pt-2 border-t border-border mt-2 space-y-1">
                 {user ? (
                   <>
+                    {/* ✅ Mobile admin button */}
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        onClick={() => setOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-amber-500 text-white"
+                      >
+                        <Shield className="w-4 h-4" />
+                        Admin Panel
+                      </Link>
+                    )}
                     <Link
                       to="/dashboard"
                       onClick={() => setOpen(false)}
