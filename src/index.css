@@ -173,3 +173,16 @@
     to { opacity: 1; }
   }
 }
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: hsl(204 100% 97%); }
+::-webkit-scrollbar-thumb { background: hsl(199 89% 48%); border-radius: 3px; }
+
+/* Print styles */
+@media print {
+  nav, footer, .scroll-to-top, button, .no-print { display: none !important; }
+  body { background: white !important; color: black !important; }
+  .shadow-card, .shadow-elevated { box-shadow: none !important; }
+  * { break-inside: avoid; }
+}
