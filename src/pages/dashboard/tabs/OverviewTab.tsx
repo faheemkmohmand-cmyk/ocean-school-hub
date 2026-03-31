@@ -1,6 +1,9 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Users, GraduationCap, TrendingUp, Bell, ArrowRight, BookOpen, BarChart3, Image, Trophy, Calendar, Newspaper } from "lucide-react";
+import {
+  Users, GraduationCap, TrendingUp, Bell, ArrowRight,
+  BookOpen, BarChart3, Image, Trophy, Calendar, Newspaper, Shield
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 import { useNotices } from "@/hooks/useNotices";
@@ -25,6 +28,9 @@ const OverviewTab = ({ onNavigate }: Props) => {
   const { data: notices = [], isLoading: noticesLoading } = useNotices(3);
   const { data: news = [], isLoading: newsLoading } = useNews(2);
 
+  // ✅ Check if admin
+  const isAdmin = profile?.role === "admin";
+
   const statsCards = [
     { icon: Users, label: "Students", value: settings?.total_students || 0, color: "gradient-hero" },
     { icon: GraduationCap, label: "Teachers", value: settings?.total_teachers || 0, color: "gradient-accent" },
@@ -34,12 +40,31 @@ const OverviewTab = ({ onNavigate }: Props) => {
 
   return (
     <div className="space-y-6">
-      {/* Welcome */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-        <h2 className="text-2xl font-heading font-bold text-foreground">
-          Welcome back, {profile?.full_name?.split(" ")[0] || "User"}! 👋
-        </h2>
-        <p className="text-muted-foreground text-sm mt-1">Here's what's happening at GHS Babi Khel.</p>
+      {/* Welcome + Admin Button */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-start justify-between gap-4"
+      >
+        <div>
+          <h2 className="text-2xl font-heading font-bold text-foreground">
+            Welcome back, {profile?.full_name?.split(" ")[0] || "User"}! 👋
+          </h2>
+          <p className="text-muted-foreground text-sm mt-1">
+            Here's what's happening at GHS Babi Khel.
+          </p>
+        </div>
+
+        {/* ✅ Admin Panel button — only visible to admins */}
+        {isAdmin && (
+          <Link
+            to="/admin"
+            className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold px-4 py-2.5 rounded-xl shadow-card hover:shadow-elevated transition-all duration-200 shrink-0 text-sm"
+          >
+            <Shield className="w-4 h-4" />
+            Admin Panel
+          </Link>
+        )}
       </motion.div>
 
       {/* Stats */}
@@ -55,7 +80,7 @@ const OverviewTab = ({ onNavigate }: Props) => {
                 className="bg-card rounded-xl p-4 shadow-card"
               >
                 <div className={`w-9 h-9 rounded-lg ${s.color} flex items-center justify-center mb-2`}>
-                  <s.icon className="w-4.5 h-4.5 text-primary-foreground" />
+                  <s.icon className="w-4 h-4 text-primary-foreground" />
                 </div>
                 <div className="text-xl font-heading font-bold text-foreground">{s.value}</div>
                 <div className="text-xs text-muted-foreground">{s.label}</div>
@@ -67,21 +92,35 @@ const OverviewTab = ({ onNavigate }: Props) => {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-heading font-semibold text-foreground">Latest Notices</h3>
-          <button onClick={() => onNavigate("notices")} className="text-xs text-primary font-medium hover:underline flex items-center gap-1">
+          <button
+            onClick={() => onNavigate("notices")}
+            className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
+          >
             View All <ArrowRight className="w-3 h-3" />
           </button>
         </div>
         <div className="space-y-2">
           {noticesLoading
             ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)
+            : notices.length === 0
+            ? (
+              <div className="bg-card rounded-lg p-6 text-center text-muted-foreground text-sm shadow-card">
+                No notices yet.
+              </div>
+            )
             : notices.map((n) => (
-                <div key={n.id} className={`bg-card rounded-lg p-3 shadow-card border-l-3 ${n.is_urgent ? "border-l-destructive" : "border-l-primary"} flex items-center gap-3`}>
+                <div
+                  key={n.id}
+                  className={`bg-card rounded-lg p-3 shadow-card border-l-4 ${n.is_urgent ? "border-l-destructive" : "border-l-primary"} flex items-center gap-3`}
+                >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{n.title}</p>
                     <p className="text-xs text-muted-foreground">{format(new Date(n.created_at), "dd MMM yyyy")}</p>
                   </div>
                   {n.is_urgent && (
-                    <span className="text-xs font-semibold bg-destructive/10 text-destructive px-2 py-0.5 rounded-full shrink-0">Urgent</span>
+                    <span className="text-xs font-semibold bg-destructive/10 text-destructive px-2 py-0.5 rounded-full shrink-0">
+                      Urgent
+                    </span>
                   )}
                 </div>
               ))}
@@ -92,13 +131,22 @@ const OverviewTab = ({ onNavigate }: Props) => {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-heading font-semibold text-foreground">Latest News</h3>
-          <button onClick={() => onNavigate("news")} className="text-xs text-primary font-medium hover:underline flex items-center gap-1">
+          <button
+            onClick={() => onNavigate("news")}
+            className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
+          >
             View All <ArrowRight className="w-3 h-3" />
           </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {newsLoading
             ? Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)
+            : news.length === 0
+            ? (
+              <div className="bg-card rounded-xl p-6 text-center text-muted-foreground text-sm shadow-card col-span-2">
+                No news yet.
+              </div>
+            )
             : news.map((item) => (
                 <div key={item.id} className="bg-card rounded-xl overflow-hidden shadow-card flex">
                   {item.image_url ? (
