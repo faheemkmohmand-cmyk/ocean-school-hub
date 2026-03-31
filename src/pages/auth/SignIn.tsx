@@ -14,14 +14,34 @@ const SignIn = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
     if (error) {
       toast.error(error.message);
-    } else {
-      toast.success("Signed in successfully!");
-      navigate("/dashboard");
+      setLoading(false);
+      return;
     }
+
+    // ✅ Fetch profile to check role BEFORE navigating
+    if (data.user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
+
+      toast.success("Signed in successfully!");
+
+      // ✅ Redirect admin to /admin, everyone else to /dashboard
+      if (profile?.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
+    }
+
+    setLoading(false);
   };
 
   return (
