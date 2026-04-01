@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, GraduationCap, LogIn, UserPlus, LayoutDashboard, LogOut, Shield } from "lucide-react";
+import { Menu, X, GraduationCap, LogIn, UserPlus, LayoutDashboard, LogOut, Shield, Moon, Sun } from "lucide-react";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
+import { useDarkMode } from "@/hooks/useDarkMode";
 
 const navLinks = [
   { to: "/", label: "Home" },
@@ -23,8 +24,8 @@ const Navbar = () => {
   const location = useLocation();
   const { data: settings } = useSchoolSettings();
   const { user, profile, loading: authLoading, signOut } = useAuth();
+  const { isDark, toggle } = useDarkMode();
 
-  // ✅ Check if current user is admin
   const isAdmin = profile?.role === "admin";
 
   useEffect(() => {
@@ -109,7 +110,14 @@ const Navbar = () => {
                 <div className="hidden sm:flex items-center gap-2">
                   <NotificationBell />
 
-                  {/* ✅ Show Admin Panel button if admin */}
+                  <button
+                    onClick={toggle}
+                    className="p-2 rounded-lg hover:bg-secondary text-muted-foreground transition-colors"
+                    title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+                  >
+                    {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                  </button>
+
                   {isAdmin && (
                     <Link
                       to="/admin"
@@ -136,6 +144,13 @@ const Navbar = () => {
                 </div>
               ) : (
                 <div className="hidden sm:flex items-center gap-2">
+                  <button
+                    onClick={toggle}
+                    className="p-2 rounded-lg hover:bg-secondary text-muted-foreground transition-colors"
+                    title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+                  >
+                    {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                  </button>
                   <Link
                     to="/auth/signin"
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
@@ -189,9 +204,15 @@ const Navbar = () => {
                 </Link>
               ))}
               <div className="pt-2 border-t border-border mt-2 space-y-1">
+                <button
+                  onClick={() => { toggle(); setOpen(false); }}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary w-full text-left"
+                >
+                  {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  {isDark ? "Light Mode" : "Dark Mode"}
+                </button>
                 {user ? (
                   <>
-                    {/* ✅ Mobile admin button */}
                     {isAdmin && (
                       <Link
                         to="/admin"
