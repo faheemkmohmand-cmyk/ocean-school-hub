@@ -1,12 +1,45 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 
+// ✅ This component does its OWN role check directly
+// Does NOT depend on useAuth profile loading
+// Uses the live session token directly — RLS always works
 const AdminProtectedRoute = ({ children }: { children: ReactNode }) => {
-  const { user, profile, loading } = useAuth();
+  const [status, setStatus] = useState<"loading" | "admin" | "not-admin" | "not-logged-in">("loading");
 
-  if (loading) {
+  useEffect(() => {
+    const check = async () => {
+      // Get current session
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        setStatus("not-logged-in");
+        return;
+      }
+
+      // Fetch role directly using the active session (RLS works because user is authenticated)
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", session.user.id)
+        .single();
+
+      if (error || !data) {
+        console.warn("AdminProtectedRoute: could not fetch profile", error?.message);
+        setStatus("not-admin");
+        return;
+      }
+
+      console.log("AdminProtectedRoute role check:", data.role);
+      setStatus(data.role === "admin" ? "admin" : "not-admin");
+    };
+
+    check();
+  }, []);
+
+  if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-3">
@@ -17,13 +50,8 @@ const AdminProtectedRoute = ({ children }: { children: ReactNode }) => {
     );
   }
 
-  if (!user) return <Navigate to="/auth/signin" replace />;
-
-  if (!profile) return <Navigate to="/dashboard" replace />;
-
-  if (profile.role !== "admin") {
-    return <Navigate to="/dashboard" replace />;
-  }
+  if (status === "not-logged-in") return <Navigate to="/auth/signin" replace />;
+  if (status === "not-admin") return <Navigate to="/dashboard" replace />;
 
   return <>{children}</>;
 };
