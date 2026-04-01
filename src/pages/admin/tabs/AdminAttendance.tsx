@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
@@ -60,8 +60,8 @@ const AdminAttendance = () => {
     enabled: students.length > 0,
   });
 
-  // Initialize statuses from existing data
-  useMemo(() => {
+  // BUG A FIX: useEffect instead of useMemo for side effects
+  useEffect(() => {
     const map: Record<string, Status> = {};
     students.forEach(s => { map[s.id] = "present"; });
     existingAttendance.forEach(a => { map[a.student_id] = a.status; });
@@ -79,12 +79,18 @@ const AdminAttendance = () => {
 
   const handleSave = async () => {
     setSaving(true);
+    // BUG C FIX: include class field
     const rows = students.map(s => ({
-      student_id: s.id, date: dateStr, status: statuses[s.id] || "present",
+      student_id: s.id,
+      class: cls,
+      date: dateStr,
+      status: statuses[s.id] || "present",
     }));
 
-    const { error } = await supabase.from("attendance").upsert(rows, { onConflict: "student_id,date" });
-    if (error) { toast.error("Save failed"); setSaving(false); return; }
+    // BUG B FIX: ignoreDuplicates false
+    const { error } = await supabase.from("attendance").upsert(rows, { onConflict: "student_id,date", ignoreDuplicates: false });
+    // BUG D FIX: show error details
+    if (error) { toast.error(`Save failed: ${error.message}`); setSaving(false); return; }
 
     toast.success("Attendance saved!");
     qc.invalidateQueries({ queryKey: ["attendance-day", cls, dateStr] });

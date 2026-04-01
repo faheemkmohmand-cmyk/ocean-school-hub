@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Home, Calendar, BarChart3, Bell, Newspaper, BookOpen, Image, Trophy,
-  Users, User, LogOut, GraduationCap, Menu, X, Shield
+  Users, User, LogOut, GraduationCap, Menu, X, Shield, ExternalLink, Moon, Sun
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
+import { useDarkMode } from "@/hooks/useDarkMode";
 
 const navItems = [
   { id: "overview", label: "Overview", icon: Home },
@@ -30,6 +31,7 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
   const { profile, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
+  const { isDark, toggle } = useDarkMode();
 
   const handleSignOut = async () => {
     await signOut();
@@ -96,6 +98,13 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
 
         {/* Footer */}
         <div className="p-3 border-t border-border space-y-1">
+          <Link
+            to="/"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Main Website
+          </Link>
           {profile?.role === "admin" && (
             <Link
               to="/admin"
@@ -130,6 +139,13 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
           </h1>
           <div className="ml-auto flex items-center gap-2">
             <NotificationBell />
+            <button
+              onClick={toggle}
+              className="p-2 rounded-lg hover:bg-secondary text-muted-foreground transition-colors"
+              title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
             <button
               onClick={() => onTabChange("profile")}
               className="p-1"
@@ -201,7 +217,15 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
                 </button>
               ))}
             </nav>
-            <div className="p-3 border-t border-border">
+            <div className="p-3 border-t border-border space-y-1">
+              <Link
+                to="/"
+                onClick={() => setSidebarOpen(false)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Main Website
+              </Link>
               <button
                 onClick={handleSignOut}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10"

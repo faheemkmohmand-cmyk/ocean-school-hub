@@ -106,18 +106,21 @@ const Results = () => {
             ))}
 
             {/* Year filter */}
-            {years.length > 0 && (
-              <select
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">Year:</span>
+              <input
+                type="number"
                 value={selectedYear || ""}
-                onChange={(e) => setSelectedYear(e.target.value ? Number(e.target.value) : undefined)}
-                className="ml-auto rounded-lg border border-input bg-card px-3 py-2 text-sm shadow-card"
-              >
-                <option value="">All Years</option>
-                {years.map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-            )}
+                onChange={(e) => {
+                  const val = e.target.value ? parseInt(e.target.value) : undefined;
+                  if (val === undefined || (!isNaN(val) && val >= 1900 && val <= 2200)) setSelectedYear(val);
+                }}
+                className="w-28 rounded-lg border border-input bg-card px-3 py-2 text-sm shadow-card focus:ring-2 focus:ring-ring outline-none"
+                min="1900"
+                max="2200"
+                placeholder="All Years"
+              />
+            </div>
           </div>
 
           {/* Search */}

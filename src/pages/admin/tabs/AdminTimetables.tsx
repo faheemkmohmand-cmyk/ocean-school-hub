@@ -12,7 +12,7 @@ import toast from "react-hot-toast";
 
 const classes = ["6", "7", "8", "9", "10"];
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const periods = [1, 2, 3, 4, 5, 6, 7, 8];
+const periods = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 const subjectColors: Record<string, string> = {
   math: "bg-blue-100 border-blue-300",
@@ -33,7 +33,7 @@ const getSubjectColor = (subject: string) => {
 };
 
 interface CellData { subject: string; teacher: string; start_time: string; end_time: string; room: string; }
-type Grid = Record<string, CellData>; // key = "period-day"
+type Grid = Record<string, CellData>;
 
 interface TimetableRow {
   id?: string; class: string; day: string; period_number: number;
@@ -42,12 +42,34 @@ interface TimetableRow {
 
 const emptyCell = (): CellData => ({ subject: "", teacher: "", start_time: "", end_time: "", room: "" });
 
+const defaultPeriodNames = (): Record<number, string> => ({
+  1: "Period 1", 2: "Period 2", 3: "Period 3", 4: "Period 4",
+  5: "Period 5", 6: "Period 6", 7: "Period 7", 8: "Period 8", 9: "Period 9"
+});
+
 const AdminTimetables = () => {
   const qc = useQueryClient();
   const [cls, setCls] = useState("6");
   const [grid, setGrid] = useState<Grid>({});
   const [editingCell, setEditingCell] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const [periodNames, setPeriodNames] = useState<Record<number, string>>(() => {
+    const saved = localStorage.getItem(`ghs-period-names-${cls}`);
+    return saved ? JSON.parse(saved) : defaultPeriodNames();
+  });
+
+  // Reload period names when class changes
+  useEffect(() => {
+    const saved = localStorage.getItem(`ghs-period-names-${cls}`);
+    if (saved) setPeriodNames(JSON.parse(saved));
+    else setPeriodNames(defaultPeriodNames());
+  }, [cls]);
+
+  // Save period names to localStorage
+  useEffect(() => {
+    localStorage.setItem(`ghs-period-names-${cls}`, JSON.stringify(periodNames));
+  }, [periodNames, cls]);
 
   const queryKey = ["admin-timetable", cls];
   const { data: rows = [], isLoading } = useQuery<TimetableRow[]>({
@@ -71,7 +93,6 @@ const AdminTimetables = () => {
 
   const handleSave = async () => {
     setSaving(true);
-    // Delete existing then insert all
     await supabase.from("timetables").delete().eq("class", cls);
     const inserts: Omit<TimetableRow, "id">[] = [];
     periods.forEach(p => days.forEach(d => {
@@ -120,14 +141,22 @@ const AdminTimetables = () => {
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="bg-secondary/50">
-              <th className="border border-border px-3 py-2 text-left font-semibold text-foreground w-20">Period</th>
+              <th className="border border-border px-3 py-2 text-left font-semibold text-foreground w-24">Period</th>
               {days.map(d => <th key={d} className="border border-border px-3 py-2 text-center font-semibold text-foreground min-w-[140px]">{d}</th>)}
             </tr>
           </thead>
           <tbody>
             {periods.map(p => (
               <tr key={p}>
-                <td className="border border-border px-3 py-2 font-medium text-muted-foreground bg-secondary/30">P{p}</td>
+                <td className="border border-border px-1 py-2 font-medium text-muted-foreground bg-secondary/30">
+                  <input
+                    type="text"
+                    value={periodNames[p] || `Period ${p}`}
+                    onChange={e => setPeriodNames(prev => ({ ...prev, [p]: e.target.value }))}
+                    className="w-full bg-transparent text-xs font-semibold text-foreground border-none outline-none text-center"
+                    placeholder={`Period ${p}`}
+                  />
+                </td>
                 {days.map(d => {
                   const key = `${p}-${d}`;
                   const cell = grid[key] || emptyCell();

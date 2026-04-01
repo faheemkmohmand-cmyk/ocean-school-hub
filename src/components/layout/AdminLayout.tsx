@@ -3,9 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   BarChart3, Settings, Users, GraduationCap, ClipboardList, CheckSquare,
   Calendar, Bell, Newspaper, Image, BookOpen, Trophy, UserCog, LogOut,
-  Menu, X, ExternalLink, Shield
+  Menu, X, ExternalLink, Shield, Moon, Sun
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useDarkMode } from "@/hooks/useDarkMode";
 
 const navItems = [
   { id: "overview", label: "Overview", icon: BarChart3 },
@@ -33,6 +34,7 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
   const { profile, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
+  const { isDark, toggle } = useDarkMode();
 
   const handleSignOut = async () => {
     await signOut();
@@ -99,6 +101,13 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
 
         <div className="p-3 border-t border-border space-y-1">
           <Link
+            to="/"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Main Website
+          </Link>
+          <Link
             to="/dashboard"
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
           >
@@ -126,13 +135,18 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
           <div className="ml-auto flex items-center gap-2">
             <a
               href="/"
-              target="_blank"
-              rel="noopener noreferrer"
               className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg hover:bg-secondary transition-colors"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               View Website
             </a>
+            <button
+              onClick={toggle}
+              className="p-2 rounded-lg hover:bg-secondary text-muted-foreground transition-colors"
+              title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
             <button
               onClick={handleSignOut}
               className="flex items-center gap-1.5 text-xs font-medium text-destructive px-3 py-1.5 rounded-lg hover:bg-destructive/10 transition-colors"

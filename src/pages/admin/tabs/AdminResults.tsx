@@ -162,8 +162,6 @@ const AdminResults = () => {
     if (csvRef.current) csvRef.current.value = "";
   }, [students, cls, examType, year, qc, queryKey]);
 
-  const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - i);
-
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-heading font-bold text-foreground">Manage Results</h2>
@@ -183,10 +181,21 @@ const AdminResults = () => {
           </TabsList>
         </Tabs>
 
-        <Select value={String(year)} onValueChange={v => setYear(Number(v))}>
-          <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-          <SelectContent>{yearOptions.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">Year:</span>
+          <input
+            type="number"
+            value={year}
+            onChange={e => {
+              const val = parseInt(e.target.value);
+              if (!isNaN(val) && val >= 1900 && val <= 2200) setYear(val);
+            }}
+            className="w-28 rounded-lg border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-ring outline-none"
+            min="1900"
+            max="2200"
+            placeholder="Year"
+          />
+        </div>
 
         <Button onClick={openAdd} size="sm" className="gap-1.5"><Plus className="w-4 h-4" /> Add Result</Button>
 
