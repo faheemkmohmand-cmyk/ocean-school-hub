@@ -22,7 +22,17 @@ const AdminProtectedRoute = ({ children }: { children: ReactNode }) => {
   if (!user) return <Navigate to="/auth/signin" replace />;
 
   // ✅ Logged in but not admin → go to dashboard
-  if (profile?.role !== "admin") return <Navigate to="/dashboard" replace />;
+  if (loading) {
+  return <div>Loading...</div>;
+}
+
+if (!profile) {
+  return <div>No profile found</div>;
+}
+
+if (profile.role !== "admin") {
+  return <Navigate to="/dashboard" replace />;
+}
 
   // ✅ Is admin → show admin panel
   return <>{children}</>;
