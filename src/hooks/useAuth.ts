@@ -21,13 +21,23 @@ export function useAuth() {
 
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     try {
+      // Try the RPC function first — bypasses RLS completely
+      const { data: rpcData, error: rpcError } = await supabase
+        .rpc("get_my_profile");
+
+      if (!rpcError && rpcData) {
+        return rpcData as Profile;
+      }
+
+      // Fallback: direct query
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
         .single();
+
       if (error) {
-        console.warn("Profile fetch error (table may not exist yet):", error.message);
+        console.warn("Profile fetch error:", error.message);
         return null;
       }
       return data as Profile;
@@ -41,27 +51,22 @@ export function useAuth() {
     let mounted = true;
 
     const init = async () => {
-      // Step 1: get current session
       const { data: { session } } = await supabase.auth.getSession();
-
       if (!mounted) return;
 
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        // Step 2: fetch profile — await fully before setLoading(false)
         const prof = await fetchProfile(session.user.id);
         if (mounted) setProfile(prof);
       }
 
-      // Step 3: only NOW set loading false — profile is ready
       if (mounted) setLoading(false);
     };
 
     init();
 
-    // Listen for auth changes (sign in / sign out)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (!mounted) return;
