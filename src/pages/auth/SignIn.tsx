@@ -15,30 +15,49 @@ const SignIn = () => {
     e.preventDefault();
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      // Step 1: Sign in
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) {
-      toast.error(error.message);
-      setLoading(false);
-      return;
-    }
+      if (error) {
+        toast.error(error.message);
+        setLoading(false);
+        return;
+      }
 
-    // ✅ Fetch profile to check role BEFORE navigating
-    if (data.user) {
-      const { data: profile } = await supabase
+      if (!data.user) {
+        toast.error("Login failed. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      // Step 2: Directly fetch role from profiles table
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", data.user.id)
         .single();
 
+      if (profileError) {
+        // profiles table might not exist yet — go to dashboard as fallback
+        console.warn("Could not fetch profile:", profileError.message);
+        toast.success("Signed in!");
+        navigate("/dashboard");
+        setLoading(false);
+        return;
+      }
+
       toast.success("Signed in successfully!");
 
-      // ✅ Redirect admin to /admin, everyone else to /dashboard
+      // Step 3: Route based on role
       if (profile?.role === "admin") {
         navigate("/admin");
       } else {
         navigate("/dashboard");
       }
+    } catch (err) {
+      console.error("Sign in error:", err);
+      toast.error("Something went wrong. Please try again.");
     }
 
     setLoading(false);
@@ -46,7 +65,6 @@ const SignIn = () => {
 
   return (
     <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
-      {/* Blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-white/10 blur-3xl" />
         <div className="absolute bottom-20 -left-20 w-80 h-80 rounded-full bg-white/5 blur-3xl" />
