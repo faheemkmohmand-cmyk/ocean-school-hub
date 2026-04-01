@@ -17,19 +17,28 @@ export function useTypingAnimation({
   const wordIndexRef = useRef(0);
   const isDeletingRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wordsKeyRef = useRef(words.join("|"));
 
   useEffect(() => {
     if (!words || words.length === 0) return;
+
+    const newKey = words.join("|");
+    if (newKey !== wordsKeyRef.current) {
+      wordsKeyRef.current = newKey;
+      wordIndexRef.current = 0;
+      isDeletingRef.current = false;
+      setDisplayed("");
+    }
+
+    if (timerRef.current) clearTimeout(timerRef.current);
 
     const tick = () => {
       const currentWord = words[wordIndexRef.current];
 
       if (!isDeletingRef.current) {
-        // TYPING phase
         setDisplayed((prev) => {
           const next = currentWord.slice(0, prev.length + 1);
           if (next === currentWord) {
-            // Finished typing — pause then start deleting
             timerRef.current = setTimeout(() => {
               isDeletingRef.current = true;
               timerRef.current = setTimeout(tick, deletingSpeed);
@@ -40,14 +49,12 @@ export function useTypingAnimation({
           return next;
         });
       } else {
-        // DELETING phase
         setDisplayed((prev) => {
           const next = prev.slice(0, -1);
           if (next === "") {
-            // Finished deleting — move to next word
             isDeletingRef.current = false;
             wordIndexRef.current = (wordIndexRef.current + 1) % words.length;
-            timerRef.current = setTimeout(tick, typingSpeed + 100); // small gap before next word
+            timerRef.current = setTimeout(tick, typingSpeed + 100);
             return "";
           }
           timerRef.current = setTimeout(tick, deletingSpeed);
@@ -56,14 +63,13 @@ export function useTypingAnimation({
       }
     };
 
-    // Start after small initial delay
     timerRef.current = setTimeout(tick, 500);
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // ✅ Run once only — refs handle the state internally
+  }, [words.join("|")]);
 
   return { displayed };
 }
