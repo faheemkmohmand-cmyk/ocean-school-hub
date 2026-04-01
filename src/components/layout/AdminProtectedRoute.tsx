@@ -6,7 +6,6 @@ import { Loader2 } from "lucide-react";
 const AdminProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { user, profile, loading } = useAuth();
 
-  // ✅ Wait for BOTH user AND profile to load before deciding
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -18,23 +17,14 @@ const AdminProtectedRoute = ({ children }: { children: ReactNode }) => {
     );
   }
 
-  // ✅ Not logged in → go to sign in
   if (!user) return <Navigate to="/auth/signin" replace />;
 
-  // ✅ Logged in but not admin → go to dashboard
-  if (loading) {
-  return <div>Loading...</div>;
-}
+  if (!profile) return <Navigate to="/dashboard" replace />;
 
-if (!profile) {
-  return <div>No profile found</div>;
-}
+  if (profile.role !== "admin") {
+    return <Navigate to="/dashboard" replace />;
+  }
 
-if (profile.role !== "admin") {
-  return <Navigate to="/dashboard" replace />;
-}
-
-  // ✅ Is admin → show admin panel
   return <>{children}</>;
 };
 
