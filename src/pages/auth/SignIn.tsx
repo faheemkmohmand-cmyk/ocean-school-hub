@@ -15,71 +15,48 @@ const SignIn = () => {
     e.preventDefault();
     setLoading(true);
 
-    try {
-      // STEP 1: Sign in and get session + user
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    // STEP 1: Sign in
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-      if (authError || !authData.user || !authData.session) {
-        toast.error(authError?.message || "Login failed. Please try again.");
-        setLoading(false);
-        return;
-      }
+    if (authError || !authData.user) {
+      toast.error(authError?.message || "Login failed.");
+      setLoading(false);
+      return;
+    }
 
-      const userId = authData.user.id;
-      const accessToken = authData.session.access_token;
+    // STEP 2: Use the RPC function (bypasses RLS 100%)
+    const { data: profileJson, error: rpcError } = await supabase.rpc("get_my_profile");
 
-      // STEP 2: Create a one-time authenticated client using the real session token
-      // This guarantees auth.uid() = userId on Supabase side — no timing issue
-      const { createClient } = await import("@supabase/supabase-js");
-      const authedClient = createClient(
-        import.meta.env.VITE_SUPABASE_URL,
-        import.meta.env.VITE_SUPABASE_ANON_KEY,
-        {
-          global: {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          },
-        }
-      );
-
-      // STEP 3: Fetch profile using authenticated client (RLS will work 100%)
-      const { data: profile, error: profileError } = await authedClient
+    if (rpcError || !profileJson) {
+      // RPC failed — try direct query as backup
+      const { data: directProfile } = await supabase
         .from("profiles")
         .select("role")
-        .eq("id", userId)
+        .eq("id", authData.user.id)
         .single();
 
-      if (profileError || !profile) {
-        // Profile doesn't exist yet — create it, then go to dashboard
-        console.warn("Profile not found, creating one:", profileError?.message);
-        await authedClient.from("profiles").insert({
-          id: userId,
-          full_name: authData.user.user_metadata?.full_name || email.split("@")[0],
-          role: "user",
-        });
-        toast.success("Signed in!");
-        navigate("/dashboard");
-        setLoading(false);
-        return;
-      }
-
-      toast.success("Signed in successfully!");
-
-      // STEP 4: Route based on role — 100% reliable
-      console.log("User role:", profile.role); // debug log — check browser console
-      if (profile.role === "admin") {
+      toast.success("Signed in!");
+      if (directProfile?.role === "admin") {
         navigate("/admin", { replace: true });
       } else {
         navigate("/dashboard", { replace: true });
       }
+      setLoading(false);
+      return;
+    }
 
-    } catch (err) {
-      console.error("Sign in error:", err);
-      toast.error("Something went wrong. Please try again.");
+    // STEP 3: profileJson has the role
+    const role = profileJson?.role;
+    console.log("✅ Signed in. Role:", role);
+    toast.success("Signed in successfully!");
+
+    if (role === "admin") {
+      navigate("/admin", { replace: true });
+    } else {
+      navigate("/dashboard", { replace: true });
     }
 
     setLoading(false);
@@ -111,9 +88,7 @@ const SignIn = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">
-                Email
-              </label>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Email</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
@@ -152,11 +127,7 @@ const SignIn = () => {
               disabled={loading}
               className="w-full gradient-accent text-primary-foreground font-semibold py-3 rounded-xl shadow-card hover:shadow-elevated transition-all flex items-center justify-center gap-2 disabled:opacity-60"
             >
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <ArrowRight className="w-4 h-4" />
-              )}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
               {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
