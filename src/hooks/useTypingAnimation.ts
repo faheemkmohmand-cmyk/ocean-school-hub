@@ -1,59 +1,69 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface UseTypingAnimationProps {
   words: string[];
-  typingSpeed?: number;   // ms per character
-  deletingSpeed?: number; // ms per character when deleting
-  pauseTime?: number;     // ms to pause after full word is typed
+  typingSpeed?: number;
+  deletingSpeed?: number;
+  pauseTime?: number;
 }
 
 export function useTypingAnimation({
   words,
   typingSpeed = 80,
   deletingSpeed = 40,
-  pauseTime = 2000,
+  pauseTime = 2200,
 }: UseTypingAnimationProps) {
   const [displayed, setDisplayed] = useState("");
-  const [wordIndex, setWordIndex] = useState(0);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
+  const wordIndexRef = useRef(0);
+  const isDeletingRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (words.length === 0) return;
+    if (!words || words.length === 0) return;
 
-    const currentWord = words[wordIndex % words.length];
+    const tick = () => {
+      const currentWord = words[wordIndexRef.current];
 
-    if (isPaused) {
-      const pauseTimer = setTimeout(() => {
-        setIsPaused(false);
-        setIsDeleting(true);
-      }, pauseTime);
-      return () => clearTimeout(pauseTimer);
-    }
-
-    if (isDeleting) {
-      if (displayed.length === 0) {
-        setIsDeleting(false);
-        setWordIndex((prev) => (prev + 1) % words.length);
-        return;
+      if (!isDeletingRef.current) {
+        // TYPING phase
+        setDisplayed((prev) => {
+          const next = currentWord.slice(0, prev.length + 1);
+          if (next === currentWord) {
+            // Finished typing — pause then start deleting
+            timerRef.current = setTimeout(() => {
+              isDeletingRef.current = true;
+              timerRef.current = setTimeout(tick, deletingSpeed);
+            }, pauseTime);
+            return next;
+          }
+          timerRef.current = setTimeout(tick, typingSpeed);
+          return next;
+        });
+      } else {
+        // DELETING phase
+        setDisplayed((prev) => {
+          const next = prev.slice(0, -1);
+          if (next === "") {
+            // Finished deleting — move to next word
+            isDeletingRef.current = false;
+            wordIndexRef.current = (wordIndexRef.current + 1) % words.length;
+            timerRef.current = setTimeout(tick, typingSpeed + 100); // small gap before next word
+            return "";
+          }
+          timerRef.current = setTimeout(tick, deletingSpeed);
+          return next;
+        });
       }
-      const timer = setTimeout(() => {
-        setDisplayed((prev) => prev.slice(0, -1));
-      }, deletingSpeed);
-      return () => clearTimeout(timer);
-    }
+    };
 
-    // Typing
-    if (displayed.length < currentWord.length) {
-      const timer = setTimeout(() => {
-        setDisplayed(currentWord.slice(0, displayed.length + 1));
-      }, typingSpeed);
-      return () => clearTimeout(timer);
-    }
+    // Start after small initial delay
+    timerRef.current = setTimeout(tick, 500);
 
-    // Full word typed → pause
-    setIsPaused(true);
-  }, [displayed, isDeleting, isPaused, wordIndex, words, typingSpeed, deletingSpeed, pauseTime]);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ✅ Run once only — refs handle the state internally
 
-  return { displayed, isDeleting };
+  return { displayed };
 }
