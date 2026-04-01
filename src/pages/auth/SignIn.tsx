@@ -16,31 +16,51 @@ const SignIn = () => {
     setLoading(true);
 
     try {
-      // Step 1: Sign in
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      // STEP 1: Sign in and get session + user
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      if (error) {
-        toast.error(error.message);
+      if (authError || !authData.user || !authData.session) {
+        toast.error(authError?.message || "Login failed. Please try again.");
         setLoading(false);
         return;
       }
 
-      if (!data.user) {
-        toast.error("Login failed. Please try again.");
-        setLoading(false);
-        return;
-      }
+      const userId = authData.user.id;
+      const accessToken = authData.session.access_token;
 
-      // Step 2: Directly fetch role from profiles table
-      const { data: profile, error: profileError } = await supabase
+      // STEP 2: Create a one-time authenticated client using the real session token
+      // This guarantees auth.uid() = userId on Supabase side — no timing issue
+      const { createClient } = await import("@supabase/supabase-js");
+      const authedClient = createClient(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_ANON_KEY,
+        {
+          global: {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+        }
+      );
+
+      // STEP 3: Fetch profile using authenticated client (RLS will work 100%)
+      const { data: profile, error: profileError } = await authedClient
         .from("profiles")
         .select("role")
-        .eq("id", data.user.id)
+        .eq("id", userId)
         .single();
 
-      if (profileError) {
-        // profiles table might not exist yet — go to dashboard as fallback
-        console.warn("Could not fetch profile:", profileError.message);
+      if (profileError || !profile) {
+        // Profile doesn't exist yet — create it, then go to dashboard
+        console.warn("Profile not found, creating one:", profileError?.message);
+        await authedClient.from("profiles").insert({
+          id: userId,
+          full_name: authData.user.user_metadata?.full_name || email.split("@")[0],
+          role: "user",
+        });
         toast.success("Signed in!");
         navigate("/dashboard");
         setLoading(false);
@@ -49,12 +69,14 @@ const SignIn = () => {
 
       toast.success("Signed in successfully!");
 
-      // Step 3: Route based on role
-      if (profile?.role === "admin") {
-        navigate("/admin");
+      // STEP 4: Route based on role — 100% reliable
+      console.log("User role:", profile.role); // debug log — check browser console
+      if (profile.role === "admin") {
+        navigate("/admin", { replace: true });
       } else {
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
       }
+
     } catch (err) {
       console.error("Sign in error:", err);
       toast.error("Something went wrong. Please try again.");
@@ -82,12 +104,16 @@ const SignIn = () => {
               <GraduationCap className="w-8 h-8 text-primary-foreground" />
             </div>
             <h1 className="text-2xl font-heading font-bold text-foreground">Welcome Back</h1>
-            <p className="text-sm text-muted-foreground mt-1">Sign in to your GHS Babi Khel account</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Sign in to your GHS Babi Khel account
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Email</label>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">
+                Email
+              </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
@@ -126,7 +152,11 @@ const SignIn = () => {
               disabled={loading}
               className="w-full gradient-accent text-primary-foreground font-semibold py-3 rounded-xl shadow-card hover:shadow-elevated transition-all flex items-center justify-center gap-2 disabled:opacity-60"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <ArrowRight className="w-4 h-4" />
+              )}
               {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
