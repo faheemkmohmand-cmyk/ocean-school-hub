@@ -66,12 +66,21 @@ const Home = () => {
   const { data: teachers = [], isLoading: teachersLoading } = useTeachers(4);
   const { data: achievements = [], isLoading: achievementsLoading } = useAchievements(3);
 
-  // ✅ Typing animation for hero tagline
-  const { displayed, isDeleting } = useTypingAnimation({
+  // Typing animation for hero tagline
+  const { displayed } = useTypingAnimation({
     words: TYPING_WORDS,
     typingSpeed: 70,
     deletingSpeed: 35,
     pauseTime: 2500,
+  });
+
+  // Typing animation for school name (loops)
+  const schoolName = settings?.school_name || "GHS Babi Khel";
+  const { displayed: displayedSchoolName } = useTypingAnimation({
+    words: [schoolName],
+    typingSpeed: 90,
+    deletingSpeed: 45,
+    pauseTime: 3500,
   });
 
   return (
@@ -125,23 +134,26 @@ const Home = () => {
               </span>
             </motion.div>
 
-            {/* H1 — School Name */}
+            {/* H1 — School Name (typing loop) */}
             <motion.h1
               variants={stagger.child}
-              className="mt-6 text-5xl md:text-7xl lg:text-8xl font-heading font-extrabold italic text-white leading-[0.95]"
+              className="mt-6 text-5xl md:text-7xl lg:text-8xl font-heading font-extrabold italic text-white leading-[0.95] min-h-[1em]"
             >
               <span className="bg-gradient-to-r from-white via-primary-light to-accent bg-clip-text text-transparent">
-                {settings?.school_name || "GHS Babi Khel"}
+                {displayedSchoolName}
               </span>
+              <span
+                className="inline-block w-1 h-[0.85em] bg-white/70 ml-1 align-middle"
+                style={{ animation: "blink 1s step-end infinite" }}
+              />
             </motion.h1>
 
-            {/* ✅ H2 — Typing Animation */}
+            {/* H2 — Typing Animation */}
             <motion.h2
               variants={stagger.child}
               className="mt-4 text-xl md:text-2xl font-heading font-semibold text-white/90 min-h-[2rem]"
             >
               {displayed}
-              {/* Blinking cursor */}
               <span
                 className="inline-block w-0.5 h-6 bg-white/80 ml-1 align-middle"
                 style={{ animation: "blink 1s step-end infinite" }}
