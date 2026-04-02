@@ -80,7 +80,7 @@ const AdminResults = () => {
         .eq("class", cls).eq("exam_type", examType).eq("year", year)
         .order("percentage", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Result[];
+      return (data ?? []) as unknown as Result[];
     },
     staleTime: 10 * 60 * 1000,
     gcTime: 30 * 60 * 1000,

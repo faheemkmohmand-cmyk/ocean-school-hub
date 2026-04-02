@@ -48,7 +48,7 @@ export function useResults(options: {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data ?? []) as ResultWithStudent[];
+      return (data ?? []) as unknown as ResultWithStudent[];
     },
     enabled: !!classFilter && !!examType,
     staleTime: 10 * 60 * 1000,
