@@ -19,7 +19,7 @@ export function useAchievements(limit?: number) {
     queryFn: async () => {
       let query = supabase
         .from("achievements")
-        .select("*")
+        .select("id, title, description, student_name, class, year, image_url, category, created_at")
         .order("created_at", { ascending: false });
       if (limit) query = query.limit(limit);
       const { data, error } = await query;
@@ -27,6 +27,7 @@ export function useAchievements(limit?: number) {
       return data ?? [];
     },
     staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     placeholderData: [],
   });
 }

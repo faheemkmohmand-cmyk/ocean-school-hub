@@ -41,13 +41,14 @@ export function useSchoolSettings() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("school_settings")
-        .select("*")
+        .select("id, school_name, tagline, description, logo_url, banner_url, emis_code, address, phone, email, established_year, total_students, total_teachers, pass_percentage")
         .eq("id", 1)
         .single();
       if (error) throw error;
       return data;
     },
     staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     retry: 2,
     placeholderData: fallbackSettings,
   });

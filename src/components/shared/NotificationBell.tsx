@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { useNotices } from "@/hooks/useNotices";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,6 +12,7 @@ const NotificationBell = () => {
   const { data: notices = [] } = useNotices();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   const storageKey = user ? `last_read_at_${user.id}` : "last_read_at_guest";
   const lastReadAt = localStorage.getItem(storageKey);
@@ -22,6 +24,14 @@ const NotificationBell = () => {
   const markAllRead = () => {
     localStorage.setItem(storageKey, new Date().toISOString());
     setOpen(false);
+  };
+
+  const handleNotificationClick = (notice: typeof notices[0]) => {
+    // Mark as read by updating last_read_at to now
+    localStorage.setItem(storageKey, new Date().toISOString());
+    setOpen(false);
+    // Navigate to notices page
+    navigate("/notices");
   };
 
   useEffect(() => {
@@ -69,7 +79,11 @@ const NotificationBell = () => {
                 latest.map(n => {
                   const isUnread = new Date(n.created_at) > lastReadDate;
                   return (
-                    <div key={n.id} className={`px-3 py-2.5 border-b border-border last:border-0 ${isUnread ? "bg-primary/5" : ""}`}>
+                    <div
+                      key={n.id}
+                      onClick={() => handleNotificationClick(n)}
+                      className={`px-3 py-2.5 border-b border-border last:border-0 cursor-pointer hover:bg-secondary/50 transition-colors ${isUnread ? "bg-primary/5" : ""}`}
+                    >
                       <div className="flex items-start gap-2">
                         {isUnread && <div className="w-2 h-2 rounded-full bg-primary mt-1.5 shrink-0" />}
                         <div className="min-w-0 flex-1">

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -14,7 +13,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Loader2, Upload, Search } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Plus, Pencil, Trash2, Loader2, Upload, Search, Download } from "lucide-react";
 import toast from "react-hot-toast";
 import { triggerConfetti } from "@/lib/confetti";
 import { getGradeFromPercentage, getGradeColor } from "@/hooks/useResults";
@@ -46,19 +46,19 @@ const AdminResults = () => {
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const csvRef = useRef<HTMLInputElement>(null);
+  const [csvImporting, setCsvImporting] = useState(false);
+  const [csvProgress, setCsvProgress] = useState(0);
 
   const [form, setForm] = useState({
     student_id: "", total_marks: 100, obtained_marks: 0, remarks: "",
   });
 
-  // Reset exam type when class changes
   const handleClassChange = (c: string) => {
     setCls(c);
     const types = getExamTypes(c);
     setExamType(types[0]);
   };
 
-  // Fetch students for selected class
   const { data: students = [] } = useQuery<Student[]>({
     queryKey: ["admin-students-list", cls],
     queryFn: async () => {
@@ -66,24 +66,26 @@ const AdminResults = () => {
       if (error) throw error;
       return data ?? [];
     },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
-  // Fetch results
   const queryKey = ["admin-results", cls, examType, year];
   const { data: results = [], isLoading } = useQuery<Result[]>({
     queryKey,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("results")
-        .select("*, students(full_name, roll_number, photo_url)")
+        .select("id, student_id, class, exam_type, year, total_marks, obtained_marks, percentage, grade, position, is_pass, remarks, created_at, students(full_name, roll_number, photo_url)")
         .eq("class", cls).eq("exam_type", examType).eq("year", year)
         .order("percentage", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Result[];
     },
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
-  // Ranked results
   const rankedResults = useMemo(() => {
     const filtered = search
       ? results.filter(r =>
@@ -134,31 +136,88 @@ const AdminResults = () => {
     onSuccess: () => { toast.success("Deleted"); qc.invalidateQueries({ queryKey }); },
   });
 
+  const downloadCSVTemplate = () => {
+    const csv = "student_name,roll_number,total_marks,obtained_marks,remarks\nAli Khan,001,100,85,Good performance\nSara Ahmed,002,100,72,";
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "results_template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleCSV = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const text = await file.text();
-    const lines = text.trim().split("\n").slice(1); // skip header
-    const rows = lines.map(l => {
-      const [roll_number, total_marks, obtained_marks] = l.split(",").map(s => s.trim());
-      return { roll_number, total_marks: Number(total_marks), obtained_marks: Number(obtained_marks) };
-    }).filter(r => r.roll_number && !isNaN(r.total_marks) && !isNaN(r.obtained_marks));
+    setCsvImporting(true);
+    setCsvProgress(0);
 
+    const text = await file.text();
+    const lines = text.trim().split("\n");
+    if (lines.length < 2) { toast.error("CSV is empty"); setCsvImporting(false); return; }
+
+    // Parse headers
+    const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/['"]/g, ""));
+    const nameIdx = headers.indexOf("student_name");
+    const rollIdx = headers.indexOf("roll_number");
+    const totalIdx = headers.indexOf("total_marks");
+    const obtainedIdx = headers.indexOf("obtained_marks");
+    const remarksIdx = headers.indexOf("remarks");
+
+    if (rollIdx === -1 || totalIdx === -1 || obtainedIdx === -1) {
+      toast.error("CSV must have roll_number, total_marks, obtained_marks columns");
+      setCsvImporting(false);
+      return;
+    }
+
+    const dataLines = lines.slice(1).filter(l => l.trim());
     let added = 0;
-    for (const row of rows) {
-      const student = students.find(s => s.roll_number === row.roll_number);
-      if (!student) continue;
-      const percentage = row.total_marks > 0 ? Math.round((row.obtained_marks / row.total_marks) * 100) : 0;
+    let skipped = 0;
+
+    for (let i = 0; i < dataLines.length; i++) {
+      const cols = dataLines[i].split(",").map(s => s.trim().replace(/['"]/g, ""));
+      const rollNumber = cols[rollIdx];
+      const studentName = nameIdx !== -1 ? cols[nameIdx] : "";
+      const totalMarks = Number(cols[totalIdx]);
+      const obtainedMarks = Number(cols[obtainedIdx]);
+      const remarks = remarksIdx !== -1 ? cols[remarksIdx] || null : null;
+
+      if (!rollNumber || isNaN(totalMarks) || isNaN(obtainedMarks)) { skipped++; continue; }
+
+      // Find student by roll number
+      let student = students.find(s => s.roll_number === rollNumber);
+
+      // If not found, try by name
+      if (!student && studentName) {
+        const { data } = await supabase
+          .from("students")
+          .select("id")
+          .eq("class", cls)
+          .ilike("full_name", studentName)
+          .single();
+        if (data) student = { ...data, full_name: studentName, roll_number: rollNumber, photo_url: null };
+      }
+
+      if (!student) { skipped++; setCsvProgress(Math.round(((i + 1) / dataLines.length) * 100)); continue; }
+
+      const percentage = totalMarks > 0 ? Math.round((obtainedMarks / totalMarks) * 100) : 0;
       const g = getGradeFromPercentage(percentage);
       const { error } = await supabase.from("results").upsert({
         student_id: student.id, class: cls, exam_type: examType, year,
-        total_marks: row.total_marks, obtained_marks: row.obtained_marks,
-        percentage, grade: g, is_pass: percentage >= 33,
+        total_marks: totalMarks, obtained_marks: obtainedMarks,
+        percentage, grade: g, is_pass: percentage >= 33, remarks,
       }, { onConflict: "student_id,class,exam_type,year" });
       if (!error) added++;
+      else skipped++;
+
+      setCsvProgress(Math.round(((i + 1) / dataLines.length) * 100));
     }
-    toast.success(`${added} results imported`);
+
+    toast.success(`✅ ${added} results imported, ${skipped} skipped (student not found)`);
     qc.invalidateQueries({ queryKey });
+    setCsvImporting(false);
+    setCsvProgress(0);
     if (csvRef.current) csvRef.current.value = "";
   }, [students, cls, examType, year, qc, queryKey]);
 
@@ -203,7 +262,18 @@ const AdminResults = () => {
           <Button variant="outline" size="sm" className="gap-1.5 pointer-events-none"><Upload className="w-4 h-4" /> Import CSV</Button>
           <input ref={csvRef} type="file" accept=".csv" className="hidden" onChange={handleCSV} />
         </label>
+
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={downloadCSVTemplate}>
+          <Download className="w-4 h-4" /> CSV Template
+        </Button>
       </div>
+
+      {csvImporting && (
+        <div className="space-y-1">
+          <Progress value={csvProgress} className="h-2" />
+          <p className="text-xs text-muted-foreground text-center">Importing... {csvProgress}%</p>
+        </div>
+      )}
 
       {/* Search */}
       <div className="relative max-w-xs">
@@ -238,7 +308,7 @@ const AdminResults = () => {
                   <TableCell className="font-bold text-primary">{r.rank}</TableCell>
                   <TableCell>
                     {r.students?.photo_url
-                      ? <img src={r.students.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                      ? <img src={r.students.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" loading="lazy" decoding="async" />
                       : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">{(r.students?.full_name || "S").charAt(0)}</div>}
                   </TableCell>
                   <TableCell className="font-medium">{r.students?.full_name || "—"}</TableCell>

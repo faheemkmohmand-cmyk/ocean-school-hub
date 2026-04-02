@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Pencil, Trash2, Loader2, Upload, Search, FileUp } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Upload, Search, FileUp, Download } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface Student {
@@ -43,7 +43,7 @@ const AdminStudents = () => {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-students", classFilter, search, page],
     queryFn: async () => {
-      let query = supabase.from("students").select("*", { count: "exact" })
+      let query = supabase.from("students").select("id, full_name, roll_number, class, father_name, photo_url, is_active, created_at", { count: "exact" })
         .order("roll_number").range(page * pageSize, (page + 1) * pageSize - 1);
       if (classFilter !== "all") query = query.eq("class", classFilter);
       if (search) query = query.or(`full_name.ilike.%${search}%,roll_number.ilike.%${search}%`);
@@ -51,6 +51,8 @@ const AdminStudents = () => {
       if (error) throw error;
       return { students: (data ?? []) as Student[], total: count ?? 0 };
     },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
   const deleteMut = useMutation({
@@ -85,16 +87,57 @@ const AdminStudents = () => {
     setSaving(false);
   };
 
+  const downloadCSVTemplate = () => {
+    const csv = "full_name,roll_number,class,father_name\nAli Khan,001,9,Muhammad Khan\nSara Ahmed,002,10,Ahmed Ali";
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "students_template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleCSVImport = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setImporting(true); setImportProgress(0);
     const text = await file.text();
-    const lines = text.trim().split("\n").slice(1); // skip header
-    const rows = lines.map((l) => {
-      const [roll_number, full_name, cls, father_name] = l.split(",").map((s) => s.trim());
-      return { roll_number, full_name, class: cls, father_name: father_name || null, is_active: true };
-    }).filter((r) => r.full_name && r.roll_number);
+    const lines = text.trim().split("\n");
+    if (lines.length < 2) { toast.error("CSV is empty"); setImporting(false); return; }
+
+    // Parse headers
+    const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/['"]/g, ""));
+    const nameIdx = headers.indexOf("full_name");
+    const rollIdx = headers.indexOf("roll_number");
+    const classIdx = headers.indexOf("class");
+    const fatherIdx = headers.indexOf("father_name");
+
+    if (nameIdx === -1 || rollIdx === -1 || classIdx === -1) {
+      toast.error("CSV must have full_name, roll_number, class columns");
+      setImporting(false);
+      return;
+    }
+
+    const dataLines = lines.slice(1).filter(l => l.trim());
+    const validClasses = ["6", "7", "8", "9", "10"];
+    const rows: Array<{ full_name: string; roll_number: string; class: string; father_name: string | null; is_active: boolean }> = [];
+    let skipped = 0;
+
+    for (const line of dataLines) {
+      const cols = line.split(",").map(s => s.trim().replace(/['"]/g, ""));
+      const full_name = cols[nameIdx];
+      const roll_number = cols[rollIdx];
+      const cls = cols[classIdx];
+      const father_name = fatherIdx !== -1 ? cols[fatherIdx] || null : null;
+
+      if (!full_name || !roll_number || !cls || !validClasses.includes(cls)) {
+        skipped++;
+        continue;
+      }
+
+      rows.push({ full_name, roll_number, class: cls, father_name, is_active: true });
+    }
 
     const batchSize = 50;
     for (let i = 0; i < rows.length; i += batchSize) {
@@ -102,7 +145,8 @@ const AdminStudents = () => {
       await supabase.from("students").upsert(batch, { onConflict: "roll_number" });
       setImportProgress(Math.round(((i + batchSize) / rows.length) * 100));
     }
-    toast.success(`Imported ${rows.length} students`);
+
+    toast.success(`✅ ${rows.length} students imported, ${skipped} skipped`);
     qc.invalidateQueries({ queryKey: ["admin-students"] });
     setImporting(false);
     e.target.value = "";
@@ -116,6 +160,9 @@ const AdminStudents = () => {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-2xl font-heading font-bold text-foreground">Manage Students</h2>
         <div className="flex gap-2">
+          <Button variant="outline" className="gap-1.5" onClick={downloadCSVTemplate}>
+            <Download className="w-4 h-4" /> CSV Template
+          </Button>
           <label className="inline-flex">
             <Button variant="outline" className="gap-1.5" disabled={importing} asChild>
               <span><FileUp className="w-4 h-4" /> Import CSV
@@ -161,7 +208,7 @@ const AdminStudents = () => {
                   <TableRow key={s.id}>
                     <TableCell>
                       {s.photo_url ? (
-                        <img src={s.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                        <img src={s.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" loading="lazy" decoding="async" />
                       ) : (
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">{s.full_name.charAt(0)}</div>
                       )}

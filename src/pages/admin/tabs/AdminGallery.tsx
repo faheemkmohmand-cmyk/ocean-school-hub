@@ -11,10 +11,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Trash2, Loader2, Upload, ArrowLeft, Image as ImageIcon } from "lucide-react";
+import { Plus, Trash2, Loader2, Upload, ArrowLeft, Image as ImageIcon, Play } from "lucide-react";
 import toast from "react-hot-toast";
 import { useDropzone } from "react-dropzone";
 import type { GalleryAlbum, GalleryPhoto } from "@/hooks/useGallery";
+import { isVideoUrl } from "@/hooks/useGallery";
 
 const AdminGallery = () => {
   const qc = useQueryClient();
@@ -29,21 +30,28 @@ const AdminGallery = () => {
   const { data: albums = [], isLoading } = useQuery<GalleryAlbum[]>({
     queryKey: ["admin-albums"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("gallery_albums").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("gallery_albums").select("id, title, description, cover_url, created_at").order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
   const { data: photos = [], isLoading: loadingPhotos } = useQuery<GalleryPhoto[]>({
     queryKey: ["admin-photos", selectedAlbum?.id],
     queryFn: async () => {
       if (!selectedAlbum) return [];
-      const { data, error } = await supabase.from("gallery_photos").select("*").eq("album_id", selectedAlbum.id).order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("gallery_photos").select("id, album_id, photo_url, caption, media_type, created_at").eq("album_id", selectedAlbum.id).order("created_at", { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).map((p) => ({
+        ...p,
+        media_type: p.media_type || (isVideoUrl(p.photo_url) ? "video" : "image"),
+      })) as GalleryPhoto[];
     },
     enabled: !!selectedAlbum,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
   const handleCreateAlbum = async () => {
@@ -63,7 +71,6 @@ const AdminGallery = () => {
 
   const deleteAlbum = useMutation({
     mutationFn: async (id: string) => {
-      // Delete all photos in album first
       const { data: albumPhotos } = await supabase.from("gallery_photos").select("photo_url").eq("album_id", id);
       if (albumPhotos) {
         const paths = albumPhotos.map(p => p.photo_url.split("/gallery/")[1]).filter(Boolean);
@@ -76,30 +83,33 @@ const AdminGallery = () => {
     onSuccess: () => { toast.success("Album deleted"); setSelectedAlbum(null); qc.invalidateQueries({ queryKey: ["admin-albums"] }); },
   });
 
-  const onDropPhotos = useCallback(async (acceptedFiles: File[]) => {
+  const onDropFiles = useCallback(async (acceptedFiles: File[]) => {
     if (!selectedAlbum || !acceptedFiles.length) return;
     setUploading(true);
     setUploadProgress(0);
     let uploaded = 0;
     for (const file of acceptedFiles) {
-      const path = `photos/${selectedAlbum.id}/${Date.now()}-${file.name}`;
+      const isVideo = file.type.startsWith("video/");
+      const folder = isVideo ? "videos" : "photos";
+      const path = `${folder}/${selectedAlbum.id}/${Date.now()}-${file.name}`;
       const { error } = await supabase.storage.from("gallery").upload(path, file);
       if (!error) {
         const url = supabase.storage.from("gallery").getPublicUrl(path).data.publicUrl;
-        await supabase.from("gallery_photos").insert({ album_id: selectedAlbum.id, photo_url: url });
+        const media_type = isVideo ? "video" : "image";
+        await supabase.from("gallery_photos").insert({ album_id: selectedAlbum.id, photo_url: url, media_type });
       }
       uploaded++;
       setUploadProgress(Math.round((uploaded / acceptedFiles.length) * 100));
     }
-    toast.success(`${uploaded} photos uploaded!`);
+    toast.success(`${uploaded} files uploaded!`);
     qc.invalidateQueries({ queryKey: ["admin-photos", selectedAlbum.id] });
     setUploading(false);
     setUploadProgress(0);
   }, [selectedAlbum, qc]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: onDropPhotos,
-    accept: { "image/*": [] },
+    onDrop: onDropFiles,
+    accept: { "image/*": [], "video/*": [] },
     multiple: true,
     disabled: uploading,
   });
@@ -111,7 +121,7 @@ const AdminGallery = () => {
       const { error } = await supabase.from("gallery_photos").delete().eq("id", photo.id);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Photo deleted"); qc.invalidateQueries({ queryKey: ["admin-photos", selectedAlbum?.id] }); },
+    onSuccess: () => { toast.success("File deleted"); qc.invalidateQueries({ queryKey: ["admin-photos", selectedAlbum?.id] }); },
   });
 
   // Album detail view
@@ -121,7 +131,7 @@ const AdminGallery = () => {
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => setSelectedAlbum(null)}><ArrowLeft className="w-5 h-5" /></Button>
           <h2 className="text-2xl font-heading font-bold text-foreground">{selectedAlbum.title}</h2>
-          <Badge variant="secondary">{photos.length} photos</Badge>
+          <Badge variant="secondary">{photos.length} items</Badge>
         </div>
 
         {/* Upload zone */}
@@ -133,8 +143,8 @@ const AdminGallery = () => {
         >
           <input {...getInputProps()} />
           <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">Drag & drop photos here, or click to select</p>
-          <p className="text-xs text-muted-foreground mt-1">Multiple images supported</p>
+          <p className="text-sm text-muted-foreground">Drag & drop photos/videos here, or click to select</p>
+          <p className="text-xs text-muted-foreground mt-1">Images and videos supported</p>
         </div>
 
         {uploading && (
@@ -148,24 +158,36 @@ const AdminGallery = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">{[...Array(8)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-xl" />)}</div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {photos.map(p => (
-              <div key={p.id} className="relative group rounded-xl overflow-hidden aspect-square bg-muted">
-                <img src={p.photo_url} alt={p.caption || ""} className="w-full h-full object-cover" loading="lazy" />
-                <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/40 transition-colors flex items-center justify-center">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button size="icon" variant="destructive" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader><AlertDialogTitle>Delete photo?</AlertDialogTitle><AlertDialogDescription>This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-                      <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deletePhoto.mutate(p)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+            {photos.map(p => {
+              const isVideo = p.media_type === "video" || isVideoUrl(p.photo_url);
+              return (
+                <div key={p.id} className="relative group rounded-xl overflow-hidden aspect-square bg-muted">
+                  {isVideo ? (
+                    <>
+                      <video src={p.photo_url} preload="metadata" className="w-full h-full object-cover" />
+                      <div className="absolute top-2 left-2 z-10">
+                        <Badge className="bg-foreground/70 text-white text-[10px] gap-1"><Play className="w-3 h-3" />VIDEO</Badge>
+                      </div>
+                    </>
+                  ) : (
+                    <img src={p.photo_url} alt={p.caption || ""} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                  )}
+                  <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/40 transition-colors flex items-center justify-center">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="icon" variant="destructive" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader><AlertDialogTitle>Delete this file?</AlertDialogTitle><AlertDialogDescription>This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
+                        <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deletePhoto.mutate(p)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -190,7 +212,7 @@ const AdminGallery = () => {
             <Card key={a.id} className="overflow-hidden cursor-pointer hover:shadow-elevated transition-shadow border-border" onClick={() => setSelectedAlbum(a)}>
               <div className="aspect-video bg-muted relative">
                 {a.cover_url
-                  ? <img src={a.cover_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                  ? <img src={a.cover_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   : <div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-10 h-10 text-muted-foreground/30" /></div>}
               </div>
               <CardContent className="p-4">

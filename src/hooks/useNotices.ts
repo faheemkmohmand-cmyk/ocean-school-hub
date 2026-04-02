@@ -18,7 +18,7 @@ export function useNotices(limit?: number) {
     queryFn: async () => {
       let query = supabase
         .from("notices")
-        .select("*")
+        .select("id, title, content, category, is_urgent, is_published, created_at, expires_at")
         .eq("is_published", true)
         .order("created_at", { ascending: false });
       if (limit) query = query.limit(limit);
@@ -27,6 +27,7 @@ export function useNotices(limit?: number) {
       return data ?? [];
     },
     staleTime: 2 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     placeholderData: [],
   });
 }

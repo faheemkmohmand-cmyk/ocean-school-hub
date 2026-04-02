@@ -424,6 +424,7 @@ const Home = () => {
                         src={teacher.photo_url}
                         alt={teacher.full_name}
                         loading="lazy"
+                        decoding="async"
                         className="w-20 h-20 rounded-full mx-auto mb-4 object-cover ring-4 ring-secondary group-hover:ring-primary/30 transition-all"
                       />
                     ) : (

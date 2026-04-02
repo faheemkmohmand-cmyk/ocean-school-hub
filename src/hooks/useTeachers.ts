@@ -22,7 +22,7 @@ export function useTeachers(limit?: number) {
     queryFn: async () => {
       let query = supabase
         .from("teachers")
-        .select("*")
+        .select("id, full_name, subject, qualification, experience, phone, email, photo_url, bio, is_active, display_order, created_at")
         .eq("is_active", true)
         .order("display_order", { ascending: true });
       if (limit) query = query.limit(limit);
@@ -31,6 +31,7 @@ export function useTeachers(limit?: number) {
       return data ?? [];
     },
     staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     placeholderData: [],
   });
 }

@@ -20,7 +20,7 @@ export function useTimetable(classFilter: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("timetables")
-        .select("*")
+        .select("id, class, day, period_number, subject, teacher_name, start_time, end_time, room, updated_at")
         .eq("class", classFilter)
         .order("period_number", { ascending: true });
       if (error) throw error;
@@ -28,6 +28,7 @@ export function useTimetable(classFilter: string) {
     },
     enabled: !!classFilter,
     staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     placeholderData: [],
   });
 }
