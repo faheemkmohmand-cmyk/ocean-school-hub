@@ -35,7 +35,7 @@ export function useResults(options: {
     queryFn: async () => {
       let query = supabase
         .from("results")
-        .select("*, students(full_name, roll_number, photo_url)")
+        .select("id, student_id, class, exam_type, year, total_marks, obtained_marks, percentage, grade, position, is_pass, remarks, created_at, students(full_name, roll_number, photo_url)")
         .eq("class", classFilter)
         .eq("exam_type", examType)
         .order("position", { ascending: true, nullsFirst: false })
@@ -43,16 +43,16 @@ export function useResults(options: {
 
       if (year) query = query.eq("year", year);
       if (search) {
-        // search by student name or roll number via the joined table
         query = query.or(`students.full_name.ilike.%${search}%,students.roll_number.ilike.%${search}%`);
       }
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data ?? []) as ResultWithStudent[];
+      return (data ?? []) as unknown as ResultWithStudent[];
     },
     enabled: !!classFilter && !!examType,
     staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     placeholderData: [],
   });
 }
@@ -70,6 +70,7 @@ export function useResultYears() {
       return years;
     },
     staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     placeholderData: [],
   });
 }

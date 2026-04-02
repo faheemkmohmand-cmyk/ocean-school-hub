@@ -98,6 +98,8 @@ const Home = () => {
             alt="School banner"
             className="absolute inset-0 w-full h-full object-cover"
             loading="eager"
+            decoding="async"
+            fetchPriority="high"
           />
         ) : (
           <div className="absolute inset-0 gradient-hero" />
@@ -356,6 +358,7 @@ const Home = () => {
                           src={item.image_url}
                           alt={item.title}
                           loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (
@@ -421,6 +424,7 @@ const Home = () => {
                         src={teacher.photo_url}
                         alt={teacher.full_name}
                         loading="lazy"
+                        decoding="async"
                         className="w-20 h-20 rounded-full mx-auto mb-4 object-cover ring-4 ring-secondary group-hover:ring-primary/30 transition-all"
                       />
                     ) : (

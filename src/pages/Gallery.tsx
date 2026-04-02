@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Image, ChevronLeft, ChevronRight, X, Camera } from "lucide-react";
+import { Image, ChevronLeft, ChevronRight, X, Camera, Play } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import PageBanner from "@/components/shared/PageBanner";
-import { useGalleryAlbums, useGalleryPhotos } from "@/hooks/useGallery";
+import { useGalleryAlbums, useGalleryPhotos, isVideoUrl } from "@/hooks/useGallery";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { GalleryPhoto } from "@/hooks/useGallery";
+import { Badge } from "@/components/ui/badge";
 
 const Gallery = () => {
   const { data: albums = [], isLoading } = useGalleryAlbums();
@@ -34,13 +34,15 @@ const Gallery = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, [lightboxIndex, closeLightbox, prevPhoto, nextPhoto]);
 
+  const isVideo = (url: string, mediaType?: string) =>
+    mediaType === "video" || isVideoUrl(url);
+
   return (
     <PageLayout>
       <PageBanner title="Photo Gallery" subtitle="Moments captured at GHS Babi Khel" />
 
       <section className="py-16">
         <div className="container mx-auto px-4">
-          {/* Back button when viewing album */}
           {selectedAlbumId && (
             <button
               onClick={() => setSelectedAlbumId(null)}
@@ -51,7 +53,6 @@ const Gallery = () => {
           )}
 
           {!selectedAlbumId ? (
-            /* Album Grid */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {isLoading
                 ? Array.from({ length: 6 }).map((_, i) => (
@@ -78,6 +79,7 @@ const Gallery = () => {
                             src={album.cover_url}
                             alt={album.title}
                             loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
                         ) : (
@@ -101,7 +103,6 @@ const Gallery = () => {
                   ))}
             </div>
           ) : (
-            /* Photo Grid */
             <>
               {selectedAlbum && (
                 <h2 className="text-2xl font-heading font-bold text-foreground mb-6">{selectedAlbum.title}</h2>
@@ -111,23 +112,39 @@ const Gallery = () => {
                   ? Array.from({ length: 8 }).map((_, i) => (
                       <Skeleton key={i} className="aspect-square rounded-xl" />
                     ))
-                  : photos.map((photo, i) => (
-                      <motion.div
-                        key={photo.id}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: i * 0.03 }}
-                        onClick={() => setLightboxIndex(i)}
-                        className="aspect-square rounded-xl overflow-hidden cursor-pointer group"
-                      >
-                        <img
-                          src={photo.photo_url}
-                          alt={photo.caption || "Photo"}
-                          loading="lazy"
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                        />
-                      </motion.div>
-                    ))}
+                  : photos.map((photo, i) => {
+                      const videoItem = isVideo(photo.photo_url, photo.media_type);
+                      return (
+                        <motion.div
+                          key={photo.id}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: i * 0.03 }}
+                          onClick={() => setLightboxIndex(i)}
+                          className="aspect-square rounded-xl overflow-hidden cursor-pointer group relative"
+                        >
+                          {videoItem ? (
+                            <>
+                              <video src={photo.photo_url} preload="metadata" className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 flex items-center justify-center bg-foreground/20">
+                                <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center">
+                                  <Play className="w-6 h-6 text-foreground ml-0.5" />
+                                </div>
+                              </div>
+                              <Badge className="absolute top-2 left-2 bg-foreground/70 text-white text-[10px] gap-1"><Play className="w-3 h-3" />VIDEO</Badge>
+                            </>
+                          ) : (
+                            <img
+                              src={photo.photo_url}
+                              alt={photo.caption || "Photo"}
+                              loading="lazy"
+                              decoding="async"
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            />
+                          )}
+                        </motion.div>
+                      );
+                    })}
               </div>
 
               {!photosLoading && photos.length === 0 && (
@@ -191,11 +208,20 @@ const Gallery = () => {
               onClick={(e) => e.stopPropagation()}
               className="max-w-[90vw] max-h-[85vh] flex flex-col items-center"
             >
-              <img
-                src={photos[lightboxIndex].photo_url}
-                alt={photos[lightboxIndex].caption || "Photo"}
-                className="max-w-full max-h-[80vh] object-contain rounded-xl"
-              />
+              {isVideo(photos[lightboxIndex].photo_url, photos[lightboxIndex].media_type) ? (
+                <video
+                  src={photos[lightboxIndex].photo_url}
+                  controls
+                  autoPlay
+                  className="max-w-full max-h-[80vh] rounded-xl"
+                />
+              ) : (
+                <img
+                  src={photos[lightboxIndex].photo_url}
+                  alt={photos[lightboxIndex].caption || "Photo"}
+                  className="max-w-full max-h-[80vh] object-contain rounded-xl"
+                />
+              )}
               {photos[lightboxIndex].caption && (
                 <p className="text-white/80 text-sm mt-3 text-center">{photos[lightboxIndex].caption}</p>
               )}

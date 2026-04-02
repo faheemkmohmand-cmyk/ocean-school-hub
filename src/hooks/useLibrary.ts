@@ -30,7 +30,7 @@ export function useLibraryFiles(options?: {
     queryFn: async () => {
       let query = supabase
         .from("library_files")
-        .select("*", { count: "exact" })
+        .select("id, title, description, category, class, subject, file_url, file_type, file_size, download_count, uploaded_by, created_at", { count: "exact" })
         .order("created_at", { ascending: false });
 
       if (category && category !== "All") query = query.eq("category", category);
@@ -45,6 +45,7 @@ export function useLibraryFiles(options?: {
       return { data: data ?? [], count: count ?? 0 };
     },
     staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     placeholderData: { data: [], count: 0 },
   });
 }

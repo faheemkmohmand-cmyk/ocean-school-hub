@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, X, Camera, Image } from "lucide-react";
-import { useGalleryAlbums, useGalleryPhotos } from "@/hooks/useGallery";
+import { ChevronLeft, ChevronRight, X, Camera, Image, Play } from "lucide-react";
+import { useGalleryAlbums, useGalleryPhotos, isVideoUrl } from "@/hooks/useGallery";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 
 const GalleryTab = () => {
   const { data: albums = [], isLoading } = useGalleryAlbums();
@@ -25,6 +26,9 @@ const GalleryTab = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, [lightboxIndex, closeLightbox, prevPhoto, nextPhoto]);
 
+  const isVideo = (url: string, mediaType?: string) =>
+    mediaType === "video" || isVideoUrl(url);
+
   if (selectedAlbumId) {
     const album = albums.find((a) => a.id === selectedAlbumId);
     return (
@@ -36,11 +40,24 @@ const GalleryTab = () => {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
           {photosLoading
             ? Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-lg" />)
-            : photos.map((p, i) => (
-                <div key={p.id} onClick={() => setLightboxIndex(i)} className="aspect-square rounded-lg overflow-hidden cursor-pointer group">
-                  <img src={p.photo_url} alt={p.caption || ""} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                </div>
-              ))}
+            : photos.map((p, i) => {
+                const videoItem = isVideo(p.photo_url, p.media_type);
+                return (
+                  <div key={p.id} onClick={() => setLightboxIndex(i)} className="aspect-square rounded-lg overflow-hidden cursor-pointer group relative">
+                    {videoItem ? (
+                      <>
+                        <video src={p.photo_url} preload="metadata" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-foreground/20">
+                          <Play className="w-8 h-8 text-white" />
+                        </div>
+                        <Badge className="absolute top-1 left-1 bg-foreground/70 text-white text-[9px] gap-0.5"><Play className="w-2.5 h-2.5" />VIDEO</Badge>
+                      </>
+                    ) : (
+                      <img src={p.photo_url} alt={p.caption || ""} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                    )}
+                  </div>
+                );
+              })}
         </div>
         {!photosLoading && photos.length === 0 && (
           <div className="text-center py-12 bg-card rounded-xl shadow-card">
@@ -57,7 +74,11 @@ const GalleryTab = () => {
               {lightboxIndex > 0 && <button onClick={(e) => { e.stopPropagation(); prevPhoto(); }} className="absolute left-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white z-10"><ChevronLeft className="w-8 h-8" /></button>}
               {lightboxIndex < photos.length - 1 && <button onClick={(e) => { e.stopPropagation(); nextPhoto(); }} className="absolute right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white z-10"><ChevronRight className="w-8 h-8" /></button>}
               <motion.div key={lightboxIndex} initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} onClick={(e) => e.stopPropagation()} className="max-w-[90vw] max-h-[85vh]">
-                <img src={photos[lightboxIndex].photo_url} alt="" className="max-w-full max-h-[80vh] object-contain rounded-xl" />
+                {isVideo(photos[lightboxIndex].photo_url, photos[lightboxIndex].media_type) ? (
+                  <video src={photos[lightboxIndex].photo_url} controls autoPlay className="max-w-full max-h-[80vh] rounded-xl" />
+                ) : (
+                  <img src={photos[lightboxIndex].photo_url} alt="" className="max-w-full max-h-[80vh] object-contain rounded-xl" />
+                )}
                 {photos[lightboxIndex].caption && <p className="text-white/80 text-sm mt-2 text-center">{photos[lightboxIndex].caption}</p>}
               </motion.div>
             </motion.div>
@@ -85,7 +106,7 @@ const GalleryTab = () => {
             <div key={album.id} onClick={() => setSelectedAlbumId(album.id)} className="bg-card rounded-xl overflow-hidden shadow-card hover:shadow-elevated transition-all cursor-pointer group">
               <div className="aspect-video overflow-hidden relative">
                 {album.cover_url ? (
-                  <img src={album.cover_url} alt={album.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <img src={album.cover_url} alt={album.title} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                 ) : (
                   <div className="w-full h-full gradient-hero flex items-center justify-center"><Camera className="w-10 h-10 text-primary-foreground/40" /></div>
                 )}

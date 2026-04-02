@@ -16,7 +16,7 @@ export function useNews(limit?: number) {
     queryFn: async () => {
       let query = supabase
         .from("news")
-        .select("*")
+        .select("id, title, content, image_url, is_published, created_at")
         .eq("is_published", true)
         .order("created_at", { ascending: false });
       if (limit) query = query.limit(limit);
@@ -25,6 +25,7 @@ export function useNews(limit?: number) {
       return data ?? [];
     },
     staleTime: 2 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     placeholderData: [],
   });
 }
