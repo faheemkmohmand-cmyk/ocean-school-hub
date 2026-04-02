@@ -259,7 +259,7 @@ const AdminResults = () => {
         <Button onClick={openAdd} size="sm" className="gap-1.5"><Plus className="w-4 h-4" /> Add Result</Button>
 
         <label className="cursor-pointer">
-          <Button variant="outline" size="sm" className="gap-1.5 pointer-events-none"><Upload className="w-4 h-4" /> Import CSV</Button>
+          <Button variant="outline" size="sm" className="gap-1.5"><Upload className="w-4 h-4" /> Import CSV</Button>
           <input ref={csvRef} type="file" accept=".csv" className="hidden" onChange={handleCSV} />
         </label>
 
