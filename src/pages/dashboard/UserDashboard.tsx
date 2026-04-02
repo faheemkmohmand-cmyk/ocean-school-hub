@@ -7,28 +7,28 @@ import NoticesTab from "./tabs/NoticesTab";
 import NewsTab from "./tabs/NewsTab";
 import LibraryTab from "./tabs/LibraryTab";
 import GalleryTab from "./tabs/GalleryTab";
+import VideosTab from "./tabs/VideosTab";
 import AchievementsTab from "./tabs/AchievementsTab";
 import TeachersTab from "./tabs/TeachersTab";
 import ProfileTab from "./tabs/ProfileTab";
 
 const tabComponents: Record<string, React.ComponentType<any>> = {
-  overview: OverviewTab,
-  timetable: TimetableTab,
-  results: ResultsTab,
-  notices: NoticesTab,
-  news: NewsTab,
-  library: LibraryTab,
-  gallery: GalleryTab,
+  overview:     OverviewTab,
+  timetable:    TimetableTab,
+  results:      ResultsTab,
+  notices:      NoticesTab,
+  news:         NewsTab,
+  library:      LibraryTab,
+  gallery:      GalleryTab,
+  videos:       VideosTab,       // ✅ NEW
   achievements: AchievementsTab,
-  teachers: TeachersTab,
-  profile: ProfileTab,
+  teachers:     TeachersTab,
+  profile:      ProfileTab,
 };
 
 const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
-
   const TabComponent = tabComponents[activeTab] || OverviewTab;
-  const isOverview = activeTab === "overview";
 
   return (
     <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
