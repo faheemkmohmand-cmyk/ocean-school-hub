@@ -2,23 +2,25 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Home, Calendar, BarChart3, Bell, Newspaper, BookOpen, Image, Trophy,
-  Users, User, LogOut, GraduationCap, Menu, X, Shield, ExternalLink, Moon, Sun
+  Users, User, LogOut, GraduationCap, Menu, X, Shield, ExternalLink, Moon, Sun,
+  Video   // ✅ NEW
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
 import { useDarkMode } from "@/hooks/useDarkMode";
 
 const navItems = [
-  { id: "overview", label: "Overview", icon: Home },
-  { id: "timetable", label: "Timetable", icon: Calendar },
-  { id: "results", label: "Results", icon: BarChart3 },
-  { id: "notices", label: "Notices", icon: Bell },
-  { id: "news", label: "News", icon: Newspaper },
-  { id: "library", label: "Library", icon: BookOpen },
-  { id: "gallery", label: "Gallery", icon: Image },
-  { id: "achievements", label: "Achievements", icon: Trophy },
-  { id: "teachers", label: "Teachers", icon: Users },
-  { id: "profile", label: "My Profile", icon: User },
+  { id: "overview",     label: "Overview",     icon: Home        },
+  { id: "timetable",    label: "Timetable",    icon: Calendar    },
+  { id: "results",      label: "Results",      icon: BarChart3   },
+  { id: "notices",      label: "Notices",      icon: Bell        },
+  { id: "news",         label: "News",         icon: Newspaper   },
+  { id: "library",      label: "Library",      icon: BookOpen    },
+  { id: "gallery",      label: "Gallery",      icon: Image       },
+  { id: "videos",       label: "Videos",       icon: Video       }, // ✅ NEW
+  { id: "achievements", label: "Achievements", icon: Trophy      },
+  { id: "teachers",     label: "Teachers",     icon: Users       },
+  { id: "profile",      label: "My Profile",   icon: User        },
 ];
 
 interface DashboardLayoutProps {
@@ -63,7 +65,7 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
         <div className="p-4 border-b border-border">
           <div className="flex items-center gap-3">
             {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+              <img src={profile.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" loading="lazy" />
             ) : (
               <div className="w-10 h-10 rounded-full gradient-accent flex items-center justify-center text-primary-foreground text-sm font-bold">
                 {initials}
@@ -146,10 +148,7 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
             >
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
-            <button
-              onClick={() => onTabChange("profile")}
-              className="p-1"
-            >
+            <button onClick={() => onTabChange("profile")} className="p-1">
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
               ) : (
@@ -194,7 +193,7 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
       {sidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <div className="relative w-72 bg-card h-full shadow-elevated flex flex-col animate-slide-in-right">
+          <div className="relative w-72 bg-card h-full shadow-elevated flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-border">
               <span className="font-heading font-bold text-foreground">Menu</span>
               <button onClick={() => setSidebarOpen(false)} className="p-2 rounded-lg hover:bg-secondary">
