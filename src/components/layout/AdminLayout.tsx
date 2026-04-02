@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   BarChart3, Settings, Users, GraduationCap, ClipboardList, CheckSquare,
   Calendar, Bell, Newspaper, Image, BookOpen, Trophy, UserCog, LogOut,
-  Menu, X, ExternalLink, Shield, Moon, Sun
+  Menu, X, ExternalLink, Shield, Moon, Sun, Video
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/hooks/useDarkMode";
@@ -21,6 +21,7 @@ const navItems = [
   { id: "gallery", label: "Gallery", icon: Image },
   { id: "library", label: "Library", icon: BookOpen },
   { id: "achievements", label: "Achievements", icon: Trophy },
+  { id: "videos", label: "Videos", icon: Video },
   { id: "users", label: "Users", icon: UserCog },
 ];
 
