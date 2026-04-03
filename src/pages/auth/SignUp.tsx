@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, Lock, User, GraduationCap, ArrowRight, Loader2, Phone, Hash } from "lucide-react";
+import { Mail, Lock, User, GraduationCap, ArrowRight, Loader2, Phone, Hash, Clock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import toast from "react-hot-toast";
 
-const roles = ["student", "parent", "teacher", "other"] as const;
+const roles = ["student", "teacher"] as const;
 const classOptions = ["6", "7", "8", "9", "10"];
 
 const SignUp = () => {
@@ -32,6 +32,10 @@ const SignUp = () => {
       toast.error("Password must be at least 6 characters");
       return;
     }
+    if (!["student", "teacher"].includes(role)) {
+      toast.error("Invalid role selected");
+      return;
+    }
 
     setLoading(true);
     const { error } = await supabase.auth.signUp({
@@ -45,6 +49,7 @@ const SignUp = () => {
           class: role === "student" ? studentClass : null,
           roll_number: role === "student" ? rollNumber : null,
           phone: phone || null,
+          status: "pending",
         },
       },
     });
@@ -66,14 +71,19 @@ const SignUp = () => {
           className="w-full max-w-md relative z-10"
         >
           <div className="bg-card rounded-2xl shadow-elevated p-8 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-[hsl(var(--success))]/15 mx-auto mb-4 flex items-center justify-center">
-              <Mail className="w-8 h-8 text-[hsl(var(--success))]" />
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/15 mx-auto mb-4 flex items-center justify-center">
+              <Clock className="w-8 h-8 text-amber-500" />
             </div>
-            <h1 className="text-2xl font-heading font-bold text-foreground">Check Your Email</h1>
+            <h1 className="text-2xl font-heading font-bold text-foreground">Account Under Review</h1>
             <p className="text-sm text-muted-foreground mt-2 max-w-xs mx-auto">
-              We've sent a verification link to <strong className="text-foreground">{email}</strong>.
-              Click it to activate your account.
+              Your account has been created and is <strong className="text-amber-600">pending admin approval</strong>.
+              You will be able to sign in once an administrator approves your account.
             </p>
+            <div className="mt-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                Please check your email to verify your address. Admin will review your request shortly.
+              </p>
+            </div>
             <Link
               to="/auth/signin"
               className="inline-flex items-center gap-2 mt-6 text-sm font-medium text-primary hover:underline"
@@ -179,7 +189,7 @@ const SignUp = () => {
             {/* Role */}
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">I am a</label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {roles.map((r) => (
                   <button
                     key={r}

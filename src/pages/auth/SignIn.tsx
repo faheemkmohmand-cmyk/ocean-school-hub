@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, Lock, GraduationCap, ArrowRight, Loader2 } from "lucide-react";
+import { Mail, Lock, GraduationCap, ArrowRight, Loader2, Clock, XCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import toast from "react-hot-toast";
 
@@ -9,13 +9,14 @@ const SignIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<"pending" | "rejected" | null>(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setPendingStatus(null);
 
-    // STEP 1: Sign in
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -27,30 +28,41 @@ const SignIn = () => {
       return;
     }
 
-    // STEP 2: Use the RPC function (bypasses RLS 100%)
+    // Check profile status
     const { data: profileJson, error: rpcError } = await supabase.rpc("get_my_profile");
 
-    if (rpcError || !profileJson) {
-      // RPC failed — try direct query as backup
+    let profile: { role?: string; status?: string } | null = null;
+
+    if (!rpcError && profileJson) {
+      profile = profileJson;
+    } else {
       const { data: directProfile } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, status")
         .eq("id", authData.user.id)
         .single();
+      profile = directProfile;
+    }
 
-      toast.success("Signed in!");
-      if (directProfile?.role === "admin") {
-        navigate("/admin", { replace: true });
-      } else {
-        navigate("/dashboard", { replace: true });
-      }
+    const status = profile?.status || "pending";
+    const role = profile?.role;
+
+    // Block pending/rejected users
+    if (status === "pending") {
+      await supabase.auth.signOut();
+      setPendingStatus("pending");
       setLoading(false);
       return;
     }
 
-    // STEP 3: profileJson has the role
-    const role = profileJson?.role;
-    console.log("✅ Signed in. Role:", role);
+    if (status === "rejected") {
+      await supabase.auth.signOut();
+      setPendingStatus("rejected");
+      setLoading(false);
+      return;
+    }
+
+    // Only approved users proceed
     toast.success("Signed in successfully!");
 
     if (role === "admin") {
@@ -85,6 +97,27 @@ const SignIn = () => {
               Sign in to your GHS Babi Khel account
             </p>
           </div>
+
+          {/* Pending / Rejected banners */}
+          {pendingStatus === "pending" && (
+            <div className="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-center">
+              <Clock className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Waiting for Admin Approval</p>
+              <p className="text-xs text-amber-600 dark:text-amber-400/80 mt-1">
+                Your account is under review. You'll be able to login once an administrator approves your account.
+              </p>
+            </div>
+          )}
+
+          {pendingStatus === "rejected" && (
+            <div className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-center">
+              <XCircle className="w-8 h-8 text-destructive mx-auto mb-2" />
+              <p className="text-sm font-semibold text-red-700 dark:text-red-400">Account Rejected</p>
+              <p className="text-xs text-red-600 dark:text-red-400/80 mt-1">
+                Your account request was rejected by the administrator. Please contact the school for more information.
+              </p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

@@ -3,6 +3,7 @@ import AdminLayout from "@/components/layout/AdminLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const AdminOverview = lazy(() => import("./tabs/AdminOverview"));
+const AdminPendingRequests = lazy(() => import("./tabs/AdminPendingRequests"));
 const AdminSchoolSettings = lazy(() => import("./tabs/AdminSchoolSettings"));
 const AdminTeachers = lazy(() => import("./tabs/AdminTeachers"));
 const AdminStudents = lazy(() => import("./tabs/AdminStudents"));
@@ -19,6 +20,7 @@ const AdminVideos = lazy(() => import("./tabs/AdminVideos"));
 
 const tabMap: Record<string, React.LazyExoticComponent<() => JSX.Element>> = {
   overview: AdminOverview,
+  "pending-requests": AdminPendingRequests,
   settings: AdminSchoolSettings,
   teachers: AdminTeachers,
   students: AdminStudents,
