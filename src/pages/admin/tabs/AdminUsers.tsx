@@ -17,7 +17,7 @@ interface UserProfile {
   phone: string | null; avatar_url: string | null; created_at: string;
 }
 
-const roles = ["user", "student", "teacher", "parent", "admin"];
+const roles = ["user", "student", "teacher", "admin"];
 
 const AdminUsers = () => {
   const qc = useQueryClient();
