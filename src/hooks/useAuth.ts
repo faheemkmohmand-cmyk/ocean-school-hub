@@ -10,6 +10,7 @@ export interface Profile {
   roll_number: string | null;
   phone: string | null;
   avatar_url: string | null;
+  status: string;
   created_at: string;
 }
 
@@ -21,15 +22,12 @@ export function useAuth() {
 
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     try {
-      // Try the RPC function first — bypasses RLS completely
-      const { data: rpcData, error: rpcError } = await supabase
-        .rpc("get_my_profile");
+      const { data: rpcData, error: rpcError } = await supabase.rpc("get_my_profile");
 
       if (!rpcError && rpcData) {
         return rpcData as Profile;
       }
 
-      // Fallback: direct query
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
