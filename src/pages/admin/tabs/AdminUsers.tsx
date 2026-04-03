@@ -14,7 +14,7 @@ import toast from "react-hot-toast";
 
 interface UserProfile {
   id: string; full_name: string | null; role: string; class: string | null;
-  phone: string | null; avatar_url: string | null; created_at: string;
+  roll_number: string | null; phone: string | null; avatar_url: string | null; created_at: string;
 }
 
 const roles = ["user", "student", "teacher", "admin"];
@@ -33,11 +33,28 @@ const AdminUsers = () => {
   });
 
   const updateRole = useMutation({
-    mutationFn: async ({ id, role }: { id: string; role: string }) => {
+    mutationFn: async ({ id, role, profile }: { id: string; role: string; profile: UserProfile }) => {
+      // 1. Update role in profiles
       const { error } = await supabase.from("profiles").update({ role }).eq("id", id);
       if (error) throw error;
+
+      // 2. If approved as student → sync into students table so attendance works
+      if (role === "student" && profile.class) {
+        const { error: studentError } = await supabase.from("students").upsert({
+          full_name: profile.full_name || "Unknown",
+          roll_number: profile.roll_number || `STU-${id.slice(0, 6)}`,
+          class: profile.class,
+          father_name: null,
+          photo_url: profile.avatar_url || null,
+          is_active: true,
+        }, { onConflict: "roll_number" });
+        if (studentError) {
+          console.warn("Student sync failed:", studentError.message);
+          // Don't throw — role update succeeded, just warn
+        }
+      }
     },
-    onSuccess: () => { toast.success("Role updated"); qc.invalidateQueries({ queryKey: ["admin-users"] }); },
+    onSuccess: () => { toast.success("Role updated"); qc.invalidateQueries({ queryKey: ["admin-users"] }); qc.invalidateQueries({ queryKey: ["admin-students"] }); },
     onError: () => toast.error("Update failed"),
   });
 
@@ -78,7 +95,7 @@ const AdminUsers = () => {
                     {isSelf ? (
                       <Badge className="capitalize">{u.role}</Badge>
                     ) : (
-                      <Select value={u.role} onValueChange={v => updateRole.mutate({ id: u.id, role: v })}>
+                      <Select value={u.role} onValueChange={v => updateRole.mutate({ id: u.id, role: v, profile: u })}>
                         <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
                         <SelectContent>{roles.map(r => <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>)}</SelectContent>
                       </Select>
