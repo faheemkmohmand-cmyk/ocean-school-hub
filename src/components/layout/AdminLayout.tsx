@@ -10,6 +10,7 @@ import { useDarkMode } from "@/hooks/useDarkMode";
 
 const navItems = [
   { id: "overview", label: "Overview", icon: BarChart3 },
+  { id: "pending-requests", label: "Pending Requests", icon: Clock },
   { id: "settings", label: "School Settings", icon: Settings },
   { id: "teachers", label: "Manage Teachers", icon: Users },
   { id: "students", label: "Manage Students", icon: GraduationCap },
