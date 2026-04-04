@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Pencil, Trash2, Loader2, Upload, Search, FileUp, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Upload, Search, FileUp, Download, GraduationCap, ArrowRight } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface Student {
@@ -38,6 +38,10 @@ const AdminStudents = () => {
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
+  const [promotionOpen, setPromotionOpen] = useState(false);
+  const [promotionFrom, setPromotionFrom] = useState("6");
+  const [promotionTo, setPromotionTo] = useState("7");
+  const [promoting, setPromoting] = useState(false);
   const pageSize = 20;
 
   const { data, isLoading } = useQuery({
@@ -167,6 +171,33 @@ const AdminStudents = () => {
     e.target.value = "";
   }, [qc]);
 
+  const handlePromotion = async () => {
+    if (promotionFrom === promotionTo) { toast.error("From and To classes must be different"); return; }
+    setPromoting(true);
+    // Fetch all active students in the source class
+    const { data: studentsToPromote, error: fetchErr } = await supabase
+      .from("students")
+      .select("id, roll_number")
+      .eq("class", promotionFrom)
+      .eq("is_active", true);
+    if (fetchErr) { toast.error(fetchErr.message); setPromoting(false); return; }
+    if (!studentsToPromote || studentsToPromote.length === 0) {
+      toast.error(`No active students found in Class ${promotionFrom}`);
+      setPromoting(false); return;
+    }
+    // Update each student's class
+    const ids = studentsToPromote.map(s => s.id);
+    const { error: updateErr } = await supabase
+      .from("students")
+      .update({ class: promotionTo })
+      .in("id", ids);
+    if (updateErr) { toast.error(updateErr.message); setPromoting(false); return; }
+    toast.success(`✅ ${studentsToPromote.length} students promoted from Class ${promotionFrom} to Class ${promotionTo}!`);
+    qc.invalidateQueries({ queryKey: ["admin-students"] });
+    setPromotionOpen(false);
+    setPromoting(false);
+  };
+
   const set = (k: string, v: string | boolean | null) => setForm((p) => ({ ...p, [k]: v }));
   const totalPages = Math.ceil((data?.total ?? 0) / pageSize);
 
@@ -185,6 +216,9 @@ const AdminStudents = () => {
               </span>
             </Button>
           </label>
+          <Button variant="outline" className="gap-1.5 text-amber-600 border-amber-400 hover:bg-amber-50" onClick={() => setPromotionOpen(true)}>
+            <GraduationCap className="w-4 h-4" /> Promote Students
+          </Button>
           <Button onClick={openAdd} className="gap-1.5"><Plus className="w-4 h-4" /> Add Student</Button>
         </div>
       </div>
@@ -300,6 +334,53 @@ const AdminStudents = () => {
             <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
             <Button onClick={handleSave} disabled={saving} className="gap-1.5">
               {saving && <Loader2 className="w-4 h-4 animate-spin" />} {editing ? "Update" : "Add"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Promote Students Dialog ─────────────────────────────────────────── */}
+      <Dialog open={promotionOpen} onOpenChange={setPromotionOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <GraduationCap className="w-5 h-5 text-amber-500" /> Promote Students to Next Class
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              This will move <strong>all active students</strong> from the selected class to another class. Their attendance and results history will remain saved.
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <Label className="text-xs text-muted-foreground mb-1 block">From Class</Label>
+                <Select value={promotionFrom} onValueChange={v => { setPromotionFrom(v); const idx = classes.indexOf(v); setPromotionTo(classes[Math.min(idx + 1, classes.length - 1)]); }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{classes.map(c => <SelectItem key={c} value={c}>Class {c}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <ArrowRight className="w-5 h-5 text-muted-foreground mt-5 shrink-0" />
+              <div className="flex-1">
+                <Label className="text-xs text-muted-foreground mb-1 block">To Class</Label>
+                <Select value={promotionTo} onValueChange={setPromotionTo}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{classes.map(c => <SelectItem key={c} value={c}>Class {c}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
+              ⚠️ <strong>Warning:</strong> This action will update the class of all active students in Class {promotionFrom}. Make sure you have saved all results and attendance before promoting. This cannot be undone automatically.
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPromotionOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handlePromotion}
+              disabled={promoting || promotionFrom === promotionTo}
+              className="gap-1.5 bg-amber-500 hover:bg-amber-600 text-white"
+            >
+              {promoting && <Loader2 className="w-4 h-4 animate-spin" />}
+              {promoting ? "Promoting..." : `Promote Class ${promotionFrom} → Class ${promotionTo}`}
             </Button>
           </DialogFooter>
         </DialogContent>
