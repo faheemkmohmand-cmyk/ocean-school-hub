@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight, Bell, Users, GraduationCap,
   Trophy, ChevronRight, Microscope, FileText, Laptop,
-  BookOpen, Sparkles
+  BookOpen, Sparkles, BarChart3, Calendar, Image
 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
@@ -493,6 +493,51 @@ const Home = () => {
         </div>
       </section>
 
+      {/* ════════ QUICK ACCESS ════════ */}
+      <section className="py-16 bg-secondary/50 cv-auto">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-10"
+          >
+            <span className="text-sm font-semibold uppercase tracking-widest text-primary">Explore</span>
+            <h2 className="mt-2 text-2xl md:text-3xl font-heading font-bold text-foreground">Quick Access</h2>
+            <p className="text-muted-foreground text-sm mt-2">Everything you need — one click away</p>
+          </motion.div>
+
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={stagger.parent}
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4"
+          >
+            {[
+              { icon: BarChart3, label: "Results", to: "/results" },
+              { icon: Calendar, label: "Timetable", to: "/dashboard" },
+              { icon: Bell, label: "Notices", to: "/notices" },
+              { icon: BookOpen, label: "Library", to: "/library" },
+              { icon: Image, label: "Gallery", to: "/gallery" },
+              { icon: Trophy, label: "Achievements", to: "/dashboard" },
+            ].map((item) => (
+              <motion.div key={item.label} variants={stagger.child}>
+                <Link
+                  to={item.to}
+                  className="bg-card rounded-2xl p-5 shadow-card hover:shadow-elevated transition-all duration-300 text-center group block"
+                >
+                  <div className="w-12 h-12 rounded-xl gradient-hero flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                    <item.icon className="w-6 h-6 text-primary-foreground" />
+                  </div>
+                  <span className="text-sm font-semibold text-foreground">{item.label}</span>
+                </Link>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
       {/* ════════ CTA ════════ */}
       <section className="py-20">
         <div className="container mx-auto px-4">
@@ -506,16 +551,16 @@ const Home = () => {
             >
               <Sparkles className="w-8 h-8 text-primary-foreground/60 mx-auto mb-4" />
               <h2 className="text-3xl md:text-5xl font-heading font-bold text-primary-foreground">
-                Ready to Join GHS Babi Khel?
+                Explore GHS Babi Khel
               </h2>
               <p className="mt-4 text-primary-foreground/75 max-w-lg mx-auto text-lg">
-                Give your child the best education in District Mohmand. Apply now for admission.
+                Check your results, browse the library, and stay updated with the latest news and notices.
               </p>
               <Link
-                to="/auth/signup"
-                className="inline-flex items-center gap-2 mt-8 bg-white text-primary-dark font-bold px-8 py-4 rounded-xl shadow-elevated hover:shadow-card hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 text-lg animate-pulse hover:animate-none"
+                to="/results"
+                className="inline-flex items-center gap-2 mt-8 bg-white text-primary-dark font-bold px-8 py-4 rounded-xl shadow-elevated hover:shadow-card hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 text-lg"
               >
-                Apply for Admission
+                Check Results
                 <ArrowRight className="w-5 h-5" />
               </Link>
             </motion.div>

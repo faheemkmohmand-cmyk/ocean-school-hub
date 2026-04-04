@@ -35,7 +35,7 @@ const NewsTicker = () => {
             ref={tickerRef}
             className="flex gap-12 whitespace-nowrap"
             style={{
-              animation: "ticker-scroll 40s linear infinite",
+              animation: "ticker-scroll 18s linear infinite",
             }}
           >
             {items.map((item, idx) => (
