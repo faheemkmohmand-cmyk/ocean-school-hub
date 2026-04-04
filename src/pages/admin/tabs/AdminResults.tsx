@@ -1,671 +1,529 @@
-import { useState, useMemo, useCallback, useRef } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Download, FileText, Trophy, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import PageLayout from "@/components/layout/PageLayout";
+import PageBanner from "@/components/shared/PageBanner";
 import { supabase } from "@/lib/supabase";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Plus, Pencil, Trash2, Loader2, Upload, Search, Download, Hash } from "lucide-react";
+import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 import toast from "react-hot-toast";
-import { triggerConfetti } from "@/lib/confetti";
-import { getGradeFromPercentage, getGradeColor } from "@/hooks/useResults";
 
-const classes = ["6", "7", "8", "9", "10"];
-const getExamTypes = (cls: string) =>
-  ["9", "10"].includes(cls)
-    ? ["Annual-I", "Annual-II"]
-    : ["1st Semester", "2nd Semester"];
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-interface Student { id: string; full_name: string; roll_number: string; photo_url: string | null; }
-interface ExamRollEntry { id: string; student_id: string; exam_roll_no: string; student_name: string; class: string; }
+interface SubjectMark { obtained: number; total: number; }
 
-interface Result {
-  id: string; student_id: string; class: string; exam_type: string; year: number;
-  total_marks: number; obtained_marks: number; percentage: number; grade: string | null;
-  position: number | null; is_pass: boolean; remarks: string | null;
-  exam_roll_no: string | null; manual_pass_fail: boolean | null; created_at: string;
-  students?: { full_name: string; roll_number: string; photo_url: string | null } | null;
+interface ResultRecord {
+  id: string;
+  class: string;
+  exam_type: string;
+  year: number;
+  total_marks: number;
+  obtained_marks: number;
+  percentage: number;
+  grade: string | null;
+  is_pass: boolean;
+  remarks: string | null;
+  exam_roll_no: string | null;
+  position: number | null;
+  subject_marks: Record<string, SubjectMark> | null;
+  students: {
+    full_name: string;
+    roll_number: string;
+    father_name: string | null;
+    photo_url: string | null;
+  } | null;
 }
 
-const currentYear = new Date().getFullYear();
+// ─── Grade color helper ───────────────────────────────────────────────────────
+const gradeColor = (grade: string | null) => {
+  switch (grade) {
+    case "A+": return "#0369A1";
+    case "A":  return "#0EA5E9";
+    case "B":  return "#0D9488";
+    case "C":  return "#D97706";
+    case "D":  return "#EA580C";
+    default:   return "#DC2626";
+  }
+};
 
-const AdminResults = () => {
-  const qc = useQueryClient();
-  const [cls, setCls] = useState("6");
-  const examTypes = getExamTypes(cls);
-  const [examType, setExamType] = useState(examTypes[0]);
-  const [year, setYear] = useState(currentYear);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Result | null>(null);
-  const [search, setSearch] = useState("");
-  const [saving, setSaving] = useState(false);
-  const csvRef = useRef<HTMLInputElement>(null);
-  const [csvImporting, setCsvImporting] = useState(false);
-  const [csvProgress, setCsvProgress] = useState(0);
+// ─── Download Result Card as HTML ─────────────────────────────────────────────
+const downloadResultCard = (r: ResultRecord, schoolName: string) => {
+  const passColor = r.is_pass ? "#16A34A" : "#DC2626";
+  const passText  = r.is_pass ? "PASS" : "FAIL";
 
-  // ── Form state ──────────────────────────────────────────────────────────────
-  const [form, setForm] = useState({
-    student_id: "",
-    student_name_manual: "",   // ✅ Manual name input
-    total_marks: 100,
-    obtained_marks: 0,
-    remarks: "",
-    exam_roll_no: "",          // ✅ Exam roll number field
-    manual_pass_fail: null as boolean | null,  // ✅ null = auto, true/false = manual
-    use_manual_pass: false,    // toggle for manual pass/fail
-  });
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Result Card — ${r.students?.full_name || "Student"}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',Arial,sans-serif; background:#F0F9FF; display:flex; justify-content:center; align-items:flex-start; min-height:100vh; padding:30px 20px; }
+  .card { background:white; border-radius:20px; max-width:480px; width:100%; box-shadow:0 10px 40px rgba(14,165,233,0.15); overflow:hidden; }
 
-  const setF = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
+  /* Header */
+  .header { background:linear-gradient(135deg,#0369A1,#0EA5E9,#38BDF8); padding:28px 32px 24px; text-align:center; color:white; }
+  .header h1 { font-size:20px; font-weight:800; letter-spacing:0.3px; }
+  .header h2 { font-size:13px; font-weight:400; opacity:0.85; margin-top:3px; }
+  .header .badge { display:inline-block; background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.3); border-radius:20px; padding:4px 14px; font-size:12px; margin-top:10px; }
 
-  const handleClassChange = (c: string) => {
-    setCls(c);
-    setExamType(getExamTypes(c)[0]);
-  };
+  /* Student info */
+  .student { display:flex; align-items:center; gap:16px; padding:20px 28px; border-bottom:1px solid #E0F2FE; }
+  .avatar { width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,#0EA5E9,#38BDF8); display:flex; align-items:center; justify-content:center; color:white; font-size:26px; font-weight:800; flex-shrink:0; overflow:hidden; }
+  .avatar img { width:100%; height:100%; object-fit:cover; }
+  .student-name { font-size:18px; font-weight:700; color:#0F172A; }
+  .student-meta { font-size:12px; color:#64748B; margin-top:3px; }
 
-  // ── Fetch students of selected class ────────────────────────────────────────
-  const { data: students = [] } = useQuery<Student[]>({
-    queryKey: ["admin-students-list", cls],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("students")
-        .select("id, full_name, roll_number, photo_url")
-        .eq("class", cls).eq("is_active", true).order("roll_number");
-      if (error) throw error;
-      return data ?? [];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+  /* Exam Roll Number highlight */
+  .roll-highlight { background:#0EA5E9; color:white; padding:12px 28px; display:flex; justify-content:space-between; align-items:center; }
+  .roll-highlight p { font-size:11px; opacity:0.85; }
+  .roll-highlight h3 { font-size:24px; font-weight:800; letter-spacing:3px; }
 
-  // ── Fetch exam roll numbers for selected class (from all published sessions) ──
-  const { data: examRolls = [] } = useQuery<ExamRollEntry[]>({
-    queryKey: ["exam-rolls-for-class", cls],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("exam_roll_numbers")
-        .select("id, student_id, exam_roll_no, student_name, class")
-        .eq("class", cls)
-        .order("exam_roll_no", { ascending: true });
-      if (error) throw error;
-      return data ?? [];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+  /* Result grid */
+  .result-grid { display:grid; grid-template-columns:1fr 1fr; gap:0; }
+  .result-box { padding:16px 20px; border-right:1px solid #F0F9FF; border-bottom:1px solid #F0F9FF; }
+  .result-box:nth-child(even) { border-right:none; }
+  .result-label { font-size:11px; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; }
+  .result-value { font-size:22px; font-weight:800; color:#0F172A; margin-top:2px; }
 
-  // ── Fetch results ────────────────────────────────────────────────────────────
-  const queryKey = ["admin-results", cls, examType, year];
-  const { data: results = [], isLoading } = useQuery<Result[]>({
-    queryKey,
-    queryFn: async () => {
-      const { data, error } = await supabase
+  /* Grade + Status */
+  .grade-status { display:grid; grid-template-columns:1fr 1fr; }
+  .grade-box { padding:20px; text-align:center; background:#F0F9FF; }
+  .grade-box .label { font-size:11px; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; }
+  .grade-box .value { font-size:36px; font-weight:900; margin-top:4px; }
+  .status-box { padding:20px; text-align:center; }
+  .status-box .label { font-size:11px; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; }
+  .status-box .value { font-size:28px; font-weight:900; margin-top:4px; letter-spacing:1px; }
+
+  /* Remarks */
+  .remarks { padding:14px 28px; background:#FFFBEB; border-top:1px solid #FEF08A; font-size:13px; color:#78350F; }
+
+  /* Footer */
+  .footer { padding:14px 28px; background:#F8FAFC; border-top:1px solid #E2E8F0; display:flex; justify-content:space-between; align-items:center; }
+  .footer .school { font-size:11px; color:#64748B; }
+  .footer .verified { font-size:11px; color:#0EA5E9; font-weight:600; }
+
+  /* Position badge */
+  .position { position:relative; }
+  .pos-badge { display:inline-flex; align-items:center; gap:4px; background:#FFFBEB; border:1px solid #FEF08A; border-radius:20px; padding:3px 10px; font-size:11px; color:#92400E; font-weight:600; margin-top:6px; }
+
+  @media print {
+    body { background:white; padding:0; }
+    .card { box-shadow:none; border-radius:0; max-width:100%; }
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+
+    <!-- Header -->
+    <div class="header">
+      <h1>${schoolName}</h1>
+      <h2>Official Result Card</h2>
+      <div class="badge">${r.exam_type} — ${r.year} &nbsp;|&nbsp; Class ${r.class}</div>
+    </div>
+
+    <!-- Exam Roll Number -->
+    ${r.exam_roll_no ? `
+    <div class="roll-highlight">
+      <div>
+        <p>EXAM ROLL NUMBER</p>
+        <h3>${r.exam_roll_no}</h3>
+      </div>
+      <div style="text-align:right">
+        <p>CLASS</p>
+        <h3>${r.class}</h3>
+      </div>
+    </div>` : ""}
+
+    <!-- Student Info -->
+    <div class="student">
+      <div class="avatar">
+        ${r.students?.photo_url
+          ? `<img src="${r.students.photo_url}" alt=""/>`
+          : (r.students?.full_name || "S").charAt(0).toUpperCase()
+        }
+      </div>
+      <div>
+        <div class="student-name position">
+          ${r.students?.full_name || "—"}
+          ${r.position && r.position <= 3
+            ? `<div class="pos-badge">${r.position === 1 ? "🥇" : r.position === 2 ? "🥈" : "🥉"} Position ${r.position}</div>`
+            : ""}
+        </div>
+        <div class="student-meta">
+          Father: ${r.students?.father_name || "—"} &nbsp;|&nbsp;
+          Roll No: ${r.students?.roll_number || "—"}
+        </div>
+      </div>
+    </div>
+
+    <!-- Result Grid -->
+    <div class="result-grid">
+      <div class="result-box">
+        <div class="result-label">Total Marks</div>
+        <div class="result-value">${r.total_marks}</div>
+      </div>
+      <div class="result-box">
+        <div class="result-label">Obtained Marks</div>
+        <div class="result-value">${r.obtained_marks}</div>
+      </div>
+      <div class="result-box">
+        <div class="result-label">Percentage</div>
+        <div class="result-value" style="color:#0EA5E9">${r.percentage}%</div>
+      </div>
+      <div class="result-box">
+        <div class="result-label">Class Position</div>
+        <div class="result-value">${r.position ? `#${r.position}` : "—"}</div>
+      </div>
+    </div>
+
+    <!-- Subject-wise Marks Table -->
+    \${r.subject_marks && Object.keys(r.subject_marks).length > 0 ? `
+    <div style="padding:0 28px 16px;">
+      <h4 style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.8px;margin:16px 0 8px;">Subject-wise Marks</h4>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:#F0F9FF;">
+            <th style="padding:8px 10px;text-align:left;font-weight:700;color:#0369A1;border:1px solid #E0F2FE;">Subject</th>
+            <th style="padding:8px 10px;text-align:center;font-weight:700;color:#0369A1;border:1px solid #E0F2FE;">Obtained</th>
+            <th style="padding:8px 10px;text-align:center;font-weight:700;color:#0369A1;border:1px solid #E0F2FE;">Total</th>
+            <th style="padding:8px 10px;text-align:center;font-weight:700;color:#0369A1;border:1px solid #E0F2FE;">%</th>
+          </tr>
+        </thead>
+        <tbody>
+          \${Object.entries(r.subject_marks).map(([sub, marks], i) => {
+            const pct = marks.total > 0 ? Math.round((marks.obtained / marks.total) * 100) : 0;
+            const bg = i % 2 === 0 ? "#FFFFFF" : "#F8FAFC";
+            const color = pct >= 33 ? "#16A34A" : "#DC2626";
+            return `<tr style="background:\${bg};">
+              <td style="padding:7px 10px;border:1px solid #E2E8F0;font-weight:600;color:#0F172A;">\${sub}</td>
+              <td style="padding:7px 10px;border:1px solid #E2E8F0;text-align:center;font-weight:700;color:\${color};">\${marks.obtained}</td>
+              <td style="padding:7px 10px;border:1px solid #E2E8F0;text-align:center;color:#64748B;">\${marks.total}</td>
+              <td style="padding:7px 10px;border:1px solid #E2E8F0;text-align:center;font-weight:600;color:\${color};">\${pct}%</td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
+    ` : ""}
+
+    <!-- Grade + Status -->
+    <div class="grade-status">
+      <div class="grade-box">
+        <div class="label">Grade</div>
+        <div class="value" style="color:${gradeColor(r.grade)}">${r.grade || "—"}</div>
+      </div>
+      <div class="status-box" style="background:${r.is_pass ? "#F0FDF4" : "#FEF2F2"}">
+        <div class="label">Result</div>
+        <div class="value" style="color:${passColor}">${passText}</div>
+      </div>
+    </div>
+
+    <!-- Remarks -->
+    ${r.remarks ? `<div class="remarks">📝 ${r.remarks}</div>` : ""}
+
+    <!-- Footer -->
+    <div class="footer">
+      <div class="school">${schoolName} &nbsp;|&nbsp; ghs-babi-khel.vercel.app</div>
+      <div class="verified">✓ Official Result</div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `result-card-${r.exam_roll_no || r.students?.roll_number || "student"}-${r.year}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast.success("Result card downloaded! Open the file and press Ctrl+P to print.");
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+const ResultCard = () => {
+  const { data: settings } = useSchoolSettings();
+  const schoolName = settings?.school_name || "GHS Babi Khel";
+
+  const [searchName, setSearchName] = useState("");
+  const [searchRoll, setSearchRoll] = useState("");
+  const [searched, setSearched] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [foundResults, setFoundResults] = useState<ResultRecord[]>([]);
+
+  const handleSearch = async () => {
+    if (!searchName.trim() && !searchRoll.trim()) {
+      toast.error("Enter your name or exam roll number to search");
+      return;
+    }
+    setSearching(true);
+    setSearched(false);
+
+    try {
+      let query = supabase
         .from("results")
-        .select("id, student_id, class, exam_type, year, total_marks, obtained_marks, percentage, grade, position, is_pass, remarks, exam_roll_no, manual_pass_fail, created_at, students(full_name, roll_number, photo_url)")
-        .eq("class", cls).eq("exam_type", examType).eq("year", year)
-        .order("percentage", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as unknown as Result[];
-    },
-    staleTime: 10 * 60 * 1000,
-  });
+        .select("id, class, exam_type, year, total_marks, obtained_marks, percentage, grade, is_pass, remarks, exam_roll_no, position, subject_marks, students(full_name, roll_number, father_name, photo_url)")
+        .order("year", { ascending: false });
 
-  // ── Ranked + filtered results ───────────────────────────────────────────────
-  const rankedResults = useMemo(() => {
-    const filtered = search
-      ? results.filter(r =>
-          r.students?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-          r.students?.roll_number?.toLowerCase().includes(search.toLowerCase()) ||
-          r.exam_roll_no?.includes(search)
-        )
-      : results;
-    return filtered.map((r, i) => ({ ...r, rank: i + 1 }));
-  }, [results, search]);
+      // Search by exam roll number (most specific)
+      if (searchRoll.trim()) {
+        query = query.eq("exam_roll_no", searchRoll.trim());
+      } else if (searchName.trim()) {
+        // Search by student name via join
+        const { data: studentData } = await supabase
+          .from("students")
+          .select("id")
+          .ilike("full_name", `%${searchName.trim()}%`);
 
-  // ── Auto-calc percentage + grade ────────────────────────────────────────────
-  const pct = form.total_marks > 0
-    ? Math.round((form.obtained_marks / form.total_marks) * 100)
-    : 0;
-  const autoGrade = getGradeFromPercentage(pct);
-  const autoPass = pct >= 33;
-  // Final pass/fail: manual override wins if toggled ON
-  const finalPass = form.use_manual_pass
-    ? (form.manual_pass_fail ?? autoPass)
-    : autoPass;
-
-  // ── When student selected from dropdown → auto-fill exam roll ──────────────
-  const handleStudentSelect = (studentId: string) => {
-    setF("student_id", studentId);
-    // Auto-fill exam roll number if one exists for this student
-    const roll = examRolls.find(r => r.student_id === studentId);
-    if (roll) {
-      setF("exam_roll_no", roll.exam_roll_no);
-    }
-    // Auto-fill student name
-    const student = students.find(s => s.id === studentId);
-    if (student) {
-      setF("student_name_manual", student.full_name);
-    }
-  };
-
-  // ── When exam roll typed manually → auto-fill student ──────────────────────
-  const handleExamRollInput = (val: string) => {
-    setF("exam_roll_no", val);
-    const roll = examRolls.find(r => r.exam_roll_no === val);
-    if (roll) {
-      setF("student_name_manual", roll.student_name);
-      const student = students.find(s => s.id === roll.student_id);
-      if (student) setF("student_id", student.id);
-    }
-  };
-
-  // ── Open modals ─────────────────────────────────────────────────────────────
-  const openAdd = () => {
-    setEditing(null);
-    setForm({
-      student_id: "", student_name_manual: "",
-      total_marks: 100, obtained_marks: 0, remarks: "",
-      exam_roll_no: "", manual_pass_fail: null, use_manual_pass: false,
-    });
-    setModalOpen(true);
-  };
-
-  const openEdit = (r: Result) => {
-    setEditing(r);
-    setForm({
-      student_id: r.student_id,
-      student_name_manual: r.students?.full_name || "",
-      total_marks: r.total_marks,
-      obtained_marks: r.obtained_marks,
-      remarks: r.remarks || "",
-      exam_roll_no: r.exam_roll_no || "",
-      manual_pass_fail: r.manual_pass_fail ?? null,
-      use_manual_pass: r.manual_pass_fail !== null,
-    });
-    setModalOpen(true);
-  };
-
-  // ── Save result ─────────────────────────────────────────────────────────────
-  const handleSave = async () => {
-    if (!form.student_id && !form.student_name_manual.trim()) {
-      toast.error("Select a student or enter a student name");
-      return;
-    }
-    setSaving(true);
-
-    const percentage = form.total_marks > 0
-      ? Math.round((form.obtained_marks / form.total_marks) * 100)
-      : 0;
-    const g = getGradeFromPercentage(percentage);
-    const isPass = form.use_manual_pass
-      ? (form.manual_pass_fail ?? percentage >= 33)
-      : percentage >= 33;
-
-    // If no student_id but name given, try to find by name
-    let studentId = form.student_id;
-    if (!studentId && form.student_name_manual) {
-      const match = students.find(s =>
-        s.full_name.toLowerCase() === form.student_name_manual.toLowerCase()
-      );
-      if (match) studentId = match.id;
-    }
-
-    if (!studentId) {
-      toast.error("Could not find student. Please select from the dropdown.");
-      setSaving(false);
-      return;
-    }
-
-    const payload = {
-      student_id: studentId,
-      class: cls,
-      exam_type: examType,
-      year,
-      total_marks: form.total_marks,
-      obtained_marks: form.obtained_marks,
-      percentage,
-      grade: g,
-      is_pass: isPass,
-      remarks: form.remarks || null,
-      exam_roll_no: form.exam_roll_no.trim() || null,
-      manual_pass_fail: form.use_manual_pass ? (form.manual_pass_fail ?? null) : null,
-    };
-
-    const { error } = editing
-      ? await supabase.from("results").update(payload).eq("id", editing.id)
-      : await supabase.from("results").insert(payload);
-
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success(editing ? "Result updated!" : "Result added! 🎉");
-      triggerConfetti("burst");
-      qc.invalidateQueries({ queryKey });
-      setModalOpen(false);
-    }
-    setSaving(false);
-  };
-
-  // ── Delete ──────────────────────────────────────────────────────────────────
-  const deleteMut = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("results").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => { toast.success("Deleted"); qc.invalidateQueries({ queryKey }); },
-  });
-
-  // ── CSV import ──────────────────────────────────────────────────────────────
-  const downloadCSVTemplate = () => {
-    const csv = "student_name,class_roll_number,exam_roll_number,total_marks,obtained_marks,remarks\nAli Khan,001,100001,100,85,Good\nSara Ahmed,002,100002,100,72,";
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "results_template.csv"; a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleCSV = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setCsvImporting(true); setCsvProgress(0);
-    const text = await file.text();
-    const lines = text.trim().split("\n");
-    if (lines.length < 2) { toast.error("CSV is empty"); setCsvImporting(false); return; }
-
-    const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/['"]/g, ""));
-    const nameIdx = headers.indexOf("student_name");
-    const rollIdx = headers.indexOf("class_roll_number");
-    const examRollIdx = headers.indexOf("exam_roll_number");
-    const totalIdx = headers.indexOf("total_marks");
-    const obtainedIdx = headers.indexOf("obtained_marks");
-    const remarksIdx = headers.indexOf("remarks");
-
-    if (totalIdx === -1 || obtainedIdx === -1) {
-      toast.error("CSV must have total_marks and obtained_marks columns");
-      setCsvImporting(false); return;
-    }
-
-    const dataLines = lines.slice(1).filter(l => l.trim());
-    let added = 0; let skipped = 0;
-
-    for (let i = 0; i < dataLines.length; i++) {
-      const cols = dataLines[i].split(",").map(s => s.trim().replace(/['"]/g, ""));
-      const studentName = nameIdx !== -1 ? cols[nameIdx] : "";
-      const rollNumber = rollIdx !== -1 ? cols[rollIdx] : "";
-      const examRollNo = examRollIdx !== -1 ? cols[examRollIdx] : "";
-      const totalMarks = Number(cols[totalIdx]);
-      const obtainedMarks = Number(cols[obtainedIdx]);
-      const remarks = remarksIdx !== -1 ? cols[remarksIdx] || null : null;
-
-      if (isNaN(totalMarks) || isNaN(obtainedMarks)) { skipped++; continue; }
-
-      // Find student
-      let student = rollNumber ? students.find(s => s.roll_number === rollNumber) : null;
-      if (!student && studentName) {
-        student = students.find(s => s.full_name.toLowerCase() === studentName.toLowerCase());
+        if (!studentData || studentData.length === 0) {
+          setFoundResults([]);
+          setSearched(true);
+          setSearching(false);
+          return;
+        }
+        const ids = studentData.map(s => s.id);
+        query = query.in("student_id", ids);
       }
-      if (!student) { skipped++; setCsvProgress(Math.round(((i + 1) / dataLines.length) * 100)); continue; }
 
-      const percentage = totalMarks > 0 ? Math.round((obtainedMarks / totalMarks) * 100) : 0;
-      const g = getGradeFromPercentage(percentage);
-
-      const { error } = await supabase.from("results").upsert({
-        student_id: student.id, class: cls, exam_type: examType, year,
-        total_marks: totalMarks, obtained_marks: obtainedMarks,
-        percentage, grade: g, is_pass: percentage >= 33, remarks,
-        exam_roll_no: examRollNo || null,
-      }, { onConflict: "student_id,class,exam_type,year" });
-
-      if (!error) added++; else skipped++;
-      setCsvProgress(Math.round(((i + 1) / dataLines.length) * 100));
+      const { data, error } = await query.limit(10);
+      if (error) throw error;
+      setFoundResults((data ?? []) as unknown as ResultRecord[]);
+    } catch (err: any) {
+      toast.error("Search failed. Please try again.");
+      console.error(err);
     }
 
-    toast.success(`✅ ${added} results imported, ${skipped} skipped`);
-    qc.invalidateQueries({ queryKey });
-    setCsvImporting(false); setCsvProgress(0);
-    if (csvRef.current) csvRef.current.value = "";
-  }, [students, cls, examType, year, qc, queryKey]);
+    setSearched(true);
+    setSearching(false);
+  };
 
-  // ── Stats ───────────────────────────────────────────────────────────────────
-  const stats = useMemo(() => {
-    const total = results.length;
-    const passed = results.filter(r => r.is_pass).length;
-    const failed = total - passed;
-    const avg = total > 0 ? Math.round(results.reduce((s, r) => s + r.percentage, 0) / total) : 0;
-    return { total, passed, failed, avg };
-  }, [results]);
-
-  // ────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-heading font-bold text-foreground">Manage Results</h2>
+    <PageLayout>
+      <PageBanner
+        title="Result Card"
+        subtitle="Search your result by name or exam roll number and download your official result card"
+      />
 
-      {/* Class tabs */}
-      <Tabs value={cls} onValueChange={handleClassChange}>
-        <TabsList>{classes.map(c => <TabsTrigger key={c} value={c}>Class {c}</TabsTrigger>)}</TabsList>
-      </Tabs>
+      <section className="py-12">
+        <div className="container mx-auto px-4 max-w-2xl">
 
-      {/* Exam type + year + actions */}
-      <div className="flex flex-wrap items-center gap-3">
-        <Tabs value={examType} onValueChange={setExamType}>
-          <TabsList>{examTypes.map(t => <TabsTrigger key={t} value={t}>{t}</TabsTrigger>)}</TabsList>
-        </Tabs>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-muted-foreground">Year:</span>
-          <input
-            type="number" value={year}
-            onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 1900 && v <= 2200) setYear(v); }}
-            className="w-28 rounded-lg border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-ring outline-none"
-            min="1900" max="2200"
-          />
-        </div>
-        <Button onClick={openAdd} size="sm" className="gap-1.5"><Plus className="w-4 h-4" /> Add Result</Button>
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => csvRef.current?.click()}>
-          <Upload className="w-4 h-4" /> {csvImporting ? "Importing..." : "Import CSV"}
-        </Button>
-        <input ref={csvRef} type="file" accept=".csv" className="hidden" onChange={handleCSV} />
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={downloadCSVTemplate}>
-          <Download className="w-4 h-4" /> CSV Template
-        </Button>
-      </div>
+          {/* Search Box */}
+          <div className="bg-card rounded-2xl shadow-elevated p-6 mb-8 border border-border">
+            <h3 className="font-heading font-bold text-foreground text-lg mb-4 flex items-center gap-2">
+              <Search className="w-5 h-5 text-primary" />
+              Search Your Result
+            </h3>
 
-      {csvImporting && (
-        <div className="space-y-1">
-          <Progress value={csvProgress} className="h-2" />
-          <p className="text-xs text-muted-foreground text-center">Importing... {csvProgress}%</p>
-        </div>
-      )}
-
-      {/* Stats bar */}
-      {results.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: "Total Students", value: stats.total, color: "text-primary" },
-            { label: "Passed", value: stats.passed, color: "text-green-600" },
-            { label: "Failed", value: stats.failed, color: "text-destructive" },
-            { label: "Class Average", value: `${stats.avg}%`, color: "text-primary" },
-          ].map(s => (
-            <Card key={s.label}>
-              <CardContent className="p-3 text-center">
-                <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Search */}
-      <div className="relative max-w-xs">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Search name or roll no..."
-          className="pl-9" value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-      </div>
-
-      {/* Results table */}
-      {isLoading ? (
-        <div className="space-y-2">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
-      ) : (
-        <Card><CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader><TableRow>
-              <TableHead className="w-10">#</TableHead>
-              <TableHead>Photo</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Class Roll</TableHead>
-              <TableHead>Exam Roll</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Obtained</TableHead>
-              <TableHead>%</TableHead>
-              <TableHead>Grade</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow></TableHeader>
-            <TableBody>
-              {rankedResults.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={11} className="text-center py-10 text-muted-foreground">
-                    No results yet. Click "Add Result" to begin.
-                  </TableCell>
-                </TableRow>
-              )}
-              {rankedResults.map(r => (
-                <TableRow key={r.id} className="hover:bg-secondary/50">
-                  <TableCell className="font-bold text-primary">{r.rank}</TableCell>
-                  <TableCell>
-                    {r.students?.photo_url
-                      ? <img src={r.students.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" loading="lazy" />
-                      : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
-                          {(r.students?.full_name || "S").charAt(0)}
-                        </div>}
-                  </TableCell>
-                  <TableCell className="font-medium">{r.students?.full_name || "—"}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm">{r.students?.roll_number || "—"}</TableCell>
-                  <TableCell>
-                    {r.exam_roll_no
-                      ? <span className="font-mono font-bold text-primary text-sm">{r.exam_roll_no}</span>
-                      : <span className="text-muted-foreground text-xs">—</span>}
-                  </TableCell>
-                  <TableCell>{r.total_marks}</TableCell>
-                  <TableCell>{r.obtained_marks}</TableCell>
-                  <TableCell className="font-semibold">{r.percentage}%</TableCell>
-                  <TableCell><Badge className={getGradeColor(r.grade || "Fail")}>{r.grade}</Badge></TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={r.is_pass ? "default" : "destructive"}
-                      className={r.is_pass ? "bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]" : ""}
-                    >
-                      {r.is_pass ? "Pass" : "Fail"}
-                    </Badge>
-                    {r.manual_pass_fail !== null && (
-                      <span className="text-[10px] text-muted-foreground ml-1">(manual)</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right space-x-1">
-                    <Button size="icon" variant="ghost" onClick={() => openEdit(r)}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button size="icon" variant="ghost" className="text-destructive">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete this result?</AlertDialogTitle>
-                          <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteMut.mutate(r.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >Delete</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent></Card>
-      )}
-
-      {/* ── Add / Edit Modal ─────────────────────────────────────────────────── */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editing ? "Edit Result" : "Add Result"} — Class {cls} ({examType} {year})</DialogTitle>
-          </DialogHeader>
-
-          <div className="grid gap-4 py-2">
-
-            {/* Student selector */}
-            <div>
-              <Label>Select Student from List</Label>
-              <Select value={form.student_id} onValueChange={handleStudentSelect}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose student (auto-fills name & exam roll)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {students.map(s => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.roll_number} — {s.full_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                Selecting auto-fills name and exam roll number if generated
-              </p>
-            </div>
-
-            {/* Student name — manual */}
-            <div>
-              <Label>Student Name *</Label>
-              <Input
-                value={form.student_name_manual}
-                onChange={e => setF("student_name_manual", e.target.value)}
-                placeholder="Type student name manually if needed"
-              />
-            </div>
-
-            {/* Exam Roll Number */}
-            <div>
-              <Label className="flex items-center gap-1.5">
-                <Hash className="w-3.5 h-3.5 text-primary" />
-                Exam Roll Number
-              </Label>
-              <Input
-                value={form.exam_roll_no}
-                onChange={e => handleExamRollInput(e.target.value)}
-                placeholder="e.g. 100001 (auto-filled from dropdown)"
-                className="font-mono"
-              />
-              {examRolls.length > 0 && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {examRolls.length} exam roll numbers available for Class {cls}
-                </p>
-              )}
-              {examRolls.length === 0 && (
-                <p className="text-xs text-amber-600 mt-1">
-                  No exam roll numbers generated for Class {cls} yet. Generate them in Exam Roll Numbers section.
-                </p>
-              )}
-            </div>
-
-            {/* Marks */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-3">
               <div>
-                <Label>Total Marks *</Label>
-                <Input
-                  type="number" min={0}
-                  value={form.total_marks}
-                  onChange={e => setF("total_marks", Number(e.target.value))}
+                <label className="text-sm font-medium text-foreground block mb-1.5">
+                  Student Name
+                </label>
+                <input
+                  value={searchName}
+                  onChange={e => setSearchName(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleSearch()}
+                  placeholder="Enter your full name..."
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm focus:ring-2 focus:ring-ring outline-none"
                 />
               </div>
+
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground font-medium">OR</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
               <div>
-                <Label>Obtained Marks *</Label>
-                <Input
-                  type="number" min={0} max={form.total_marks}
-                  value={form.obtained_marks}
-                  onChange={e => setF("obtained_marks", Number(e.target.value))}
+                <label className="text-sm font-medium text-foreground block mb-1.5">
+                  Exam Roll Number
+                </label>
+                <input
+                  value={searchRoll}
+                  onChange={e => setSearchRoll(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleSearch()}
+                  placeholder="Enter your exam roll number (e.g. 100001)..."
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-mono focus:ring-2 focus:ring-ring outline-none"
                 />
               </div>
-            </div>
 
-            {/* Auto-calculated result preview */}
-            <div className="bg-secondary/50 rounded-xl p-3 flex flex-wrap items-center gap-3">
-              <div className="text-sm">
-                <span className="text-muted-foreground">Percentage: </span>
-                <span className="font-bold text-foreground">{pct}%</span>
-              </div>
-              <Badge className={getGradeColor(autoGrade)}>{autoGrade}</Badge>
-              <Badge
-                variant={finalPass ? "default" : "destructive"}
-                className={finalPass ? "bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]" : ""}
+              <button
+                onClick={handleSearch}
+                disabled={searching}
+                className="w-full gradient-accent text-primary-foreground font-semibold py-3 rounded-xl shadow-card hover:shadow-elevated transition-all flex items-center justify-center gap-2 disabled:opacity-60"
               >
-                {finalPass ? "✅ Pass" : "❌ Fail"}
-              </Badge>
-            </div>
-
-            {/* Manual Pass/Fail override */}
-            <div className="border border-border rounded-xl p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-sm font-semibold">Manual Pass/Fail Override</Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Turn ON to manually set pass or fail (overrides auto calculation)
-                  </p>
-                </div>
-                <Switch
-                  checked={form.use_manual_pass}
-                  onCheckedChange={v => setF("use_manual_pass", v)}
-                />
-              </div>
-
-              {form.use_manual_pass && (
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setF("manual_pass_fail", true)}
-                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${
-                      form.manual_pass_fail === true
-                        ? "bg-green-500 text-white border-green-500"
-                        : "border-border text-muted-foreground hover:border-green-400"
-                    }`}
-                  >
-                    ✅ PASS
-                  </button>
-                  <button
-                    onClick={() => setF("manual_pass_fail", false)}
-                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${
-                      form.manual_pass_fail === false
-                        ? "bg-red-500 text-white border-red-500"
-                        : "border-border text-muted-foreground hover:border-red-400"
-                    }`}
-                  >
-                    ❌ FAIL
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Remarks */}
-            <div>
-              <Label>Remarks (Optional)</Label>
-              <Textarea
-                rows={2}
-                value={form.remarks}
-                onChange={e => setF("remarks", e.target.value)}
-                placeholder="Any notes about this result"
-              />
+                {searching
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Searching...</>
+                  : <><Search className="w-4 h-4" /> Search Result</>
+                }
+              </button>
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving} className="gap-1.5">
-              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-              {saving ? "Saving..." : editing ? "Update Result" : "Add Result"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+          {/* Results */}
+          <AnimatePresence>
+            {searched && (
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-4"
+              >
+                {foundResults.length === 0 ? (
+                  <div className="bg-card rounded-2xl p-10 text-center shadow-card">
+                    <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                    <h3 className="font-heading font-semibold text-foreground">No Result Found</h3>
+                    <p className="text-sm text-muted-foreground mt-2 max-w-xs mx-auto">
+                      No result found for your search. Check your name or exam roll number and try again.
+                      Results must be published by admin to appear here.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Found {foundResults.length} result{foundResults.length > 1 ? "s" : ""}
+                    </p>
+                    {foundResults.map(r => (
+                      <motion.div
+                        key={r.id}
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-card rounded-2xl shadow-elevated overflow-hidden border border-border"
+                      >
+                        {/* Card header */}
+                        <div className="gradient-hero px-6 py-4 text-primary-foreground">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm opacity-80">{r.exam_type} — {r.year}</p>
+                              <h3 className="font-heading font-bold text-lg">{r.students?.full_name}</h3>
+                              <p className="text-sm opacity-80">Class {r.class}</p>
+                            </div>
+                            {r.exam_roll_no && (
+                              <div className="text-right">
+                                <p className="text-xs opacity-70">Exam Roll No</p>
+                                <p className="font-mono font-bold text-2xl tracking-wider">{r.exam_roll_no}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Result details */}
+                        <div className="p-6 space-y-4">
+                          {/* Marks row */}
+                          <div className="grid grid-cols-3 gap-4">
+                            {[
+                              { label: "Total Marks", value: r.total_marks },
+                              { label: "Obtained", value: r.obtained_marks },
+                              { label: "Percentage", value: `${r.percentage}%` },
+                            ].map(item => (
+                              <div key={item.label} className="bg-secondary/50 rounded-xl p-3 text-center">
+                                <p className="text-xs text-muted-foreground">{item.label}</p>
+                                <p className="text-xl font-bold text-foreground mt-0.5">{item.value}</p>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Subject-wise Marks Table */}
+                          {r.subject_marks && Object.keys(r.subject_marks).length > 0 && (
+                            <div className="border border-border rounded-xl overflow-hidden">
+                              <div className="bg-primary/10 px-4 py-2">
+                                <span className="text-xs font-bold uppercase tracking-wide text-primary">Subject-wise Marks</span>
+                              </div>
+                              <div className="divide-y divide-border">
+                                <div className="grid grid-cols-4 gap-0 bg-secondary/80 px-4 py-1.5">
+                                  <span className="text-xs font-bold text-muted-foreground col-span-2">Subject</span>
+                                  <span className="text-xs font-bold text-muted-foreground text-center">Obtained</span>
+                                  <span className="text-xs font-bold text-muted-foreground text-center">Total</span>
+                                </div>
+                                {Object.entries(r.subject_marks).map(([subject, marks]) => {
+                                  const pct = marks.total > 0 ? Math.round((marks.obtained / marks.total) * 100) : 0;
+                                  const pass = pct >= 33;
+                                  return (
+                                    <div key={subject} className="grid grid-cols-4 gap-0 px-4 py-2 items-center">
+                                      <span className="text-sm font-medium text-foreground col-span-2 truncate">{subject}</span>
+                                      <span className={`text-sm font-bold text-center ${pass ? "text-green-600" : "text-red-500"}`}>{marks.obtained}</span>
+                                      <span className="text-sm text-muted-foreground text-center">{marks.total}</span>
+                                    </div>
+                                  );
+                                })}
+                                <div className="grid grid-cols-4 gap-0 px-4 py-2 bg-secondary/50 font-bold">
+                                  <span className="text-sm text-foreground col-span-2">Total</span>
+                                  <span className="text-sm text-primary text-center">{r.obtained_marks}</span>
+                                  <span className="text-sm text-muted-foreground text-center">{r.total_marks}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Grade + Pass/Fail */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-secondary/50 rounded-xl p-4 text-center">
+                              <p className="text-xs text-muted-foreground uppercase tracking-wide">Grade</p>
+                              <p className="text-4xl font-black mt-1" style={{ color: gradeColor(r.grade) }}>
+                                {r.grade || "—"}
+                              </p>
+                            </div>
+                            <div
+                              className="rounded-xl p-4 text-center"
+                              style={{ background: r.is_pass ? "#F0FDF4" : "#FEF2F2" }}
+                            >
+                              <p className="text-xs text-muted-foreground uppercase tracking-wide">Result</p>
+                              <div className="flex items-center justify-center gap-2 mt-2">
+                                {r.is_pass
+                                  ? <CheckCircle className="w-8 h-8 text-green-600" />
+                                  : <XCircle className="w-8 h-8 text-red-600" />
+                                }
+                              </div>
+                              <p
+                                className="text-xl font-bold mt-1"
+                                style={{ color: r.is_pass ? "#16A34A" : "#DC2626" }}
+                              >
+                                {r.is_pass ? "PASS" : "FAIL"}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Position */}
+                          {r.position && r.position <= 10 && (
+                            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                              <Trophy className="w-5 h-5 text-amber-600" />
+                              <p className="text-sm font-semibold text-amber-800">
+                                {r.position === 1 ? "🥇 1st" : r.position === 2 ? "🥈 2nd" : r.position === 3 ? "🥉 3rd" : `#${r.position}`} Position in Class
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Remarks */}
+                          {r.remarks && (
+                            <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                              <p className="text-sm text-blue-800">
+                                <span className="font-semibold">Remarks: </span>{r.remarks}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Download button */}
+                          <button
+                            onClick={() => downloadResultCard(r, schoolName)}
+                            className="w-full gradient-accent text-primary-foreground font-semibold py-3 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                          >
+                            <Download className="w-4 h-4" />
+                            Download Result Card
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </section>
+    </PageLayout>
   );
 };
 
-export default AdminResults;
+export default ResultCard;
