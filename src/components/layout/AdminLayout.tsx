@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   BarChart3, Settings, Users, GraduationCap, ClipboardList, CheckSquare,
   Calendar, Bell, Newspaper, Image, BookOpen, Trophy, UserCog, LogOut,
-  Menu, X, ExternalLink, Shield, Moon, Sun, Video, Clock, Hash
+  Menu, X, ExternalLink, Shield, Moon, Sun, Video, Clock
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/hooks/useDarkMode";
@@ -22,7 +22,6 @@ const navItems = [
   { id: "gallery", label: "Gallery", icon: Image },
   { id: "library", label: "Library", icon: BookOpen },
   { id: "achievements", label: "Achievements", icon: Trophy },
-  { id: "exam-rolls", label: "Exam Roll Numbers", icon: Hash },
   { id: "videos", label: "Videos", icon: Video },
   { id: "users", label: "Users", icon: UserCog },
 ];
@@ -160,7 +159,34 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+        <main className="flex-1 p-4 md:p-6 pb-20 lg:pb-6">{children}</main>
+      </div>
+
+      {/* ✅ Mobile bottom bar — quick access for admin on phone */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border">
+        <div className="flex items-center justify-around py-1">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="flex flex-col items-center gap-0.5 p-2 min-w-[3.5rem] text-muted-foreground"
+          >
+            <Menu className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Menu</span>
+          </button>
+          <Link
+            to="/"
+            className="flex flex-col items-center gap-0.5 p-2 min-w-[3.5rem] text-primary"
+          >
+            <ExternalLink className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Website</span>
+          </Link>
+          <button
+            onClick={handleSignOut}
+            className="flex flex-col items-center gap-0.5 p-2 min-w-[3.5rem] text-destructive"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Sign Out</span>
+          </button>
+        </div>
       </div>
 
       {/* Mobile sidebar overlay */}
@@ -190,7 +216,15 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
                 </button>
               ))}
             </nav>
-            <div className="p-3 border-t border-border">
+            <div className="p-3 border-t border-border space-y-1">
+              <Link
+                to="/"
+                onClick={() => setSidebarOpen(false)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Main Website
+              </Link>
               <button
                 onClick={handleSignOut}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10"
