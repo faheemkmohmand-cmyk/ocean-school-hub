@@ -15,15 +15,13 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
   },
   build: {
-    // ✅ Target modern browsers — smaller, faster output
     target: "es2020",
-    // ✅ Minify with esbuild (faster than terser, built-in)
     minify: "esbuild",
-    // ✅ Inline tiny assets as base64 — saves HTTP round trips
     assetsInlineLimit: 4096,
+    // ✅ Enable CSS code splitting — each page loads only its CSS
+    cssCodeSplit: true,
     rollupOptions: {
       output: {
-        // ✅ Finer chunks — only load what each page needs
         manualChunks: {
           "vendor-react": ["react", "react-dom", "react-router-dom"],
           "vendor-supabase": ["@supabase/supabase-js"],
@@ -31,15 +29,19 @@ export default defineConfig(({ mode }) => ({
           "vendor-motion": ["framer-motion"],
           "vendor-ui": ["lucide-react", "react-hot-toast"],
           "vendor-utils": ["date-fns", "clsx", "tailwind-merge"],
+          // ✅ Heavy libs in separate chunks — loaded only when needed
+          "vendor-xlsx": ["xlsx"],
+          "vendor-pdf": ["jspdf", "jspdf-autotable"],
+          "vendor-charts": ["recharts"],
         },
-        // ✅ Content-hash filenames → perfect long-term browser caching
         chunkFileNames: "assets/[name]-[hash].js",
         entryFileNames: "assets/[name]-[hash].js",
         assetFileNames: "assets/[name]-[hash].[ext]",
       },
     },
     chunkSizeWarningLimit: 600,
-    // ✅ Generate sourcemaps only in dev
     sourcemap: mode === "development",
+    // ✅ Report compressed sizes to understand real transfer size
+    reportCompressedSize: true,
   },
 }));

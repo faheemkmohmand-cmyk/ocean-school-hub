@@ -201,6 +201,22 @@
 ::-webkit-scrollbar-track { background: hsl(204 100% 97%); }
 ::-webkit-scrollbar-thumb { background: hsl(199 89% 48%); border-radius: 3px; }
 
+/* ✅ Reduce motion for users who prefer it — improves perf & accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ✅ Content-visibility for off-screen sections — browser skips layout/paint */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
+}
+
 /* Print styles */
 @media print {
   nav, footer, .scroll-to-top, button, .no-print { display: none !important; }

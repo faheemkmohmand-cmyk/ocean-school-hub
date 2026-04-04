@@ -39,8 +39,8 @@ const PageSkeleton = () => (
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Data stays fresh for 5 minutes — no re-fetch on every component mount
-      staleTime: 5 * 60 * 1000,
+      // Data stays fresh for 10 minutes — no re-fetch on every component mount
+      staleTime: 10 * 60 * 1000,
       // Keep unused data in memory for 30 minutes — instant if user navigates back
       gcTime: 30 * 60 * 1000,
       // Don't re-fetch just because user switched browser tabs
