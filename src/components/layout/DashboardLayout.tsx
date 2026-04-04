@@ -3,25 +3,24 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Home, Calendar, BarChart3, Bell, Newspaper, BookOpen, Image, Trophy,
   Users, User, LogOut, GraduationCap, Menu, X, Shield, ExternalLink, Moon, Sun,
-  Video, Hash
+  Video   // ✅ NEW
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
 import { useDarkMode } from "@/hooks/useDarkMode";
 
 const navItems = [
-  { id: "overview",     label: "Overview",      icon: Home        },
-  { id: "timetable",    label: "Timetable",     icon: Calendar    },
-  { id: "results",      label: "Results",       icon: BarChart3   },
-  { id: "exam-rolls",   label: "Roll Numbers",  icon: Hash        },
-  { id: "notices",      label: "Notices",       icon: Bell        },
-  { id: "news",         label: "News",          icon: Newspaper   },
-  { id: "library",      label: "Library",       icon: BookOpen    },
-  { id: "gallery",      label: "Gallery",       icon: Image       },
-  { id: "videos",       label: "Videos",        icon: Video       },
-  { id: "achievements", label: "Achievements",  icon: Trophy      },
-  { id: "teachers",     label: "Teachers",      icon: Users       },
-  { id: "profile",      label: "My Profile",    icon: User        },
+  { id: "overview",     label: "Overview",     icon: Home        },
+  { id: "timetable",    label: "Timetable",    icon: Calendar    },
+  { id: "results",      label: "Results",      icon: BarChart3   },
+  { id: "notices",      label: "Notices",      icon: Bell        },
+  { id: "news",         label: "News",         icon: Newspaper   },
+  { id: "library",      label: "Library",      icon: BookOpen    },
+  { id: "gallery",      label: "Gallery",      icon: Image       },
+  { id: "videos",       label: "Videos",       icon: Video       }, // ✅ NEW
+  { id: "achievements", label: "Achievements", icon: Trophy      },
+  { id: "teachers",     label: "Teachers",     icon: Users       },
+  { id: "profile",      label: "My Profile",   icon: User        },
 ];
 
 interface DashboardLayoutProps {
@@ -168,11 +167,11 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
       {/* Mobile bottom nav */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border">
         <div className="flex items-center justify-around py-1">
-          {navItems.slice(0, 5).map((item) => (
+          {navItems.slice(0, 4).map((item) => (
             <button
               key={item.id}
               onClick={() => onTabChange(item.id)}
-              className={`flex flex-col items-center gap-0.5 p-2 min-w-[3.5rem] ${
+              className={`flex flex-col items-center gap-0.5 p-2 min-w-[3rem] ${
                 activeTab === item.id ? "text-primary" : "text-muted-foreground"
               }`}
             >
@@ -180,9 +179,17 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
               <span className="text-[10px] font-medium">{item.label}</span>
             </button>
           ))}
+          {/* ✅ Main Website button — always visible on mobile */}
+          <Link
+            to="/"
+            className="flex flex-col items-center gap-0.5 p-2 min-w-[3rem] text-primary"
+          >
+            <ExternalLink className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Website</span>
+          </Link>
           <button
             onClick={() => setSidebarOpen(true)}
-            className="flex flex-col items-center gap-0.5 p-2 min-w-[3.5rem] text-muted-foreground"
+            className="flex flex-col items-center gap-0.5 p-2 min-w-[3rem] text-muted-foreground"
           >
             <Menu className="w-5 h-5" />
             <span className="text-[10px] font-medium">More</span>
