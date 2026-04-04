@@ -11,19 +11,21 @@ import VideosTab from "./tabs/VideosTab";
 import AchievementsTab from "./tabs/AchievementsTab";
 import TeachersTab from "./tabs/TeachersTab";
 import ProfileTab from "./tabs/ProfileTab";
+import RollNumbersTab from "./tabs/RollNumbersTab";
 
 const tabComponents: Record<string, React.ComponentType<any>> = {
-  overview:     OverviewTab,
-  timetable:    TimetableTab,
-  results:      ResultsTab,
-  notices:      NoticesTab,
-  news:         NewsTab,
-  library:      LibraryTab,
-  gallery:      GalleryTab,
-  videos:       VideosTab,       // ✅ NEW
-  achievements: AchievementsTab,
-  teachers:     TeachersTab,
-  profile:      ProfileTab,
+  overview:      OverviewTab,
+  timetable:     TimetableTab,
+  results:       ResultsTab,
+  "exam-rolls":  RollNumbersTab,
+  notices:       NoticesTab,
+  news:          NewsTab,
+  library:       LibraryTab,
+  gallery:       GalleryTab,
+  videos:        VideosTab,
+  achievements:  AchievementsTab,
+  teachers:      TeachersTab,
+  profile:       ProfileTab,
 };
 
 const UserDashboard = () => {
