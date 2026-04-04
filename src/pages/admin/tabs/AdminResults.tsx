@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -14,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Pencil, Trash2, Loader2, Upload, Search, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Upload, Search, Download, Hash } from "lucide-react";
 import toast from "react-hot-toast";
 import { triggerConfetti } from "@/lib/confetti";
 import { getGradeFromPercentage, getGradeColor } from "@/hooks/useResults";
@@ -26,10 +27,13 @@ const getExamTypes = (cls: string) =>
     : ["1st Semester", "2nd Semester"];
 
 interface Student { id: string; full_name: string; roll_number: string; photo_url: string | null; }
+interface ExamRollEntry { id: string; student_id: string; exam_roll_no: string; student_name: string; class: string; }
+
 interface Result {
   id: string; student_id: string; class: string; exam_type: string; year: number;
   total_marks: number; obtained_marks: number; percentage: number; grade: string | null;
-  position: number | null; is_pass: boolean; remarks: string | null; created_at: string;
+  position: number | null; is_pass: boolean; remarks: string | null;
+  exam_roll_no: string | null; manual_pass_fail: boolean | null; created_at: string;
   students?: { full_name: string; roll_number: string; photo_url: string | null } | null;
 }
 
@@ -49,220 +53,325 @@ const AdminResults = () => {
   const [csvImporting, setCsvImporting] = useState(false);
   const [csvProgress, setCsvProgress] = useState(0);
 
+  // ── Form state ──────────────────────────────────────────────────────────────
   const [form, setForm] = useState({
-    student_id: "", total_marks: 100, obtained_marks: 0, remarks: "",
+    student_id: "",
+    student_name_manual: "",   // ✅ Manual name input
+    total_marks: 100,
+    obtained_marks: 0,
+    remarks: "",
+    exam_roll_no: "",          // ✅ Exam roll number field
+    manual_pass_fail: null as boolean | null,  // ✅ null = auto, true/false = manual
+    use_manual_pass: false,    // toggle for manual pass/fail
   });
+
+  const setF = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
 
   const handleClassChange = (c: string) => {
     setCls(c);
-    const types = getExamTypes(c);
-    setExamType(types[0]);
+    setExamType(getExamTypes(c)[0]);
   };
 
+  // ── Fetch students of selected class ────────────────────────────────────────
   const { data: students = [] } = useQuery<Student[]>({
     queryKey: ["admin-students-list", cls],
     queryFn: async () => {
-      const { data, error } = await supabase.from("students").select("id, full_name, roll_number, photo_url").eq("class", cls).eq("is_active", true).order("roll_number");
+      const { data, error } = await supabase
+        .from("students")
+        .select("id, full_name, roll_number, photo_url")
+        .eq("class", cls).eq("is_active", true).order("roll_number");
       if (error) throw error;
       return data ?? [];
     },
     staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
   });
 
+  // ── Fetch exam roll numbers for selected class (from all published sessions) ──
+  const { data: examRolls = [] } = useQuery<ExamRollEntry[]>({
+    queryKey: ["exam-rolls-for-class", cls],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("exam_roll_numbers")
+        .select("id, student_id, exam_roll_no, student_name, class")
+        .eq("class", cls)
+        .order("exam_roll_no", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // ── Fetch results ────────────────────────────────────────────────────────────
   const queryKey = ["admin-results", cls, examType, year];
   const { data: results = [], isLoading } = useQuery<Result[]>({
     queryKey,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("results")
-        .select("id, student_id, class, exam_type, year, total_marks, obtained_marks, percentage, grade, position, is_pass, remarks, created_at, students(full_name, roll_number, photo_url)")
+        .select("id, student_id, class, exam_type, year, total_marks, obtained_marks, percentage, grade, position, is_pass, remarks, exam_roll_no, manual_pass_fail, created_at, students(full_name, roll_number, photo_url)")
         .eq("class", cls).eq("exam_type", examType).eq("year", year)
         .order("percentage", { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as Result[];
     },
     staleTime: 10 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
   });
 
+  // ── Ranked + filtered results ───────────────────────────────────────────────
   const rankedResults = useMemo(() => {
     const filtered = search
       ? results.filter(r =>
           r.students?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-          r.students?.roll_number?.toLowerCase().includes(search.toLowerCase())
+          r.students?.roll_number?.toLowerCase().includes(search.toLowerCase()) ||
+          r.exam_roll_no?.includes(search)
         )
       : results;
     return filtered.map((r, i) => ({ ...r, rank: i + 1 }));
   }, [results, search]);
 
-  const pct = form.total_marks > 0 ? Math.round((form.obtained_marks / form.total_marks) * 100) : 0;
-  const grade = getGradeFromPercentage(pct);
+  // ── Auto-calc percentage + grade ────────────────────────────────────────────
+  const pct = form.total_marks > 0
+    ? Math.round((form.obtained_marks / form.total_marks) * 100)
+    : 0;
+  const autoGrade = getGradeFromPercentage(pct);
+  const autoPass = pct >= 33;
+  // Final pass/fail: manual override wins if toggled ON
+  const finalPass = form.use_manual_pass
+    ? (form.manual_pass_fail ?? autoPass)
+    : autoPass;
 
+  // ── When student selected from dropdown → auto-fill exam roll ──────────────
+  const handleStudentSelect = (studentId: string) => {
+    setF("student_id", studentId);
+    // Auto-fill exam roll number if one exists for this student
+    const roll = examRolls.find(r => r.student_id === studentId);
+    if (roll) {
+      setF("exam_roll_no", roll.exam_roll_no);
+    }
+    // Auto-fill student name
+    const student = students.find(s => s.id === studentId);
+    if (student) {
+      setF("student_name_manual", student.full_name);
+    }
+  };
+
+  // ── When exam roll typed manually → auto-fill student ──────────────────────
+  const handleExamRollInput = (val: string) => {
+    setF("exam_roll_no", val);
+    const roll = examRolls.find(r => r.exam_roll_no === val);
+    if (roll) {
+      setF("student_name_manual", roll.student_name);
+      const student = students.find(s => s.id === roll.student_id);
+      if (student) setF("student_id", student.id);
+    }
+  };
+
+  // ── Open modals ─────────────────────────────────────────────────────────────
   const openAdd = () => {
     setEditing(null);
-    setForm({ student_id: "", total_marks: 100, obtained_marks: 0, remarks: "" });
+    setForm({
+      student_id: "", student_name_manual: "",
+      total_marks: 100, obtained_marks: 0, remarks: "",
+      exam_roll_no: "", manual_pass_fail: null, use_manual_pass: false,
+    });
     setModalOpen(true);
   };
 
   const openEdit = (r: Result) => {
     setEditing(r);
-    setForm({ student_id: r.student_id, total_marks: r.total_marks, obtained_marks: r.obtained_marks, remarks: r.remarks || "" });
+    setForm({
+      student_id: r.student_id,
+      student_name_manual: r.students?.full_name || "",
+      total_marks: r.total_marks,
+      obtained_marks: r.obtained_marks,
+      remarks: r.remarks || "",
+      exam_roll_no: r.exam_roll_no || "",
+      manual_pass_fail: r.manual_pass_fail ?? null,
+      use_manual_pass: r.manual_pass_fail !== null,
+    });
     setModalOpen(true);
   };
 
+  // ── Save result ─────────────────────────────────────────────────────────────
   const handleSave = async () => {
-    if (!form.student_id) { toast.error("Select a student"); return; }
+    if (!form.student_id && !form.student_name_manual.trim()) {
+      toast.error("Select a student or enter a student name");
+      return;
+    }
     setSaving(true);
-    const percentage = form.total_marks > 0 ? Math.round((form.obtained_marks / form.total_marks) * 100) : 0;
+
+    const percentage = form.total_marks > 0
+      ? Math.round((form.obtained_marks / form.total_marks) * 100)
+      : 0;
     const g = getGradeFromPercentage(percentage);
+    const isPass = form.use_manual_pass
+      ? (form.manual_pass_fail ?? percentage >= 33)
+      : percentage >= 33;
+
+    // If no student_id but name given, try to find by name
+    let studentId = form.student_id;
+    if (!studentId && form.student_name_manual) {
+      const match = students.find(s =>
+        s.full_name.toLowerCase() === form.student_name_manual.toLowerCase()
+      );
+      if (match) studentId = match.id;
+    }
+
+    if (!studentId) {
+      toast.error("Could not find student. Please select from the dropdown.");
+      setSaving(false);
+      return;
+    }
+
     const payload = {
-      student_id: form.student_id,
-      class: cls, exam_type: examType, year,
-      total_marks: form.total_marks, obtained_marks: form.obtained_marks,
-      percentage, grade: g, is_pass: percentage >= 33,
+      student_id: studentId,
+      class: cls,
+      exam_type: examType,
+      year,
+      total_marks: form.total_marks,
+      obtained_marks: form.obtained_marks,
+      percentage,
+      grade: g,
+      is_pass: isPass,
       remarks: form.remarks || null,
+      exam_roll_no: form.exam_roll_no.trim() || null,
+      manual_pass_fail: form.use_manual_pass ? (form.manual_pass_fail ?? null) : null,
     };
+
     const { error } = editing
       ? await supabase.from("results").update(payload).eq("id", editing.id)
       : await supabase.from("results").insert(payload);
-    if (error) toast.error(error.message);
-    else { toast.success(editing ? "Updated" : "Result added! 🎉"); triggerConfetti("burst"); qc.invalidateQueries({ queryKey }); setModalOpen(false); }
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success(editing ? "Result updated!" : "Result added! 🎉");
+      triggerConfetti("burst");
+      qc.invalidateQueries({ queryKey });
+      setModalOpen(false);
+    }
     setSaving(false);
   };
 
+  // ── Delete ──────────────────────────────────────────────────────────────────
   const deleteMut = useMutation({
-    mutationFn: async (id: string) => { const { error } = await supabase.from("results").delete().eq("id", id); if (error) throw error; },
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("results").delete().eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => { toast.success("Deleted"); qc.invalidateQueries({ queryKey }); },
   });
 
+  // ── CSV import ──────────────────────────────────────────────────────────────
   const downloadCSVTemplate = () => {
-    const csv = "student_name,roll_number,total_marks,obtained_marks,remarks\nAli Khan,001,100,85,Good performance\nSara Ahmed,002,100,72,";
+    const csv = "student_name,class_roll_number,exam_roll_number,total_marks,obtained_marks,remarks\nAli Khan,001,100001,100,85,Good\nSara Ahmed,002,100002,100,72,";
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = "results_template.csv";
-    a.click();
+    a.href = url; a.download = "results_template.csv"; a.click();
     URL.revokeObjectURL(url);
   };
 
   const handleCSV = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setCsvImporting(true);
-    setCsvProgress(0);
-
+    setCsvImporting(true); setCsvProgress(0);
     const text = await file.text();
     const lines = text.trim().split("\n");
     if (lines.length < 2) { toast.error("CSV is empty"); setCsvImporting(false); return; }
 
-    // Parse headers
     const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/['"]/g, ""));
     const nameIdx = headers.indexOf("student_name");
-    const rollIdx = headers.indexOf("roll_number");
+    const rollIdx = headers.indexOf("class_roll_number");
+    const examRollIdx = headers.indexOf("exam_roll_number");
     const totalIdx = headers.indexOf("total_marks");
     const obtainedIdx = headers.indexOf("obtained_marks");
     const remarksIdx = headers.indexOf("remarks");
 
-    if (rollIdx === -1 || totalIdx === -1 || obtainedIdx === -1) {
-      toast.error("CSV must have roll_number, total_marks, obtained_marks columns");
-      setCsvImporting(false);
-      return;
+    if (totalIdx === -1 || obtainedIdx === -1) {
+      toast.error("CSV must have total_marks and obtained_marks columns");
+      setCsvImporting(false); return;
     }
 
     const dataLines = lines.slice(1).filter(l => l.trim());
-    let added = 0;
-    let skipped = 0;
+    let added = 0; let skipped = 0;
 
     for (let i = 0; i < dataLines.length; i++) {
       const cols = dataLines[i].split(",").map(s => s.trim().replace(/['"]/g, ""));
-      const rollNumber = cols[rollIdx];
       const studentName = nameIdx !== -1 ? cols[nameIdx] : "";
+      const rollNumber = rollIdx !== -1 ? cols[rollIdx] : "";
+      const examRollNo = examRollIdx !== -1 ? cols[examRollIdx] : "";
       const totalMarks = Number(cols[totalIdx]);
       const obtainedMarks = Number(cols[obtainedIdx]);
       const remarks = remarksIdx !== -1 ? cols[remarksIdx] || null : null;
 
-      if (!rollNumber || isNaN(totalMarks) || isNaN(obtainedMarks)) { skipped++; continue; }
+      if (isNaN(totalMarks) || isNaN(obtainedMarks)) { skipped++; continue; }
 
-      // Find student by roll number
-      let student = students.find(s => s.roll_number === rollNumber);
-
-      // If not found, try by name
+      // Find student
+      let student = rollNumber ? students.find(s => s.roll_number === rollNumber) : null;
       if (!student && studentName) {
-        const { data } = await supabase
-          .from("students")
-          .select("id")
-          .eq("class", cls)
-          .ilike("full_name", studentName)
-          .single();
-        if (data) student = { ...data, full_name: studentName, roll_number: rollNumber, photo_url: null };
+        student = students.find(s => s.full_name.toLowerCase() === studentName.toLowerCase());
       }
-
       if (!student) { skipped++; setCsvProgress(Math.round(((i + 1) / dataLines.length) * 100)); continue; }
 
       const percentage = totalMarks > 0 ? Math.round((obtainedMarks / totalMarks) * 100) : 0;
       const g = getGradeFromPercentage(percentage);
+
       const { error } = await supabase.from("results").upsert({
         student_id: student.id, class: cls, exam_type: examType, year,
         total_marks: totalMarks, obtained_marks: obtainedMarks,
         percentage, grade: g, is_pass: percentage >= 33, remarks,
+        exam_roll_no: examRollNo || null,
       }, { onConflict: "student_id,class,exam_type,year" });
-      if (!error) added++;
-      else skipped++;
 
+      if (!error) added++; else skipped++;
       setCsvProgress(Math.round(((i + 1) / dataLines.length) * 100));
     }
 
-    toast.success(`✅ ${added} results imported, ${skipped} skipped (student not found)`);
+    toast.success(`✅ ${added} results imported, ${skipped} skipped`);
     qc.invalidateQueries({ queryKey });
-    setCsvImporting(false);
-    setCsvProgress(0);
+    setCsvImporting(false); setCsvProgress(0);
     if (csvRef.current) csvRef.current.value = "";
   }, [students, cls, examType, year, qc, queryKey]);
 
+  // ── Stats ───────────────────────────────────────────────────────────────────
+  const stats = useMemo(() => {
+    const total = results.length;
+    const passed = results.filter(r => r.is_pass).length;
+    const failed = total - passed;
+    const avg = total > 0 ? Math.round(results.reduce((s, r) => s + r.percentage, 0) / total) : 0;
+    return { total, passed, failed, avg };
+  }, [results]);
+
+  // ────────────────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-heading font-bold text-foreground">Manage Results</h2>
 
       {/* Class tabs */}
       <Tabs value={cls} onValueChange={handleClassChange}>
-        <TabsList>
-          {classes.map(c => <TabsTrigger key={c} value={c}>Class {c}</TabsTrigger>)}
-        </TabsList>
+        <TabsList>{classes.map(c => <TabsTrigger key={c} value={c}>Class {c}</TabsTrigger>)}</TabsList>
       </Tabs>
 
-      {/* Exam type sub-tabs + year + actions */}
+      {/* Exam type + year + actions */}
       <div className="flex flex-wrap items-center gap-3">
         <Tabs value={examType} onValueChange={setExamType}>
-          <TabsList>
-            {examTypes.map(t => <TabsTrigger key={t} value={t}>{t}</TabsTrigger>)}
-          </TabsList>
+          <TabsList>{examTypes.map(t => <TabsTrigger key={t} value={t}>{t}</TabsTrigger>)}</TabsList>
         </Tabs>
-
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-muted-foreground">Year:</span>
           <input
-            type="number"
-            value={year}
-            onChange={e => {
-              const val = parseInt(e.target.value);
-              if (!isNaN(val) && val >= 1900 && val <= 2200) setYear(val);
-            }}
+            type="number" value={year}
+            onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 1900 && v <= 2200) setYear(v); }}
             className="w-28 rounded-lg border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-ring outline-none"
-            min="1900"
-            max="2200"
-            placeholder="Year"
+            min="1900" max="2200"
           />
         </div>
-
         <Button onClick={openAdd} size="sm" className="gap-1.5"><Plus className="w-4 h-4" /> Add Result</Button>
-
         <Button variant="outline" size="sm" className="gap-1.5" onClick={() => csvRef.current?.click()}>
           <Upload className="w-4 h-4" /> {csvImporting ? "Importing..." : "Import CSV"}
         </Button>
         <input ref={csvRef} type="file" accept=".csv" className="hidden" onChange={handleCSV} />
-
         <Button variant="outline" size="sm" className="gap-1.5" onClick={downloadCSVTemplate}>
           <Download className="w-4 h-4" /> CSV Template
         </Button>
@@ -275,10 +384,33 @@ const AdminResults = () => {
         </div>
       )}
 
+      {/* Stats bar */}
+      {results.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: "Total Students", value: stats.total, color: "text-primary" },
+            { label: "Passed", value: stats.passed, color: "text-green-600" },
+            { label: "Failed", value: stats.failed, color: "text-destructive" },
+            { label: "Class Average", value: `${stats.avg}%`, color: "text-primary" },
+          ].map(s => (
+            <Card key={s.label}>
+              <CardContent className="p-3 text-center">
+                <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
       {/* Search */}
       <div className="relative max-w-xs">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input placeholder="Search student..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+        <Input
+          placeholder="Search name or roll no..."
+          className="pl-9" value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
       </div>
 
       {/* Results table */}
@@ -288,10 +420,11 @@ const AdminResults = () => {
         <Card><CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader><TableRow>
-              <TableHead className="w-12">#</TableHead>
+              <TableHead className="w-10">#</TableHead>
               <TableHead>Photo</TableHead>
               <TableHead>Name</TableHead>
-              <TableHead>Roll No</TableHead>
+              <TableHead>Class Roll</TableHead>
+              <TableHead>Exam Roll</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Obtained</TableHead>
               <TableHead>%</TableHead>
@@ -301,34 +434,66 @@ const AdminResults = () => {
             </TableRow></TableHeader>
             <TableBody>
               {rankedResults.length === 0 && (
-                <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No results found. Add results above.</TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={11} className="text-center py-10 text-muted-foreground">
+                    No results yet. Click "Add Result" to begin.
+                  </TableCell>
+                </TableRow>
               )}
               {rankedResults.map(r => (
                 <TableRow key={r.id} className="hover:bg-secondary/50">
                   <TableCell className="font-bold text-primary">{r.rank}</TableCell>
                   <TableCell>
                     {r.students?.photo_url
-                      ? <img src={r.students.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" loading="lazy" decoding="async" />
-                      : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">{(r.students?.full_name || "S").charAt(0)}</div>}
+                      ? <img src={r.students.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" loading="lazy" />
+                      : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
+                          {(r.students?.full_name || "S").charAt(0)}
+                        </div>}
                   </TableCell>
                   <TableCell className="font-medium">{r.students?.full_name || "—"}</TableCell>
-                  <TableCell>{r.students?.roll_number || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{r.students?.roll_number || "—"}</TableCell>
+                  <TableCell>
+                    {r.exam_roll_no
+                      ? <span className="font-mono font-bold text-primary text-sm">{r.exam_roll_no}</span>
+                      : <span className="text-muted-foreground text-xs">—</span>}
+                  </TableCell>
                   <TableCell>{r.total_marks}</TableCell>
                   <TableCell>{r.obtained_marks}</TableCell>
                   <TableCell className="font-semibold">{r.percentage}%</TableCell>
                   <TableCell><Badge className={getGradeColor(r.grade || "Fail")}>{r.grade}</Badge></TableCell>
                   <TableCell>
-                    <Badge variant={r.is_pass ? "default" : "destructive"} className={r.is_pass ? "bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]" : ""}>
+                    <Badge
+                      variant={r.is_pass ? "default" : "destructive"}
+                      className={r.is_pass ? "bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]" : ""}
+                    >
                       {r.is_pass ? "Pass" : "Fail"}
                     </Badge>
+                    {r.manual_pass_fail !== null && (
+                      <span className="text-[10px] text-muted-foreground ml-1">(manual)</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right space-x-1">
-                    <Button size="icon" variant="ghost" onClick={() => openEdit(r)}><Pencil className="w-4 h-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => openEdit(r)}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
                     <AlertDialog>
-                      <AlertDialogTrigger asChild><Button size="icon" variant="ghost" className="text-destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
+                      <AlertDialogTrigger asChild>
+                        <Button size="icon" variant="ghost" className="text-destructive">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
                       <AlertDialogContent>
-                        <AlertDialogHeader><AlertDialogTitle>Delete result?</AlertDialogTitle><AlertDialogDescription>This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-                        <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deleteMut.mutate(r.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete this result?</AlertDialogTitle>
+                          <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteMut.mutate(r.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >Delete</AlertDialogAction>
+                        </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
                   </TableCell>
@@ -339,38 +504,163 @@ const AdminResults = () => {
         </CardContent></Card>
       )}
 
-      {/* Add/Edit Modal */}
+      {/* ── Add / Edit Modal ─────────────────────────────────────────────────── */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{editing ? "Edit Result" : "Add Result"}</DialogTitle></DialogHeader>
-          <div className="grid gap-3">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit Result" : "Add Result"} — Class {cls} ({examType} {year})</DialogTitle>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-2">
+
+            {/* Student selector */}
             <div>
-              <Label>Student *</Label>
-              <Select value={form.student_id} onValueChange={v => setForm(p => ({ ...p, student_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select student" /></SelectTrigger>
+              <Label>Select Student from List</Label>
+              <Select value={form.student_id} onValueChange={handleStudentSelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose student (auto-fills name & exam roll)" />
+                </SelectTrigger>
                 <SelectContent>
                   {students.map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.roll_number} — {s.full_name}</SelectItem>
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.roll_number} — {s.full_name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Selecting auto-fills name and exam roll number if generated
+              </p>
             </div>
+
+            {/* Student name — manual */}
+            <div>
+              <Label>Student Name *</Label>
+              <Input
+                value={form.student_name_manual}
+                onChange={e => setF("student_name_manual", e.target.value)}
+                placeholder="Type student name manually if needed"
+              />
+            </div>
+
+            {/* Exam Roll Number */}
+            <div>
+              <Label className="flex items-center gap-1.5">
+                <Hash className="w-3.5 h-3.5 text-primary" />
+                Exam Roll Number
+              </Label>
+              <Input
+                value={form.exam_roll_no}
+                onChange={e => handleExamRollInput(e.target.value)}
+                placeholder="e.g. 100001 (auto-filled from dropdown)"
+                className="font-mono"
+              />
+              {examRolls.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {examRolls.length} exam roll numbers available for Class {cls}
+                </p>
+              )}
+              {examRolls.length === 0 && (
+                <p className="text-xs text-amber-600 mt-1">
+                  No exam roll numbers generated for Class {cls} yet. Generate them in Exam Roll Numbers section.
+                </p>
+              )}
+            </div>
+
+            {/* Marks */}
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>Total Marks</Label><Input type="number" value={form.total_marks} onChange={e => setForm(p => ({ ...p, total_marks: Number(e.target.value) }))} /></div>
-              <div><Label>Obtained Marks</Label><Input type="number" value={form.obtained_marks} onChange={e => setForm(p => ({ ...p, obtained_marks: Number(e.target.value) }))} /></div>
+              <div>
+                <Label>Total Marks *</Label>
+                <Input
+                  type="number" min={0}
+                  value={form.total_marks}
+                  onChange={e => setF("total_marks", Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <Label>Obtained Marks *</Label>
+                <Input
+                  type="number" min={0} max={form.total_marks}
+                  value={form.obtained_marks}
+                  onChange={e => setF("obtained_marks", Number(e.target.value))}
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">Percentage:</span>
-              <Badge className={getGradeColor(grade)}>{pct}% — {grade}</Badge>
-              <Badge variant={pct >= 33 ? "default" : "destructive"} className={pct >= 33 ? "bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]" : ""}>
-                {pct >= 33 ? "Pass" : "Fail"}
+
+            {/* Auto-calculated result preview */}
+            <div className="bg-secondary/50 rounded-xl p-3 flex flex-wrap items-center gap-3">
+              <div className="text-sm">
+                <span className="text-muted-foreground">Percentage: </span>
+                <span className="font-bold text-foreground">{pct}%</span>
+              </div>
+              <Badge className={getGradeColor(autoGrade)}>{autoGrade}</Badge>
+              <Badge
+                variant={finalPass ? "default" : "destructive"}
+                className={finalPass ? "bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]" : ""}
+              >
+                {finalPass ? "✅ Pass" : "❌ Fail"}
               </Badge>
             </div>
-            <div><Label>Remarks</Label><Textarea rows={2} value={form.remarks} onChange={e => setForm(p => ({ ...p, remarks: e.target.value }))} /></div>
+
+            {/* Manual Pass/Fail override */}
+            <div className="border border-border rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-semibold">Manual Pass/Fail Override</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Turn ON to manually set pass or fail (overrides auto calculation)
+                  </p>
+                </div>
+                <Switch
+                  checked={form.use_manual_pass}
+                  onCheckedChange={v => setF("use_manual_pass", v)}
+                />
+              </div>
+
+              {form.use_manual_pass && (
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setF("manual_pass_fail", true)}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${
+                      form.manual_pass_fail === true
+                        ? "bg-green-500 text-white border-green-500"
+                        : "border-border text-muted-foreground hover:border-green-400"
+                    }`}
+                  >
+                    ✅ PASS
+                  </button>
+                  <button
+                    onClick={() => setF("manual_pass_fail", false)}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${
+                      form.manual_pass_fail === false
+                        ? "bg-red-500 text-white border-red-500"
+                        : "border-border text-muted-foreground hover:border-red-400"
+                    }`}
+                  >
+                    ❌ FAIL
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Remarks */}
+            <div>
+              <Label>Remarks (Optional)</Label>
+              <Textarea
+                rows={2}
+                value={form.remarks}
+                onChange={e => setF("remarks", e.target.value)}
+                placeholder="Any notes about this result"
+              />
+            </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving} className="gap-1.5">{saving && <Loader2 className="w-4 h-4 animate-spin" />} Save</Button>
+            <Button onClick={handleSave} disabled={saving} className="gap-1.5">
+              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+              {saving ? "Saving..." : editing ? "Update Result" : "Add Result"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
