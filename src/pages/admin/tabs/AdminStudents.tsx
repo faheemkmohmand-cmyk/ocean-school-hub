@@ -71,6 +71,21 @@ const AdminStudents = () => {
   const handleSave = async () => {
     if (!form.full_name || !form.roll_number) { toast.error("Name and Roll No required"); return; }
     setSaving(true);
+
+    // ✅ Check duplicate: same roll_number in same class (excluding current record when editing)
+    let dupQuery = supabase
+      .from("students")
+      .select("id")
+      .eq("roll_number", form.roll_number)
+      .eq("class", form.class);
+    if (editing) dupQuery = dupQuery.neq("id", editing.id);
+    const { data: existing } = await dupQuery;
+    if (existing && existing.length > 0) {
+      toast.error(`Roll number ${form.roll_number} already exists in Class ${form.class}. Each class has its own roll numbers.`);
+      setSaving(false);
+      return;
+    }
+
     let photo_url = form.photo_url;
     if (photoFile) {
       const ext = photoFile.name.split(".").pop();
@@ -142,7 +157,7 @@ const AdminStudents = () => {
     const batchSize = 50;
     for (let i = 0; i < rows.length; i += batchSize) {
       const batch = rows.slice(i, i + batchSize);
-      await supabase.from("students").upsert(batch, { onConflict: "roll_number" });
+      await supabase.from("students").upsert(batch, { onConflict: "roll_number,class" });
       setImportProgress(Math.round(((i + batchSize) / rows.length) * 100));
     }
 
