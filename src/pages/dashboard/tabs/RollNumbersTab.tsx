@@ -6,6 +6,7 @@ import { Hash, Search, Download, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import toast from "react-hot-toast";
+import jsPDF from "jspdf";
 
 interface ExamSession {
   id: string; title: string; exam_year: number; exam_term: string;
@@ -72,52 +73,83 @@ const RollNumbersTab = () => {
 
   const downloadSlip = (r: RollEntry) => {
     if (!selectedSession) return;
-    const html = `<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><title>Exam Admit Card</title>
-<style>
-  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f9ff; display:flex; justify-content:center; align-items:center; min-height:100vh; margin:0; }
-  .card { background: white; border-radius: 16px; padding: 32px 40px; max-width: 420px; width:100%; box-shadow: 0 8px 32px rgba(14,165,233,0.15); border: 2px solid #0EA5E9; }
-  .logo { text-align:center; margin-bottom:20px; }
-  .logo h1 { color:#0369A1; font-size:18px; font-weight:700; }
-  .logo h2 { color:#0EA5E9; font-size:13px; margin-top:4px; }
-  .roll { text-align:center; margin:24px 0; background:#0EA5E9; border-radius:12px; padding:20px; }
-  .roll p { color:rgba(255,255,255,0.8); font-size:12px; margin-bottom:4px; }
-  .roll h2 { color:white; font-size:36px; font-weight:800; letter-spacing:4px; }
-  .info { border-top:1px solid #E0F2FE; padding-top:16px; }
-  .row { display:flex; justify-content:space-between; padding:6px 0; font-size:13px; border-bottom:1px solid #F0F9FF; }
-  .row span:first-child { color:#6B7280; }
-  .row span:last-child { font-weight:600; color:#111827; }
-  .footer { text-align:center; margin-top:20px; font-size:11px; color:#9CA3AF; }
-  @media print { body { background:white; } }
-</style></head>
-<body>
-  <div class="card">
-    <div class="logo">
-      <h1>Government High School Babi Khel</h1>
-      <h2>Examination Admit Card</h2>
-    </div>
-    <div class="roll">
-      <p>EXAM ROLL NUMBER</p>
-      <h2>${r.exam_roll_no}</h2>
-    </div>
-    <div class="info">
-      <div class="row"><span>Student Name</span><span>${r.student_name}</span></div>
-      <div class="row"><span>Father Name</span><span>${r.father_name || "—"}</span></div>
-      <div class="row"><span>Class</span><span>${r.class}</span></div>
-      <div class="row"><span>Class Roll No</span><span>${r.class_roll_no}</span></div>
-      <div class="row"><span>Exam</span><span>${selectedSession.exam_term} ${selectedSession.exam_year}</span></div>
-    </div>
-    <div class="footer">GHS Babi Khel · ghs-babi-khel.vercel.app</div>
-  </div>
-</body></html>`;
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `admit-card-${r.exam_roll_no}.html`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Admit card downloaded! Open file and press Ctrl+P to print.");
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a5" });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+
+    // Background
+    doc.setFillColor(240, 249, 255);
+    doc.rect(0, 0, pageW, pageH, "F");
+
+    // Border
+    doc.setDrawColor(14, 165, 233);
+    doc.setLineWidth(1.2);
+    doc.roundedRect(6, 6, pageW - 12, pageH - 12, 4, 4, "S");
+
+    // Header bar
+    doc.setFillColor(14, 165, 233);
+    doc.roundedRect(6, 6, pageW - 12, 28, 4, 4, "F");
+    doc.setFillColor(14, 165, 233);
+    doc.rect(6, 22, pageW - 12, 12, "F"); // fill bottom corners
+
+    // School name
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Government High School Babi Khel", pageW / 2, 18, { align: "center" });
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text("Examination Admit Card", pageW / 2, 26, { align: "center" });
+
+    // Exam Roll Number box
+    doc.setFillColor(3, 105, 161);
+    doc.roundedRect(pageW / 2 - 30, 40, 60, 22, 3, 3, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.text("EXAM ROLL NUMBER", pageW / 2, 47, { align: "center" });
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text(r.exam_roll_no, pageW / 2, 58, { align: "center" });
+
+    // Divider
+    doc.setDrawColor(224, 242, 254);
+    doc.setLineWidth(0.5);
+    doc.line(14, 70, pageW - 14, 70);
+
+    // Info rows
+    const rows: [string, string][] = [
+      ["Student Name", r.student_name],
+      ["Father Name", r.father_name || "—"],
+      ["Class", `Class ${r.class}`],
+      ["Class Roll No", r.class_roll_no],
+      ["Examination", `${selectedSession.exam_term} ${selectedSession.exam_year}`],
+    ];
+
+    let y = 78;
+    rows.forEach(([label, value]) => {
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(107, 114, 128);
+      doc.text(label, 16, y);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(17, 24, 39);
+      doc.text(value, pageW - 16, y, { align: "right" });
+      doc.setDrawColor(240, 249, 255);
+      doc.setLineWidth(0.3);
+      doc.line(14, y + 3, pageW - 14, y + 3);
+      y += 12;
+    });
+
+    // Footer
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(156, 163, 175);
+    doc.text("GHS Babi Khel · ghs-babi-khel.vercel.app", pageW / 2, pageH - 12, { align: "center" });
+    doc.text("Keep this card safe. Bring it to the examination hall.", pageW / 2, pageH - 7, { align: "center" });
+
+    doc.save(`AdmitCard-${r.exam_roll_no}-${r.student_name.replace(/\s+/g, "_")}.pdf`);
+    toast.success("Admit card PDF downloaded!");
   };
 
   return (
