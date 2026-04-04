@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight, Bell, Users, GraduationCap,
   Trophy, ChevronRight, Microscope, FileText, Laptop,
-  BookOpen, Sparkles
+  BookOpen, Sparkles, BarChart3, Calendar, Image
 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
