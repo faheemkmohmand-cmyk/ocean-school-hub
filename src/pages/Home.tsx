@@ -320,7 +320,7 @@ const Home = () => {
       </section>
 
       {/* ════════ LATEST NEWS ════════ */}
-      <section className="py-20">
+      <section className="py-20 cv-auto">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <div>
