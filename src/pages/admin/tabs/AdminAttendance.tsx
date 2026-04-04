@@ -15,6 +15,7 @@ import { CalendarIcon, Check, X, Clock, Palmtree, Loader2, Download } from "luci
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend } from "date-fns";
 import toast from "react-hot-toast";
 import { triggerConfetti } from "@/lib/confetti";
+import * as XLSX from "xlsx";
 
 type Status = "present" | "absent" | "late" | "leave";
 
@@ -38,6 +39,7 @@ const AdminAttendance = () => {
   const [statuses, setStatuses] = useState<Record<string, Status>>({});
   const [saving, setSaving] = useState(false);
   const [reportMonth, setReportMonth] = useState(new Date());
+  const [reportYear, setReportYear] = useState(new Date().getFullYear());
 
   const dateStr = format(date, "yyyy-MM-dd");
 
@@ -135,14 +137,23 @@ const AdminAttendance = () => {
     });
   }, [students, monthlyData, monthDays]);
 
-  const exportCSV = () => {
-    const header = "Roll No,Name,Present,Absent,Late,Leave,Total Days,Percentage\n";
-    const rows = reportData.map(r => `${r.roll_number},${r.full_name},${r.present},${r.absent},${r.late},${r.leave},${r.total},${r.pct}%`).join("\n");
-    const blob = new Blob([header + rows], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `attendance-class${cls}-${format(reportMonth, "MMM-yyyy")}.csv`;
-    a.click(); URL.revokeObjectURL(url);
+  const exportExcel = () => {
+    const month = format(reportMonth, "MMMM");
+    const year = reportMonth.getFullYear();
+    const wsData = [
+      [`Attendance Report — Class ${cls} — ${month} ${year}`],
+      [],
+      ["Roll No", "Student Name", "Present", "Absent", "Late", "Leave", "Total Working Days", "Attendance %"],
+      ...reportData.map(r => [r.roll_number, r.full_name, r.present, r.absent, r.late, r.leave, r.total, `${r.pct}%`]),
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    // Title styling (merge header row)
+    ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
+    ws["!cols"] = [{ wch: 10 }, { wch: 25 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 18 }, { wch: 14 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `${month} ${year}`);
+    XLSX.writeFile(wb, `Attendance-Class${cls}-${month}-${year}.xlsx`);
+    toast.success("Excel file downloaded!");
   };
 
   return (
@@ -209,9 +220,18 @@ const AdminAttendance = () => {
 
       {tab === "report" && (
         <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Input type="month" value={format(reportMonth, "yyyy-MM")} onChange={e => setReportMonth(new Date(e.target.value + "-01"))} className="w-44" />
-            <Button variant="outline" size="sm" onClick={exportCSV} className="gap-1.5"><Download className="w-4 h-4" /> Export CSV</Button>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">Month:</span>
+              <Input type="month" value={format(reportMonth, "yyyy-MM")} onChange={e => setReportMonth(new Date(e.target.value + "-01"))} className="w-44" />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">Year:</span>
+              <Input type="number" value={reportYear} min={2000} max={2100}
+                onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v)) { setReportYear(v); setReportMonth(new Date(v, reportMonth.getMonth(), 1)); }}}
+                className="w-28" />
+            </div>
+            <Button variant="outline" size="sm" onClick={exportExcel} className="gap-1.5"><Download className="w-4 h-4" /> Export Excel</Button>
           </div>
 
           <Card><CardContent className="p-0 overflow-x-auto">
