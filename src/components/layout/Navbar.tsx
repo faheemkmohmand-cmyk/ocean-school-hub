@@ -14,9 +14,9 @@ const navLinks = [
   { to: "/notices", label: "Notices" },
   { to: "/news", label: "News" },
   { to: "/results", label: "Results" },
+  { to: "/result-card", label: "Result Card" },
   { to: "/gallery", label: "Gallery" },
   { to: "/library", label: "Library" },
-  { to: "/exam-roll-numbers", label: "Roll Numbers" },
 ];
 
 const Navbar = () => {
