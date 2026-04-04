@@ -1,224 +1,502 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import {
-  BarChart3, Settings, Users, GraduationCap, ClipboardList, CheckSquare,
-  Calendar, Bell, Newspaper, Image, BookOpen, Trophy, UserCog, LogOut,
-  Menu, X, ExternalLink, Shield, Moon, Sun, Video, Clock
-} from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
-import { useDarkMode } from "@/hooks/useDarkMode";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Search, Plus, Trash2, Loader2, Users } from "lucide-react";
+import { format } from "date-fns";
+import toast from "react-hot-toast";
 
-const navItems = [
-  { id: "overview", label: "Overview", icon: BarChart3 },
-  { id: "pending-requests", label: "Pending Requests", icon: Clock },
-  { id: "settings", label: "School Settings", icon: Settings },
-  { id: "teachers", label: "Manage Teachers", icon: Users },
-  { id: "students", label: "Manage Students", icon: GraduationCap },
-  { id: "results", label: "Manage Results", icon: ClipboardList },
-  { id: "attendance", label: "Attendance", icon: CheckSquare },
-  { id: "timetables", label: "Timetables", icon: Calendar },
-  { id: "notices", label: "Notices", icon: Bell },
-  { id: "news", label: "News", icon: Newspaper },
-  { id: "gallery", label: "Gallery", icon: Image },
-  { id: "library", label: "Library", icon: BookOpen },
-  { id: "achievements", label: "Achievements", icon: Trophy },
-  { id: "videos", label: "Videos", icon: Video },
-  { id: "users", label: "Users", icon: UserCog },
-];
-
-interface AdminLayoutProps {
-  activeTab: string;
-  onTabChange: (tab: string) => void;
-  children: React.ReactNode;
+interface UserProfile {
+  id: string;
+  full_name: string | null;
+  role: string;
+  class: string | null;
+  phone: string | null;
+  roll_number: string | null;
+  avatar_url: string | null;
+  created_at: string;
 }
 
-const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => {
-  const { profile, signOut } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const navigate = useNavigate();
-  const { isDark, toggle } = useDarkMode();
+const roles = ["user", "student", "teacher", "parent", "admin"];
+const classes = ["6", "7", "8", "9", "10"];
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
+const roleColors: Record<string, string> = {
+  admin:   "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  teacher: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  student: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  parent:  "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+  user:    "bg-muted text-muted-foreground",
+};
+
+const AdminUsers = () => {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+
+  // Add user modal
+  const [addOpen, setAddOpen] = useState(false);
+  const [addForm, setAddForm] = useState({
+    full_name: "",
+    email: "",
+    password: "",
+    role: "student",
+    class: "",
+    phone: "",
+    roll_number: "",
+  });
+  const [adding, setAdding] = useState(false);
+
+  // ── Fetch all users ──────────────────────────────────────────────────────
+  const { data: users = [], isLoading } = useQuery<UserProfile[]>({
+    queryKey: ["admin-users"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // ── Update role ──────────────────────────────────────────────────────────
+  const updateRole = useMutation({
+    mutationFn: async ({ id, role }: { id: string; role: string }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ role })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Role updated");
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+    onError: () => toast.error("Update failed"),
+  });
+
+  // ── Update class ─────────────────────────────────────────────────────────
+  const updateClass = useMutation({
+    mutationFn: async ({ id, cls }: { id: string; cls: string }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ class: cls || null })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Class updated");
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+  });
+
+  // ── Delete user ──────────────────────────────────────────────────────────
+  const deleteUser = useMutation({
+    mutationFn: async (id: string) => {
+      // Delete profile first (auth user stays but profile is gone)
+      const { error } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("User removed");
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+    onError: () => toast.error("Delete failed"),
+  });
+
+  // ── Add new user ─────────────────────────────────────────────────────────
+  const handleAddUser = async () => {
+    if (!addForm.full_name.trim() || !addForm.email.trim() || !addForm.password.trim()) {
+      toast.error("Name, email, and password are required");
+      return;
+    }
+    if (addForm.password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    setAdding(true);
+    try {
+      // Create auth user via Supabase Admin API (anon key doesn't support admin createUser)
+      // So we use signUp which creates both auth user and triggers profile creation
+      const { data, error } = await supabase.auth.signUp({
+        email: addForm.email.trim(),
+        password: addForm.password,
+        options: {
+          data: { full_name: addForm.full_name.trim() },
+        },
+      });
+
+      if (error) {
+        toast.error(`Failed: ${error.message}`);
+        setAdding(false);
+        return;
+      }
+
+      if (data.user) {
+        // Update the profile with role, class, phone, roll_number
+        // Wait a moment for trigger to create profile
+        await new Promise(r => setTimeout(r, 800));
+
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update({
+            full_name: addForm.full_name.trim(),
+            role: addForm.role,
+            class: addForm.class || null,
+            phone: addForm.phone || null,
+            roll_number: addForm.roll_number || null,
+          })
+          .eq("id", data.user.id);
+
+        if (updateError) {
+          console.warn("Profile update error:", updateError.message);
+        }
+
+        toast.success(`User "${addForm.full_name}" added successfully!`);
+        setAddOpen(false);
+        setAddForm({ full_name: "", email: "", password: "", role: "student", class: "", phone: "", roll_number: "" });
+        qc.invalidateQueries({ queryKey: ["admin-users"] });
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Something went wrong");
+    }
+    setAdding(false);
   };
 
-  const initials = profile?.full_name
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase() || "A";
+  // ── Filter users ─────────────────────────────────────────────────────────
+  const filtered = users.filter(u => {
+    const matchSearch = !search ||
+      u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+      u.roll_number?.toLowerCase().includes(search.toLowerCase()) ||
+      u.phone?.includes(search);
+    const matchRole = roleFilter === "all" || u.role === roleFilter;
+    return matchSearch && matchRole;
+  });
+
+  // ── Stats ─────────────────────────────────────────────────────────────────
+  const stats = {
+    total: users.length,
+    students: users.filter(u => u.role === "student").length,
+    teachers: users.filter(u => u.role === "teacher").length,
+    admins: users.filter(u => u.role === "admin").length,
+  };
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-[260px] bg-card border-r border-border shrink-0 sticky top-0 h-screen">
-        <div className="p-4 border-b border-border">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-              <Shield className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <div>
-              <span className="font-heading font-bold text-foreground text-sm">GHS Babi Khel</span>
-              <p className="text-[10px] text-muted-foreground font-medium">Admin Panel</p>
-            </div>
-          </Link>
+    <div className="space-y-5">
+
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-2xl font-heading font-bold text-foreground flex items-center gap-2">
+            <Users className="w-6 h-6 text-primary" />
+            User Management
+          </h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Manage all registered users — change roles, add or remove accounts
+          </p>
         </div>
-
-        <div className="p-4 border-b border-border">
-          <div className="flex items-center gap-3">
-            {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
-                {initials}
-              </div>
-            )}
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground truncate">{profile?.full_name || "Admin"}</p>
-              <span className="inline-block text-[10px] font-semibold uppercase bg-primary text-primary-foreground px-2 py-0.5 rounded-full mt-0.5 tracking-wider">
-                Administrator
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => onTabChange(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === item.id
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-              }`}
-            >
-              <item.icon className="w-4 h-4 shrink-0" />
-              {item.label}
-            </button>
-          ))}
-        </nav>
-
-        <div className="p-3 border-t border-border space-y-1">
-          <Link
-            to="/"
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
-          >
-            <ExternalLink className="w-4 h-4" />
-            Main Website
-          </Link>
-          <Link
-            to="/dashboard"
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
-          >
-            <GraduationCap className="w-4 h-4" />
-            User Dashboard
-          </Link>
-          <button
-            onClick={handleSignOut}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign Out
-          </button>
-        </div>
-      </aside>
-
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-40 h-14 bg-card/80 backdrop-blur-xl border-b border-border flex items-center px-4 gap-3">
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-lg hover:bg-secondary text-foreground">
-            <Menu className="w-5 h-5" />
-          </button>
-          <h1 className="font-heading font-semibold text-foreground">
-            {navItems.find((n) => n.id === activeTab)?.label || "Admin Dashboard"}
-          </h1>
-          <div className="ml-auto flex items-center gap-2">
-            <a
-              href="/"
-              className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg hover:bg-secondary transition-colors"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              View Website
-            </a>
-            <button
-              onClick={toggle}
-              className="p-2 rounded-lg hover:bg-secondary text-muted-foreground transition-colors"
-              title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            >
-              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-1.5 text-xs font-medium text-destructive px-3 py-1.5 rounded-lg hover:bg-destructive/10 transition-colors"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Sign Out</span>
-            </button>
-          </div>
-        </header>
-
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+        <Button onClick={() => setAddOpen(true)} className="gap-2">
+          <Plus className="w-4 h-4" />
+          Add User
+        </Button>
       </div>
 
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <div className="relative w-72 bg-card h-full shadow-xl flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <span className="font-heading font-bold text-foreground">Admin Menu</span>
-              <button onClick={() => setSidebarOpen(false)} className="p-2 rounded-lg hover:bg-secondary">
-                <X className="w-5 h-5" />
-              </button>
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Total Users", value: stats.total, color: "bg-primary/10 text-primary" },
+          { label: "Students", value: stats.students, color: "bg-green-100 text-green-700" },
+          { label: "Teachers", value: stats.teachers, color: "bg-blue-100 text-blue-700" },
+          { label: "Admins", value: stats.admins, color: "bg-amber-100 text-amber-700" },
+        ].map(s => (
+          <Card key={s.label}>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg ${s.color}`}>
+                {s.value}
+              </div>
+              <span className="text-sm font-medium text-muted-foreground">{s.label}</span>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search name, roll no, phone..."
+            className="pl-9"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        <Select value={roleFilter} onValueChange={setRoleFilter}>
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="Filter role" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Roles</SelectItem>
+            {roles.map(r => (
+              <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Table */}
+      {isLoading ? (
+        <div className="space-y-2">
+          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}
+        </div>
+      ) : filtered.length === 0 ? (
+        <Card>
+          <CardContent className="py-14 text-center">
+            <Users className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="font-semibold text-foreground">No users found</p>
+            <p className="text-sm text-muted-foreground mt-1">Try a different search or add a new user</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-0 overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Class</TableHead>
+                  <TableHead>Roll No</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Joined</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map(u => {
+                  const isSelf = u.id === user?.id;
+                  return (
+                    <TableRow key={u.id}>
+                      {/* Avatar + Name */}
+                      <TableCell>
+                        <div className="flex items-center gap-2.5">
+                          {u.avatar_url ? (
+                            <img src={u.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
+                              {(u.full_name || "U").charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-medium text-sm text-foreground">
+                              {u.full_name || "—"}
+                              {isSelf && (
+                                <Badge variant="secondary" className="ml-2 text-[10px] py-0">You</Badge>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      {/* Role selector */}
+                      <TableCell>
+                        {isSelf ? (
+                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${roleColors[u.role]}`}>
+                            {u.role}
+                          </span>
+                        ) : (
+                          <Select
+                            value={u.role}
+                            onValueChange={v => updateRole.mutate({ id: u.id, role: v })}
+                          >
+                            <SelectTrigger className="h-8 w-28 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {roles.map(r => (
+                                <SelectItem key={r} value={r} className="capitalize text-xs">{r}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </TableCell>
+
+                      {/* Class selector */}
+                      <TableCell>
+                        {isSelf ? (
+                          <span className="text-sm text-muted-foreground">{u.class ? `Class ${u.class}` : "—"}</span>
+                        ) : (
+                          <Select
+                            value={u.class || "none"}
+                            onValueChange={v => updateClass.mutate({ id: u.id, cls: v === "none" ? "" : v })}
+                          >
+                            <SelectTrigger className="h-8 w-24 text-xs">
+                              <SelectValue placeholder="—" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">—</SelectItem>
+                              {classes.map(c => (
+                                <SelectItem key={c} value={c}>Class {c}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </TableCell>
+
+                      <TableCell className="text-sm text-muted-foreground">{u.roll_number || "—"}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{u.phone || "—"}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                        {format(new Date(u.created_at), "dd MMM yyyy")}
+                      </TableCell>
+
+                      {/* Delete */}
+                      <TableCell className="text-right">
+                        {!isSelf && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="icon" variant="ghost"
+                                className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remove {u.full_name || "this user"}?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This removes their profile from the system. They will lose access to the dashboard.
+                                  This cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteUser.mutate(u.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Remove User
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Count */}
+      <p className="text-xs text-muted-foreground">
+        Showing {filtered.length} of {users.length} users
+      </p>
+
+      {/* Add User Modal */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New User</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>Full Name *</Label>
+              <Input
+                value={addForm.full_name}
+                onChange={e => setAddForm(p => ({ ...p, full_name: e.target.value }))}
+                placeholder="Student or teacher name"
+              />
             </div>
-            <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-              {navItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => { onTabChange(item.id); setSidebarOpen(false); }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    activeTab === item.id
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                  }`}
-                >
-                  <item.icon className="w-4 h-4" />
-                  {item.label}
-                </button>
-              ))}
-            </nav>
-            <div className="p-3 border-t border-border space-y-1">
-              <Link
-                to="/"
-                onClick={() => setSidebarOpen(false)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" />
-                Main Website
-              </Link>
-              <Link
-                to="/dashboard"
-                onClick={() => setSidebarOpen(false)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-              >
-                <GraduationCap className="w-4 h-4" />
-                User Dashboard
-              </Link>
-              <button
-                onClick={handleSignOut}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10"
-              >
-                <LogOut className="w-4 h-4" />
-                Sign Out
-              </button>
+            <div>
+              <Label>Email *</Label>
+              <Input
+                type="email"
+                value={addForm.email}
+                onChange={e => setAddForm(p => ({ ...p, email: e.target.value }))}
+                placeholder="user@gmail.com"
+              />
+            </div>
+            <div>
+              <Label>Password * (min 6 characters)</Label>
+              <Input
+                type="password"
+                value={addForm.password}
+                onChange={e => setAddForm(p => ({ ...p, password: e.target.value }))}
+                placeholder="••••••••"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Role *</Label>
+                <Select value={addForm.role} onValueChange={v => setAddForm(p => ({ ...p, role: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {roles.map(r => (
+                      <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Class</Label>
+                <Select value={addForm.class || "none"} onValueChange={v => setAddForm(p => ({ ...p, class: v === "none" ? "" : v }))}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">—</SelectItem>
+                    {classes.map(c => <SelectItem key={c} value={c}>Class {c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Phone</Label>
+                <Input
+                  value={addForm.phone}
+                  onChange={e => setAddForm(p => ({ ...p, phone: e.target.value }))}
+                  placeholder="0300-0000000"
+                />
+              </div>
+              <div>
+                <Label>Roll Number</Label>
+                <Input
+                  value={addForm.roll_number}
+                  onChange={e => setAddForm(p => ({ ...p, roll_number: e.target.value }))}
+                  placeholder="e.g. 001"
+                />
+              </div>
             </div>
           </div>
-        </div>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+            <Button onClick={handleAddUser} disabled={adding} className="gap-2">
+              {adding && <Loader2 className="w-4 h-4 animate-spin" />}
+              {adding ? "Adding..." : "Add User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-export default AdminLayout;
+export default AdminUsers;
