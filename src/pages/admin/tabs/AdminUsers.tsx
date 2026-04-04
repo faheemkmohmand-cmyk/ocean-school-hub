@@ -167,10 +167,31 @@ const AdminUsers = () => {
           console.warn("Profile update error:", updateError.message);
         }
 
+        // ── Auto-add to students table if role is student ─────────────────────
+        if (addForm.role === "student" && addForm.class && addForm.roll_number.trim()) {
+          const { error: studentError } = await supabase
+            .from("students")
+            .upsert({
+              full_name: addForm.full_name.trim(),
+              roll_number: addForm.roll_number.trim(),
+              class: addForm.class,
+              father_name: null,
+              is_active: true,
+            }, { onConflict: "roll_number,class" });
+          if (studentError) {
+            console.warn("Auto-add to students failed:", studentError.message);
+          } else {
+            toast.success(`Also added to Manage Students (Class ${addForm.class})`);
+          }
+        } else if (addForm.role === "student" && (!addForm.class || !addForm.roll_number.trim())) {
+          toast(`⚠️ Student not added to Manage Students — please provide Class and Roll Number`, { icon: "⚠️" });
+        }
+
         toast.success(`User "${addForm.full_name}" added successfully!`);
         setAddOpen(false);
         setAddForm({ full_name: "", email: "", password: "", role: "student", class: "", phone: "", roll_number: "" });
         qc.invalidateQueries({ queryKey: ["admin-users"] });
+        qc.invalidateQueries({ queryKey: ["admin-students"] });
       }
     } catch (err: any) {
       toast.error(err?.message || "Something went wrong");
@@ -485,6 +506,11 @@ const AdminUsers = () => {
                 />
               </div>
             </div>
+            {addForm.role === "student" && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800">
+                📋 <strong>Student auto-sync:</strong> When role is <strong>Student</strong>, filling in <strong>Class</strong> and <strong>Roll Number</strong> will automatically add this student to <strong>Manage Students</strong> as well.
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
