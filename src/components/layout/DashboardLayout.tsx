@@ -3,24 +3,25 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Home, Calendar, BarChart3, Bell, Newspaper, BookOpen, Image, Trophy,
   Users, User, LogOut, GraduationCap, Menu, X, Shield, ExternalLink, Moon, Sun,
-  Video   // ✅ NEW
+  Video, Hash
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
 import { useDarkMode } from "@/hooks/useDarkMode";
 
 const navItems = [
-  { id: "overview",     label: "Overview",     icon: Home        },
-  { id: "timetable",    label: "Timetable",    icon: Calendar    },
-  { id: "results",      label: "Results",      icon: BarChart3   },
-  { id: "notices",      label: "Notices",      icon: Bell        },
-  { id: "news",         label: "News",         icon: Newspaper   },
-  { id: "library",      label: "Library",      icon: BookOpen    },
-  { id: "gallery",      label: "Gallery",      icon: Image       },
-  { id: "videos",       label: "Videos",       icon: Video       }, // ✅ NEW
-  { id: "achievements", label: "Achievements", icon: Trophy      },
-  { id: "teachers",     label: "Teachers",     icon: Users       },
-  { id: "profile",      label: "My Profile",   icon: User        },
+  { id: "overview",     label: "Overview",      icon: Home        },
+  { id: "timetable",    label: "Timetable",     icon: Calendar    },
+  { id: "results",      label: "Results",       icon: BarChart3   },
+  { id: "exam-rolls",   label: "Roll Numbers",  icon: Hash        },
+  { id: "notices",      label: "Notices",       icon: Bell        },
+  { id: "news",         label: "News",          icon: Newspaper   },
+  { id: "library",      label: "Library",       icon: BookOpen    },
+  { id: "gallery",      label: "Gallery",       icon: Image       },
+  { id: "videos",       label: "Videos",        icon: Video       },
+  { id: "achievements", label: "Achievements",  icon: Trophy      },
+  { id: "teachers",     label: "Teachers",      icon: Users       },
+  { id: "profile",      label: "My Profile",    icon: User        },
 ];
 
 interface DashboardLayoutProps {
