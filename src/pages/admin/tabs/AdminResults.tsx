@@ -19,6 +19,7 @@ import { Plus, Pencil, Trash2, Loader2, Upload, Search, Download, Hash } from "l
 import toast from "react-hot-toast";
 import { triggerConfetti } from "@/lib/confetti";
 import { getGradeFromPercentage, getGradeColor } from "@/hooks/useResults";
+import * as XLSX from "xlsx";
 
 const classes = ["6", "7", "8", "9", "10"];
 const getExamTypes = (cls: string) =>
@@ -312,6 +313,34 @@ const AdminResults = () => {
     URL.revokeObjectURL(url);
   };
 
+  const exportResultsExcel = () => {
+    if (results.length === 0) { toast.error("No results to export"); return; }
+    const wsData = [
+      [`Results — Class ${cls} — ${examType} ${year}`],
+      [],
+      ["Rank", "Name", "Class Roll No", "Exam Roll No", "Total Marks", "Obtained Marks", "Percentage", "Grade", "Status", "Remarks"],
+      ...rankedResults.map(r => [
+        r.rank,
+        r.students?.full_name || "—",
+        r.students?.roll_number || "—",
+        r.exam_roll_no || "—",
+        r.total_marks,
+        r.obtained_marks,
+        `${r.percentage}%`,
+        r.grade || "—",
+        r.is_pass ? "PASS" : "FAIL",
+        r.remarks || "",
+      ]),
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }];
+    ws["!cols"] = [{ wch: 6 }, { wch: 25 }, { wch: 13 }, { wch: 13 }, { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 8 }, { wch: 8 }, { wch: 20 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `Class${cls}-${examType}`);
+    XLSX.writeFile(wb, `Results-Class${cls}-${examType}-${year}.xlsx`);
+    toast.success("Results Excel file downloaded!");
+  };
+
   const handleCSV = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -414,6 +443,9 @@ const AdminResults = () => {
         <input ref={csvRef} type="file" accept=".csv" className="hidden" onChange={handleCSV} />
         <Button variant="outline" size="sm" className="gap-1.5" onClick={downloadCSVTemplate}>
           <Download className="w-4 h-4" /> CSV Template
+        </Button>
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={exportResultsExcel}>
+          <Download className="w-4 h-4" /> Export Excel
         </Button>
       </div>
 
