@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Download, FileText, Trophy, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Search, FileText, Trophy, Loader2, Printer } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import PageBanner from "@/components/shared/PageBanner";
 import { supabase } from "@/lib/supabase";
@@ -9,6 +8,8 @@ import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 import toast from "react-hot-toast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+interface SubjectMark { obtained: number; total: number; }
 
 interface ResultRecord {
   id: string;
@@ -23,17 +24,37 @@ interface ResultRecord {
   remarks: string | null;
   exam_roll_no: string | null;
   position: number | null;
+  subject_marks: Record<string, SubjectMark> | null;
   students: {
     full_name: string;
     roll_number: string;
     father_name: string | null;
     photo_url: string | null;
+    class: string;
   } | null;
 }
 
-// ─── Grade color helper ───────────────────────────────────────────────────────
-const gradeColor = (grade: string | null) => {
-  switch (grade) {
+interface SchoolInfo {
+  school_name: string;
+  address: string;
+  emis_code: string;
+  logo_url: string | null;
+  phone: string | null;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const gradeFromPct = (pct: number) => {
+  if (pct >= 90) return "A+";
+  if (pct >= 80) return "A";
+  if (pct >= 60) return "B";
+  if (pct >= 45) return "C";
+  if (pct >= 33) return "D";
+  return "Fail";
+};
+
+const gradeHex = (g: string | null) => {
+  switch (g) {
     case "A+": return "#0369A1";
     case "A":  return "#0EA5E9";
     case "B":  return "#0D9488";
@@ -43,187 +64,233 @@ const gradeColor = (grade: string | null) => {
   }
 };
 
-// ─── Download Result Card as HTML ─────────────────────────────────────────────
-const downloadResultCard = (r: ResultRecord, schoolName: string) => {
-  const passColor = r.is_pass ? "#16A34A" : "#DC2626";
-  const passText  = r.is_pass ? "PASS" : "FAIL";
+// ─── Build DMC HTML ───────────────────────────────────────────────────────────
 
-  const html = `<!DOCTYPE html>
+const buildDMC = (r: ResultRecord, school: SchoolInfo): string => {
+  const studentName  = r.students?.full_name   || "—";
+  const fatherName   = r.students?.father_name  || "—";
+  const classRollNo  = r.students?.roll_number  || "—";
+  const examRollNo   = r.exam_roll_no            || "—";
+  const photoUrl     = r.students?.photo_url    || null;
+  const logoUrl      = school.logo_url           || null;
+
+  const subjects = r.subject_marks ? Object.entries(r.subject_marks) : [];
+
+  const subjectRows = subjects.map(([name, m], idx) => {
+    const pct   = m.total > 0 ? Math.round((m.obtained / m.total) * 100) : 0;
+    const grade = gradeFromPct(pct);
+    const pass  = pct >= 33;
+    return `
+      <tr style="background:${idx % 2 === 0 ? "#F8FAFF" : "#fff"}">
+        <td style="padding:6px 10px;border:1px solid #CBD5E1;font-size:12px;font-weight:500">${name}</td>
+        <td style="padding:6px 10px;border:1px solid #CBD5E1;font-size:12px;text-align:center">${m.total}</td>
+        <td style="padding:6px 10px;border:1px solid #CBD5E1;font-size:12px;text-align:center;font-weight:700;color:#0369A1">${m.obtained}</td>
+        <td style="padding:6px 10px;border:1px solid #CBD5E1;font-size:12px;text-align:center">${pct}%</td>
+        <td style="padding:6px 10px;border:1px solid #CBD5E1;font-size:12px;text-align:center;font-weight:700;color:${gradeHex(grade)}">${grade}</td>
+        <td style="padding:6px 10px;border:1px solid #CBD5E1;font-size:12px;text-align:center;font-weight:600;color:${pass ? "#16A34A" : "#DC2626"}">${pass ? "Pass" : "Fail"}</td>
+      </tr>`;
+  }).join("");
+
+  const posBadge = r.position && r.position <= 3
+    ? (r.position === 1 ? "🥇 1st Position" : r.position === 2 ? "🥈 2nd Position" : "🥉 3rd Position")
+    : "";
+
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Result Card — ${r.students?.full_name || "Student"}</title>
+<title>DMC — ${studentName} — ${r.exam_type} ${r.year}</title>
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Segoe UI',Arial,sans-serif; background:#F0F9FF; display:flex; justify-content:center; align-items:flex-start; min-height:100vh; padding:30px 20px; }
-  .card { background:white; border-radius:20px; max-width:480px; width:100%; box-shadow:0 10px 40px rgba(14,165,233,0.15); overflow:hidden; }
+  @page { size:A4 portrait; margin:10mm; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',Calibri,Arial,sans-serif;background:#fff;color:#1E293B;font-size:13px}
+  .dmc{max-width:760px;margin:0 auto;border:2.5px solid #0EA5E9;border-radius:8px;overflow:hidden}
 
-  /* Header */
-  .header { background:linear-gradient(135deg,#0369A1,#0EA5E9,#38BDF8); padding:28px 32px 24px; text-align:center; color:white; }
-  .header h1 { font-size:20px; font-weight:800; letter-spacing:0.3px; }
-  .header h2 { font-size:13px; font-weight:400; opacity:0.85; margin-top:3px; }
-  .header .badge { display:inline-block; background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.3); border-radius:20px; padding:4px 14px; font-size:12px; margin-top:10px; }
+  .header{background:linear-gradient(135deg,#0C4A6E,#0369A1 45%,#0EA5E9);padding:16px 20px 14px;display:flex;align-items:center;gap:14px}
+  .logo-wrap{width:68px;height:68px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:3px solid rgba(255,255,255,0.5);overflow:hidden}
+  .logo-wrap img{width:100%;height:100%;object-fit:cover}
+  .logo-txt{font-size:20px;font-weight:900;color:#0369A1}
+  .school-center{flex:1;text-align:center;color:#fff}
+  .school-name{font-size:19px;font-weight:800;letter-spacing:0.4px}
+  .school-addr{font-size:10.5px;opacity:.85;margin-top:2px}
+  .dmc-badge{display:inline-block;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35);border-radius:20px;padding:3px 14px;font-size:12px;font-weight:700;letter-spacing:1.5px;margin-top:6px}
+  .emis-line{font-size:9.5px;opacity:.7;margin-top:3px}
+  .photo-wrap{width:70px;height:88px;border-radius:4px;border:2.5px solid rgba(255,255,255,0.5);overflow:hidden;background:rgba(255,255,255,0.15);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+  .photo-wrap img{width:100%;height:100%;object-fit:cover}
+  .photo-init{font-size:28px;font-weight:900;color:#fff}
 
-  /* Student info */
-  .student { display:flex; align-items:center; gap:16px; padding:20px 28px; border-bottom:1px solid #E0F2FE; }
-  .avatar { width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,#0EA5E9,#38BDF8); display:flex; align-items:center; justify-content:center; color:white; font-size:26px; font-weight:800; flex-shrink:0; overflow:hidden; }
-  .avatar img { width:100%; height:100%; object-fit:cover; }
-  .student-name { font-size:18px; font-weight:700; color:#0F172A; }
-  .student-meta { font-size:12px; color:#64748B; margin-top:3px; }
+  .exam-bar{background:#0EA5E9;color:#fff;display:flex;justify-content:space-around;padding:7px 16px}
+  .ei{text-align:center}
+  .ei-label{font-size:9px;opacity:.8;text-transform:uppercase;letter-spacing:.7px}
+  .ei-val{font-size:13px;font-weight:800;margin-top:1px}
 
-  /* Exam Roll Number highlight */
-  .roll-highlight { background:#0EA5E9; color:white; padding:12px 28px; display:flex; justify-content:space-between; align-items:center; }
-  .roll-highlight p { font-size:11px; opacity:0.85; }
-  .roll-highlight h3 { font-size:24px; font-weight:800; letter-spacing:3px; }
+  .stu-grid{padding:12px 18px;display:grid;grid-template-columns:1fr 1fr;gap:7px;background:#F8FAFF;border-bottom:2px solid #E0F2FE}
+  .ir{display:flex;gap:8px;align-items:baseline}
+  .il{font-size:9.5px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;min-width:80px}
+  .iv{font-size:13px;font-weight:600;color:#0F172A}
 
-  /* Result grid */
-  .result-grid { display:grid; grid-template-columns:1fr 1fr; gap:0; }
-  .result-box { padding:16px 20px; border-right:1px solid #F0F9FF; border-bottom:1px solid #F0F9FF; }
-  .result-box:nth-child(even) { border-right:none; }
-  .result-label { font-size:11px; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; }
-  .result-value { font-size:22px; font-weight:800; color:#0F172A; margin-top:2px; }
+  .tbl-wrap{padding:12px 18px}
+  .sec-title{font-size:10px;font-weight:700;color:#0369A1;text-transform:uppercase;letter-spacing:1px;margin-bottom:7px}
+  table{width:100%;border-collapse:collapse}
+  thead tr{background:linear-gradient(90deg,#0369A1,#0EA5E9)}
+  thead th{padding:7px 10px;font-size:10.5px;font-weight:700;color:#fff;text-align:center;border:1px solid #0369A1;text-transform:uppercase;letter-spacing:.4px}
+  thead th:first-child{text-align:left}
+  .tfoot-row td{background:#EFF6FF;font-weight:800;font-size:13px;color:#0369A1;border:1px solid #93C5FD;padding:7px 10px;text-align:center}
+  .tfoot-row td:first-child{text-align:left}
 
-  /* Grade + Status */
-  .grade-status { display:grid; grid-template-columns:1fr 1fr; }
-  .grade-box { padding:20px; text-align:center; background:#F0F9FF; }
-  .grade-box .label { font-size:11px; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; }
-  .grade-box .value { font-size:36px; font-weight:900; margin-top:4px; }
-  .status-box { padding:20px; text-align:center; }
-  .status-box .label { font-size:11px; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; }
-  .status-box .value { font-size:28px; font-weight:900; margin-top:4px; letter-spacing:1px; }
+  .summary{margin:12px 18px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .sbox{border:1px solid #E0F2FE;border-radius:7px;padding:9px;text-align:center;background:#F8FAFF}
+  .sl{font-size:9px;color:#64748B;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+  .sv{font-size:20px;font-weight:900;margin-top:2px}
 
-  /* Remarks */
-  .remarks { padding:14px 28px; background:#FFFBEB; border-top:1px solid #FEF08A; font-size:13px; color:#78350F; }
+  .status-bar{margin:0 18px 10px;text-align:center;padding:9px;border-radius:7px}
 
-  /* Footer */
-  .footer { padding:14px 28px; background:#F8FAFC; border-top:1px solid #E2E8F0; display:flex; justify-content:space-between; align-items:center; }
-  .footer .school { font-size:11px; color:#64748B; }
-  .footer .verified { font-size:11px; color:#0EA5E9; font-weight:600; }
+  .pos-badge{text-align:center;padding:6px;margin:0 18px 9px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:7px;font-size:12.5px;font-weight:700;color:#92400E}
+  .remarks-box{margin:0 18px 12px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:5px;padding:7px 11px;font-size:11.5px;color:#78350F}
 
-  /* Position badge */
-  .position { position:relative; }
-  .pos-badge { display:inline-flex; align-items:center; gap:4px; background:#FFFBEB; border:1px solid #FEF08A; border-radius:20px; padding:3px 10px; font-size:11px; color:#92400E; font-weight:600; margin-top:6px; }
+  .sig-section{margin:8px 18px 0;display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;padding-top:8px;border-top:1px solid #E2E8F0}
+  .sig-box{text-align:center}
+  .sig-line{height:1px;background:#475569;margin:30px 6px 4px}
+  .sig-lbl{font-size:9.5px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.4px}
 
-  @media print {
-    body { background:white; padding:0; }
-    .card { box-shadow:none; border-radius:0; max-width:100%; }
-  }
+  .footer{background:#F1F5F9;padding:7px 18px;display:flex;justify-content:space-between;align-items:center;margin-top:12px;border-top:1px solid #CBD5E1}
+  .fl{font-size:9.5px;color:#64748B}
+  .fr{font-size:9.5px;color:#0369A1;font-weight:600}
+
+  @media print{body{background:#fff}.dmc{border:2.5px solid #0EA5E9;box-shadow:none}@page{margin:8mm}}
 </style>
 </head>
 <body>
-  <div class="card">
+<div class="dmc">
 
-    <!-- Header -->
-    <div class="header">
-      <h1>${schoolName}</h1>
-      <h2>Official Result Card</h2>
-      <div class="badge">${r.exam_type} — ${r.year} &nbsp;|&nbsp; Class ${r.class}</div>
+  <div class="header">
+    <div class="logo-wrap">
+      ${logoUrl ? `<img src="${logoUrl}" alt="Logo"/>` : `<span class="logo-txt">GHS</span>`}
     </div>
-
-    <!-- Exam Roll Number -->
-    ${r.exam_roll_no ? `
-    <div class="roll-highlight">
-      <div>
-        <p>EXAM ROLL NUMBER</p>
-        <h3>${r.exam_roll_no}</h3>
-      </div>
-      <div style="text-align:right">
-        <p>CLASS</p>
-        <h3>${r.class}</h3>
-      </div>
-    </div>` : ""}
-
-    <!-- Student Info -->
-    <div class="student">
-      <div class="avatar">
-        ${r.students?.photo_url
-          ? `<img src="${r.students.photo_url}" alt=""/>`
-          : (r.students?.full_name || "S").charAt(0).toUpperCase()
-        }
-      </div>
-      <div>
-        <div class="student-name position">
-          ${r.students?.full_name || "—"}
-          ${r.position && r.position <= 3
-            ? `<div class="pos-badge">${r.position === 1 ? "🥇" : r.position === 2 ? "🥈" : "🥉"} Position ${r.position}</div>`
-            : ""}
-        </div>
-        <div class="student-meta">
-          Father: ${r.students?.father_name || "—"} &nbsp;|&nbsp;
-          Roll No: ${r.students?.roll_number || "—"}
-        </div>
-      </div>
+    <div class="school-center">
+      <div class="school-name">${school.school_name}</div>
+      <div class="school-addr">${school.address}</div>
+      <div class="dmc-badge">DETAIL MARKS CERTIFICATE</div>
+      <div class="emis-line">EMIS: ${school.emis_code}${school.phone ? ` &nbsp;|&nbsp; Ph: ${school.phone}` : ""}</div>
     </div>
-
-    <!-- Result Grid -->
-    <div class="result-grid">
-      <div class="result-box">
-        <div class="result-label">Total Marks</div>
-        <div class="result-value">${r.total_marks}</div>
-      </div>
-      <div class="result-box">
-        <div class="result-label">Obtained Marks</div>
-        <div class="result-value">${r.obtained_marks}</div>
-      </div>
-      <div class="result-box">
-        <div class="result-label">Percentage</div>
-        <div class="result-value" style="color:#0EA5E9">${r.percentage}%</div>
-      </div>
-      <div class="result-box">
-        <div class="result-label">Class Position</div>
-        <div class="result-value">${r.position ? `#${r.position}` : "—"}</div>
-      </div>
-    </div>
-
-    <!-- Grade + Status -->
-    <div class="grade-status">
-      <div class="grade-box">
-        <div class="label">Grade</div>
-        <div class="value" style="color:${gradeColor(r.grade)}">${r.grade || "—"}</div>
-      </div>
-      <div class="status-box" style="background:${r.is_pass ? "#F0FDF4" : "#FEF2F2"}">
-        <div class="label">Result</div>
-        <div class="value" style="color:${passColor}">${passText}</div>
-      </div>
-    </div>
-
-    <!-- Remarks -->
-    ${r.remarks ? `<div class="remarks">📝 ${r.remarks}</div>` : ""}
-
-    <!-- Footer -->
-    <div class="footer">
-      <div class="school">${schoolName} &nbsp;|&nbsp; ghs-babi-khel.vercel.app</div>
-      <div class="verified">✓ Official Result</div>
+    <div class="photo-wrap">
+      ${photoUrl ? `<img src="${photoUrl}" alt=""/>` : `<span class="photo-init">${studentName.charAt(0).toUpperCase()}</span>`}
     </div>
   </div>
+
+  <div class="exam-bar">
+    <div class="ei"><div class="ei-label">Examination</div><div class="ei-val">${r.exam_type}</div></div>
+    <div class="ei"><div class="ei-label">Year</div><div class="ei-val">${r.year}</div></div>
+    <div class="ei"><div class="ei-label">Class</div><div class="ei-val">${r.class}</div></div>
+    <div class="ei"><div class="ei-label">Exam Roll No</div><div class="ei-val">${examRollNo}</div></div>
+    <div class="ei"><div class="ei-label">Class Roll No</div><div class="ei-val">${classRollNo}</div></div>
+  </div>
+
+  <div class="stu-grid">
+    <div class="ir"><span class="il">Student Name</span><span class="iv">${studentName}</span></div>
+    <div class="ir"><span class="il">Father Name</span><span class="iv">${fatherName}</span></div>
+    <div class="ir"><span class="il">Class</span><span class="iv">${r.class}</span></div>
+    <div class="ir"><span class="il">Session</span><span class="iv">${r.exam_type} ${r.year}</span></div>
+  </div>
+
+  <div class="tbl-wrap">
+    <div class="sec-title">Subject-wise Marks</div>
+    ${subjects.length === 0 ? `
+      <div style="text-align:center;padding:16px;color:#64748B;font-size:12px;border:1px solid #E0F2FE;border-radius:6px;background:#F8FAFF">
+        Subject-wise marks not entered. See summary below.
+      </div>
+    ` : `
+    <table>
+      <thead><tr>
+        <th style="text-align:left;width:34%">Subject</th>
+        <th>Total Marks</th><th>Obtained</th><th>Percentage</th><th>Grade</th><th>Result</th>
+      </tr></thead>
+      <tbody>${subjectRows}</tbody>
+      <tfoot><tr class="tfoot-row">
+        <td><strong>GRAND TOTAL</strong></td>
+        <td>${r.total_marks}</td>
+        <td><strong>${r.obtained_marks}</strong></td>
+        <td><strong>${r.percentage}%</strong></td>
+        <td colspan="2"></td>
+      </tr></tfoot>
+    </table>`}
+  </div>
+
+  <div class="summary">
+    <div class="sbox"><div class="sl">Total Marks</div><div class="sv" style="color:#0369A1">${r.total_marks}</div></div>
+    <div class="sbox"><div class="sl">Obtained</div><div class="sv" style="color:#0EA5E9">${r.obtained_marks}</div></div>
+    <div class="sbox"><div class="sl">Percentage</div><div class="sv" style="color:#0369A1">${r.percentage}%</div></div>
+    <div class="sbox" style="border-color:${r.is_pass?"#BBF7D0":"#FECACA"};background:${r.is_pass?"#F0FDF4":"#FEF2F2"}">
+      <div class="sl">Grade</div>
+      <div class="sv" style="color:${r.is_pass?"#16A34A":"#DC2626"}">${r.grade || "—"}</div>
+    </div>
+  </div>
+
+  <div class="status-bar" style="border:2px solid ${r.is_pass?"#BBF7D0":"#FECACA"};background:${r.is_pass?"#F0FDF4":"#FEF2F2"}">
+    <span style="font-size:18px;font-weight:900;color:${r.is_pass?"#16A34A":"#DC2626"};letter-spacing:2px">
+      ${r.is_pass ? "✓  PASS" : "✗  FAIL"}
+    </span>
+    ${r.position ? `<span style="font-size:12px;color:#64748B;margin-left:18px">Position: <strong style="color:#0369A1">#${r.position}</strong> in Class</span>` : ""}
+  </div>
+
+  ${posBadge ? `<div class="pos-badge">${posBadge}</div>` : ""}
+  ${r.remarks ? `<div class="remarks-box">📝 <strong>Remarks:</strong> ${r.remarks}</div>` : ""}
+
+  <div class="sig-section">
+    <div class="sig-box"><div class="sig-line"></div><div class="sig-lbl">Class Teacher</div></div>
+    <div class="sig-box"><div class="sig-line"></div><div class="sig-lbl">Exam In-Charge</div></div>
+    <div class="sig-box"><div class="sig-line"></div><div class="sig-lbl">Headmaster / Principal</div></div>
+  </div>
+
+  <div class="footer">
+    <div class="fl">${school.school_name} &nbsp;|&nbsp; ${school.address}</div>
+    <div class="fr">✓ Official DMC &nbsp;|&nbsp; ${r.exam_type} ${r.year}</div>
+  </div>
+
+</div>
 </body>
 </html>`;
-
-  const blob = new Blob([html], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `result-card-${r.exam_roll_no || r.students?.roll_number || "student"}-${r.year}.html`;
-  a.click();
-  URL.revokeObjectURL(url);
-  toast.success("Result card downloaded! Open the file and press Ctrl+P to print.");
 };
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ─── Print DMC ────────────────────────────────────────────────────────────────
+
+const printDMC = (r: ResultRecord, school: SchoolInfo) => {
+  const html = buildDMC(r, school);
+  const win = window.open("", "_blank", "width=900,height=720");
+  if (!win) {
+    toast.error("Popup blocked. Please allow popups and try again.");
+    return;
+  }
+  win.document.write(html);
+  win.document.close();
+  win.onload = () => {
+    setTimeout(() => { win.focus(); win.print(); }, 600);
+  };
+  toast.success("DMC opened. In print dialog choose 'Save as PDF'.");
+};
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 const ResultCard = () => {
   const { data: settings } = useSchoolSettings();
-  const schoolName = settings?.school_name || "GHS Babi Khel";
+
+  const school: SchoolInfo = {
+    school_name: settings?.school_name || "GHS Babi Khel",
+    address:     settings?.address     || "Babi Khel, District Mohmand, KPK",
+    emis_code:   settings?.emis_code   || "60673",
+    logo_url:    settings?.logo_url    || null,
+    phone:       settings?.phone       || null,
+  };
 
   const [searchName, setSearchName] = useState("");
   const [searchRoll, setSearchRoll] = useState("");
-  const [searched, setSearched] = useState(false);
-  const [searching, setSearching] = useState(false);
-  const [foundResults, setFoundResults] = useState<ResultRecord[]>([]);
+  const [searched,   setSearched]   = useState(false);
+  const [searching,  setSearching]  = useState(false);
+  const [results,    setResults]    = useState<ResultRecord[]>([]);
 
   const handleSearch = async () => {
     if (!searchName.trim() && !searchRoll.trim()) {
-      toast.error("Enter your name or exam roll number to search");
+      toast.error("Enter your name or exam roll number");
       return;
     }
     setSearching(true);
@@ -232,35 +299,26 @@ const ResultCard = () => {
     try {
       let query = supabase
         .from("results")
-        .select("id, class, exam_type, year, total_marks, obtained_marks, percentage, grade, is_pass, remarks, exam_roll_no, position, students(full_name, roll_number, father_name, photo_url)")
+        .select("id,class,exam_type,year,total_marks,obtained_marks,percentage,grade,is_pass,remarks,exam_roll_no,position,subject_marks,students(full_name,roll_number,father_name,photo_url,class)")
         .order("year", { ascending: false });
 
-      // Search by exam roll number (most specific)
       if (searchRoll.trim()) {
         query = query.eq("exam_roll_no", searchRoll.trim());
-      } else if (searchName.trim()) {
-        // Search by student name via join
-        const { data: studentData } = await supabase
-          .from("students")
-          .select("id")
+      } else {
+        const { data: stds } = await supabase
+          .from("students").select("id")
           .ilike("full_name", `%${searchName.trim()}%`);
-
-        if (!studentData || studentData.length === 0) {
-          setFoundResults([]);
-          setSearched(true);
-          setSearching(false);
-          return;
+        if (!stds?.length) {
+          setResults([]); setSearched(true); setSearching(false); return;
         }
-        const ids = studentData.map(s => s.id);
-        query = query.in("student_id", ids);
+        query = query.in("student_id", stds.map(s => s.id));
       }
 
       const { data, error } = await query.limit(10);
       if (error) throw error;
-      setFoundResults((data ?? []) as unknown as ResultRecord[]);
-    } catch (err: any) {
-      toast.error("Search failed. Please try again.");
-      console.error(err);
+      setResults((data ?? []) as unknown as ResultRecord[]);
+    } catch (e: any) {
+      toast.error("Search failed. Try again.");
     }
 
     setSearched(true);
@@ -269,63 +327,39 @@ const ResultCard = () => {
 
   return (
     <PageLayout>
-      <PageBanner
-        title="Result Card"
-        subtitle="Search your result by name or exam roll number and download your official result card"
-      />
+      <PageBanner title="Result Card / DMC" subtitle="Search by name or exam roll number and download your official DMC" />
 
       <section className="py-12">
         <div className="container mx-auto px-4 max-w-2xl">
 
-          {/* Search Box */}
+          {/* Search */}
           <div className="bg-card rounded-2xl shadow-elevated p-6 mb-8 border border-border">
             <h3 className="font-heading font-bold text-foreground text-lg mb-4 flex items-center gap-2">
-              <Search className="w-5 h-5 text-primary" />
-              Search Your Result
+              <Search className="w-5 h-5 text-primary" /> Search Your Result
             </h3>
-
             <div className="space-y-3">
               <div>
-                <label className="text-sm font-medium text-foreground block mb-1.5">
-                  Student Name
-                </label>
-                <input
-                  value={searchName}
-                  onChange={e => setSearchName(e.target.value)}
+                <label className="text-sm font-medium text-foreground block mb-1.5">Student Name</label>
+                <input value={searchName} onChange={e => setSearchName(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && handleSearch()}
                   placeholder="Enter your full name..."
-                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm focus:ring-2 focus:ring-ring outline-none"
-                />
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm focus:ring-2 focus:ring-ring outline-none" />
               </div>
-
               <div className="flex items-center gap-3">
                 <div className="flex-1 h-px bg-border" />
                 <span className="text-xs text-muted-foreground font-medium">OR</span>
                 <div className="flex-1 h-px bg-border" />
               </div>
-
               <div>
-                <label className="text-sm font-medium text-foreground block mb-1.5">
-                  Exam Roll Number
-                </label>
-                <input
-                  value={searchRoll}
-                  onChange={e => setSearchRoll(e.target.value)}
+                <label className="text-sm font-medium text-foreground block mb-1.5">Exam Roll Number</label>
+                <input value={searchRoll} onChange={e => setSearchRoll(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && handleSearch()}
-                  placeholder="Enter your exam roll number (e.g. 100001)..."
-                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-mono focus:ring-2 focus:ring-ring outline-none"
-                />
+                  placeholder="e.g. 100001"
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-mono focus:ring-2 focus:ring-ring outline-none" />
               </div>
-
-              <button
-                onClick={handleSearch}
-                disabled={searching}
-                className="w-full gradient-accent text-primary-foreground font-semibold py-3 rounded-xl shadow-card hover:shadow-elevated transition-all flex items-center justify-center gap-2 disabled:opacity-60"
-              >
-                {searching
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Searching...</>
-                  : <><Search className="w-4 h-4" /> Search Result</>
-                }
+              <button onClick={handleSearch} disabled={searching}
+                className="w-full gradient-accent text-primary-foreground font-semibold py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-60 shadow-card hover:shadow-elevated transition-all">
+                {searching ? <><Loader2 className="w-4 h-4 animate-spin"/>Searching...</> : <><Search className="w-4 h-4"/>Search Result</>}
               </button>
             </div>
           </div>
@@ -333,42 +367,38 @@ const ResultCard = () => {
           {/* Results */}
           <AnimatePresence>
             {searched && (
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-4"
-              >
-                {foundResults.length === 0 ? (
+              <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} className="space-y-5">
+                {results.length === 0 ? (
                   <div className="bg-card rounded-2xl p-10 text-center shadow-card">
                     <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
                     <h3 className="font-heading font-semibold text-foreground">No Result Found</h3>
                     <p className="text-sm text-muted-foreground mt-2 max-w-xs mx-auto">
-                      No result found for your search. Check your name or exam roll number and try again.
-                      Results must be published by admin to appear here.
+                      Check your name or exam roll number. Results must be added by admin first.
                     </p>
                   </div>
                 ) : (
                   <>
-                    <p className="text-sm text-muted-foreground">
-                      Found {foundResults.length} result{foundResults.length > 1 ? "s" : ""}
-                    </p>
-                    {foundResults.map(r => (
-                      <motion.div
-                        key={r.id}
-                        initial={{ opacity: 0, scale: 0.98 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="bg-card rounded-2xl shadow-elevated overflow-hidden border border-border"
-                      >
-                        {/* Card header */}
-                        <div className="gradient-hero px-6 py-4 text-primary-foreground">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-sm opacity-80">{r.exam_type} — {r.year}</p>
-                              <h3 className="font-heading font-bold text-lg">{r.students?.full_name}</h3>
-                              <p className="text-sm opacity-80">Class {r.class}</p>
+                    <p className="text-sm text-muted-foreground font-medium">Found {results.length} result{results.length > 1 ? "s" : ""}</p>
+                    {results.map(r => (
+                      <motion.div key={r.id} initial={{ opacity:0, scale:0.98 }} animate={{ opacity:1, scale:1 }}
+                        className="bg-card rounded-2xl shadow-elevated overflow-hidden border border-border">
+
+                        {/* Header */}
+                        <div className="gradient-hero px-6 py-5 text-primary-foreground">
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                              {r.students?.photo_url
+                                ? <img src={r.students.photo_url} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-white/40" />
+                                : <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-2xl font-bold border-2 border-white/30">{(r.students?.full_name||"S").charAt(0)}</div>
+                              }
+                              <div>
+                                <p className="text-xs opacity-75">{r.exam_type} {r.year} — Class {r.class}</p>
+                                <h3 className="font-heading font-bold text-xl">{r.students?.full_name}</h3>
+                                <p className="text-xs opacity-80 mt-0.5">Father: {r.students?.father_name||"—"} &nbsp;·&nbsp; Roll: {r.students?.roll_number}</p>
+                              </div>
                             </div>
                             {r.exam_roll_no && (
-                              <div className="text-right">
+                              <div className="text-right shrink-0">
                                 <p className="text-xs opacity-70">Exam Roll No</p>
                                 <p className="font-mono font-bold text-2xl tracking-wider">{r.exam_roll_no}</p>
                               </div>
@@ -376,78 +406,70 @@ const ResultCard = () => {
                           </div>
                         </div>
 
-                        {/* Result details */}
-                        <div className="p-6 space-y-4">
-                          {/* Marks row */}
-                          <div className="grid grid-cols-3 gap-4">
-                            {[
-                              { label: "Total Marks", value: r.total_marks },
-                              { label: "Obtained", value: r.obtained_marks },
-                              { label: "Percentage", value: `${r.percentage}%` },
-                            ].map(item => (
-                              <div key={item.label} className="bg-secondary/50 rounded-xl p-3 text-center">
-                                <p className="text-xs text-muted-foreground">{item.label}</p>
-                                <p className="text-xl font-bold text-foreground mt-0.5">{item.value}</p>
-                              </div>
-                            ))}
-                          </div>
-
-                          {/* Grade + Pass/Fail */}
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-secondary/50 rounded-xl p-4 text-center">
-                              <p className="text-xs text-muted-foreground uppercase tracking-wide">Grade</p>
-                              <p className="text-4xl font-black mt-1" style={{ color: gradeColor(r.grade) }}>
-                                {r.grade || "—"}
-                              </p>
+                        {/* Quick stats */}
+                        <div className="grid grid-cols-4 divide-x divide-border border-b border-border">
+                          {[
+                            { label:"Total",   value: r.total_marks },
+                            { label:"Obtained",value: r.obtained_marks },
+                            { label:"%",       value: `${r.percentage}%` },
+                            { label:"Grade",   value: r.grade||"—" },
+                          ].map(item => (
+                            <div key={item.label} className="p-3 text-center">
+                              <p className="text-xs text-muted-foreground">{item.label}</p>
+                              <p className="text-lg font-bold text-foreground">{item.value}</p>
                             </div>
-                            <div
-                              className="rounded-xl p-4 text-center"
-                              style={{ background: r.is_pass ? "#F0FDF4" : "#FEF2F2" }}
-                            >
-                              <p className="text-xs text-muted-foreground uppercase tracking-wide">Result</p>
-                              <div className="flex items-center justify-center gap-2 mt-2">
-                                {r.is_pass
-                                  ? <CheckCircle className="w-8 h-8 text-green-600" />
-                                  : <XCircle className="w-8 h-8 text-red-600" />
-                                }
-                              </div>
-                              <p
-                                className="text-xl font-bold mt-1"
-                                style={{ color: r.is_pass ? "#16A34A" : "#DC2626" }}
-                              >
-                                {r.is_pass ? "PASS" : "FAIL"}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Position */}
-                          {r.position && r.position <= 10 && (
-                            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                              <Trophy className="w-5 h-5 text-amber-600" />
-                              <p className="text-sm font-semibold text-amber-800">
-                                {r.position === 1 ? "🥇 1st" : r.position === 2 ? "🥈 2nd" : r.position === 3 ? "🥉 3rd" : `#${r.position}`} Position in Class
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Remarks */}
-                          {r.remarks && (
-                            <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
-                              <p className="text-sm text-blue-800">
-                                <span className="font-semibold">Remarks: </span>{r.remarks}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Download button */}
-                          <button
-                            onClick={() => downloadResultCard(r, schoolName)}
-                            className="w-full gradient-accent text-primary-foreground font-semibold py-3 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-                          >
-                            <Download className="w-4 h-4" />
-                            Download Result Card
-                          </button>
+                          ))}
                         </div>
+
+                        {/* Subject preview */}
+                        {r.subject_marks && Object.keys(r.subject_marks).length > 0 && (
+                          <div className="px-5 py-4 border-b border-border">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Subject-wise Marks</p>
+                            <div className="space-y-2">
+                              {Object.entries(r.subject_marks).map(([sub, m]) => {
+                                const pct = m.total > 0 ? Math.round((m.obtained / m.total) * 100) : 0;
+                                return (
+                                  <div key={sub} className="flex items-center gap-3">
+                                    <span className="text-sm text-foreground w-36 shrink-0">{sub}</span>
+                                    <div className="flex-1 bg-secondary rounded-full h-2">
+                                      <div className="h-2 rounded-full bg-primary" style={{ width:`${Math.min(pct,100)}%` }} />
+                                    </div>
+                                    <span className="text-sm font-semibold text-foreground w-16 text-right shrink-0">{m.obtained}/{m.total}</span>
+                                    <span className="text-xs text-muted-foreground w-8 text-right shrink-0">{pct}%</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Status */}
+                        <div className="px-5 py-3 flex items-center gap-3 flex-wrap border-b border-border">
+                          <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-sm font-bold"
+                            style={{ background:r.is_pass?"#F0FDF4":"#FEF2F2", color:r.is_pass?"#16A34A":"#DC2626", border:`1px solid ${r.is_pass?"#BBF7D0":"#FECACA"}` }}>
+                            {r.is_pass ? "✓ PASS" : "✗ FAIL"}
+                          </span>
+                          {r.position && r.position <= 10 && (
+                            <span className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-800 px-3 py-1.5 rounded-xl text-sm font-semibold">
+                              <Trophy className="w-4 h-4" />
+                              {r.position === 1?"🥇 1st":r.position===2?"🥈 2nd":r.position===3?"🥉 3rd":`#${r.position}`} in Class
+                            </span>
+                          )}
+                          {r.remarks && <span className="text-sm text-muted-foreground italic">📝 {r.remarks}</span>}
+                        </div>
+
+                        {/* Download DMC */}
+                        <div className="p-5">
+                          <button onClick={() => printDMC(r, school)}
+                            className="w-full gradient-accent text-primary-foreground font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-card hover:shadow-elevated">
+                            <Printer className="w-4 h-4" />
+                            Download DMC as PDF
+                          </button>
+                          <p className="text-xs text-center text-muted-foreground mt-2">
+                            A print window opens → choose "Save as PDF" to download
+                          </p>
+                        </div>
+
                       </motion.div>
                     ))}
                   </>
