@@ -259,7 +259,7 @@ const Home = () => {
       </section>
 
       {/* ════════ LATEST NOTICES ════════ */}
-      <section className="py-16 bg-secondary/50">
+      <section className="py-16 bg-secondary/50 cv-auto">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <div>
