@@ -14,7 +14,7 @@ const News             = lazy(() => import("./pages/News"));
 const Results          = lazy(() => import("./pages/Results"));
 const Gallery          = lazy(() => import("./pages/Gallery"));
 const Library          = lazy(() => import("./pages/Library"));
-const ExamRollNumbers  = lazy(() => import("./pages/ExamRollNumbers"));
+const ResultCard       = lazy(() => import("./pages/ResultCard"));
 const SignIn           = lazy(() => import("./pages/auth/SignIn"));
 const SignUp           = lazy(() => import("./pages/auth/SignUp"));
 const ForgotPassword   = lazy(() => import("./pages/auth/ForgotPassword"));
@@ -72,9 +72,9 @@ const App = () => (
             <Route path="/notices"               element={<Notices />} />
             <Route path="/news"                  element={<News />} />
             <Route path="/results"               element={<Results />} />
+            <Route path="/result-card"           element={<ResultCard />} />
             <Route path="/gallery"               element={<Gallery />} />
             <Route path="/library"               element={<Library />} />
-            <Route path="/exam-roll-numbers"     element={<ExamRollNumbers />} />
             <Route path="/auth/signin"           element={<SignIn />} />
             <Route path="/auth/signup"           element={<SignUp />} />
             <Route path="/auth/forgot-password"  element={<ForgotPassword />} />
