@@ -12,12 +12,14 @@ import AchievementsTab from "./tabs/AchievementsTab";
 import TeachersTab from "./tabs/TeachersTab";
 import ProfileTab from "./tabs/ProfileTab";
 import RollNumbersTab from "./tabs/RollNumbersTab";
+import ResultCardTab from "./tabs/ResultCardTab";
 
 const tabComponents: Record<string, React.ComponentType<any>> = {
   overview:      OverviewTab,
   timetable:     TimetableTab,
   results:       ResultsTab,
   "exam-rolls":  RollNumbersTab,
+  "result-card": ResultCardTab,
   notices:       NoticesTab,
   news:          NewsTab,
   library:       LibraryTab,
