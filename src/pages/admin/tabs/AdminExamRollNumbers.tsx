@@ -23,6 +23,8 @@ import {
   ChevronUp, ChevronDown, Download, RefreshCw, ArrowLeft,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { triggerConfetti } from "@/lib/confetti";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -278,81 +280,88 @@ const AdminExamRollNumbers = () => {
     toast.success("CSV Downloaded!");
   };
 
-  // ─── Download printable HTML ─────────────────────────────────────────────────
+  // ─── Download printable PDF ──────────────────────────────────────────────────
   const downloadPrint = () => {
     if (!selectedSession || rollNumbers.length === 0) return;
 
-    // Group by class
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
+    let isFirstPage = true;
+
+    // Group by class in session order
     const byClass: Record<string, ExamRollEntry[]> = {};
     for (const r of rollNumbers) {
       if (!byClass[r.class]) byClass[r.class] = [];
       byClass[r.class].push(r);
     }
 
-    const classBlocks = selectedSession.class_order.map(cls => {
-      const students = byClass[cls] || [];
-      if (students.length === 0) return "";
-      const rows = students.map(s => `
-        <tr>
-          <td>${s.serial_number}</td>
-          <td><strong>${s.exam_roll_no}</strong></td>
-          <td>${s.student_name}</td>
-          <td>${s.father_name || ""}</td>
-          <td>${s.class_roll_no}</td>
-        </tr>`).join("");
-      return `
-        <div class="class-section">
-          <h3>Class ${cls}</h3>
-          <table>
-            <thead><tr><th>#</th><th>Exam Roll No</th><th>Student Name</th><th>Father Name</th><th>Class Roll No</th></tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
-        </div>`;
-    }).join("");
+    const drawHeader = () => {
+      doc.setFillColor(14, 165, 233);
+      doc.rect(0, 0, pageW, 28, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Government High School Babi Khel", pageW / 2, 10, { align: "center" });
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Exam Roll Number List  |  ${selectedSession.title}  |  ${selectedSession.exam_term} ${selectedSession.exam_year}`, pageW / 2, 17, { align: "center" });
+      doc.text(`Total Students: ${rollNumbers.length}  |  Classes: ${selectedSession.class_order.join(", ")}`, pageW / 2, 23, { align: "center" });
+    };
 
-    const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Exam Roll Numbers — ${selectedSession.title}</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; color: #111; }
-  .header { text-align: center; margin-bottom: 24px; border-bottom: 3px solid #0EA5E9; padding-bottom: 16px; }
-  .header h1 { font-size: 22px; color: #0369A1; font-weight: 700; }
-  .header h2 { font-size: 16px; color: #0EA5E9; margin-top: 4px; }
-  .header p { font-size: 13px; color: #555; margin-top: 6px; }
-  .class-section { margin-bottom: 28px; break-inside: avoid; }
-  .class-section h3 { background: #0EA5E9; color: white; padding: 8px 14px; font-size: 15px; border-radius: 6px 6px 0 0; }
-  table { width: 100%; border-collapse: collapse; }
-  th { background: #F0F9FF; padding: 8px 10px; text-align: left; font-size: 12px; border: 1px solid #BAE6FD; color: #0369A1; }
-  td { padding: 7px 10px; font-size: 12px; border: 1px solid #E0F2FE; }
-  tr:nth-child(even) td { background: #F0F9FF; }
-  td strong { color: #0369A1; font-size: 13px; }
-  .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #888; border-top: 1px solid #ddd; padding-top: 10px; }
-  @media print { body { padding: 10px; } .class-section { break-inside: avoid; } }
-</style>
-</head>
-<body>
-  <div class="header">
-    <h1>Government High School Babi Khel</h1>
-    <h2>Exam Roll Number List</h2>
-    <p>${selectedSession.title} &nbsp;|&nbsp; ${selectedSession.exam_term} — ${selectedSession.exam_year} &nbsp;|&nbsp; Classes: ${selectedSession.class_order.join(", ")}</p>
-    <p>Total Students: ${rollNumbers.length}</p>
-  </div>
-  ${classBlocks}
-  <div class="footer">Generated from GHS Babi Khel Official Website &nbsp;|&nbsp; ghs-babi-khel.vercel.app</div>
-</body>
-</html>`;
+    drawHeader();
 
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `exam-rollnumbers-${selectedSession.title}-${selectedSession.exam_year}.html`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Printable list downloaded!");
+    for (const cls of selectedSession.class_order) {
+      const students = byClass[cls];
+      if (!students || students.length === 0) continue;
+
+      if (!isFirstPage) {
+        doc.addPage();
+        drawHeader();
+      }
+      isFirstPage = false;
+
+      const tableData = students.map(s => [
+        s.serial_number.toString(),
+        s.exam_roll_no,
+        s.student_name,
+        s.father_name || "—",
+        s.class_roll_no,
+      ]);
+
+      autoTable(doc, {
+        head: [["#", "Exam Roll No", "Student Name", "Father Name", "Class Roll No"]],
+        body: tableData,
+        startY: 33,
+        styles: { fontSize: 9, cellPadding: 3 },
+        headStyles: { fillColor: [3, 105, 161], textColor: 255, fontStyle: "bold" },
+        alternateRowStyles: { fillColor: [240, 249, 255] },
+        columnStyles: {
+          0: { cellWidth: 12 },
+          1: { cellWidth: 28, fontStyle: "bold", textColor: [3, 105, 161] },
+          2: { cellWidth: 55 },
+          3: { cellWidth: 55 },
+          4: { cellWidth: 28 },
+        },
+        didDrawPage: (data) => {
+          // Class label above table on each page
+          const y = data.settings.startY - 5;
+          doc.setFillColor(14, 165, 233);
+          doc.roundedRect(10, y - 5, 50, 7, 1, 1, "F");
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(9);
+          doc.setFont("helvetica", "bold");
+          doc.text(`Class ${cls}  (${students.length} students)`, 14, y);
+          // Footer
+          doc.setFontSize(7);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(150, 150, 150);
+          doc.text("GHS Babi Khel · ghs-babi-khel.vercel.app", pageW / 2, 290, { align: "center" });
+        },
+      });
+    }
+
+    doc.save(`ExamRollNumbers-${selectedSession.title}-${selectedSession.exam_year}.pdf`);
+    toast.success("PDF downloaded successfully!");
   };
 
   // ─── Filtered roll numbers for search ────────────────────────────────────────
