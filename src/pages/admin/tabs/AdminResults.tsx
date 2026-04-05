@@ -55,6 +55,48 @@ const DEFAULT_SUBJECT_MAX = 75;
 
 const currentYear = new Date().getFullYear();
 
+// ── Auto-publish countdown for results ───────────────────────────────────────
+function ResultCountdownTimer({ targetDate, cls, examType, year, onPublished }: {
+  targetDate: string; cls: string; examType: string; year: number; onPublished: () => void;
+}) {
+  const [timeLeft, setTimeLeft] = useState("");
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    const calc = async () => {
+      const diff = new Date(targetDate).getTime() - Date.now();
+      if (diff <= 0) {
+        if (!done) {
+          setDone(true); setTimeLeft("");
+          await supabase.from("results")
+            .update({ is_published: true })
+            .eq("class", cls).eq("exam_type", examType).eq("year", year)
+            .eq("is_published", false);
+          onPublished();
+        }
+        return;
+      }
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setTimeLeft(d > 0 ? `${d}d ${h}h ${m}m ${s}s` : h > 0 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`);
+    };
+    calc();
+    const t = setInterval(calc, 1000);
+    return () => clearInterval(t);
+  }, [targetDate, cls, examType, year, done, onPublished]);
+  if (done || !timeLeft) return null;
+  return (
+    <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-500/30 rounded-xl px-4 py-2.5">
+      <Timer className="w-4 h-4 text-amber-500 shrink-0 animate-pulse" />
+      <div>
+        <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">Auto-publishes in</p>
+        <p className="text-sm font-bold text-amber-800 dark:text-amber-300 font-mono">{timeLeft}</p>
+      </div>
+    </div>
+  );
+}
+
 const AdminResults = () => {
   const qc = useQueryClient();
   const [cls, setCls] = useState("6");
@@ -68,6 +110,12 @@ const AdminResults = () => {
   const csvRef = useRef<HTMLInputElement>(null);
   const [csvImporting, setCsvImporting] = useState(false);
   const [csvProgress, setCsvProgress] = useState(0);
+
+  // ── Countdown/auto-publish state ────────────────────────────────────────────
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [cdDate, setCdDate] = useState("");
+  const [cdTime, setCdTime] = useState("08:00");
+  const [cdSaving, setCdSaving] = useState(false);
 
   // ── Form state ──────────────────────────────────────────────────────────────
   const [form, setForm] = useState({
@@ -464,6 +512,9 @@ const AdminResults = () => {
             </Button>
           );
         })()}
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowCountdown(v => !v)}>
+          <Timer className="w-4 h-4" /> Schedule Publish
+        </Button>
         <Button variant="outline" size="sm" className="gap-1.5" onClick={() => csvRef.current?.click()}>
           <Upload className="w-4 h-4" /> {csvImporting ? "Importing..." : "Import CSV"}
         </Button>
@@ -480,6 +531,64 @@ const AdminResults = () => {
         <div className="space-y-1">
           <Progress value={csvProgress} className="h-2" />
           <p className="text-xs text-muted-foreground text-center">Importing... {csvProgress}%</p>
+        </div>
+      )}
+
+      {/* ── Schedule auto-publish panel ── */}
+      {showCountdown && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-500/30 rounded-xl p-4 space-y-3">
+          <p className="text-sm font-semibold text-amber-800 dark:text-amber-300 flex items-center gap-2">
+            <Timer className="w-4 h-4" /> Schedule Auto-Publish for {cls} — {examType} {year}
+          </p>
+          <p className="text-xs text-amber-700 dark:text-amber-400">Results will auto-publish to students at the selected date & time</p>
+          <div className="flex gap-3 flex-wrap">
+            <div>
+              <label className="text-xs font-medium text-foreground">Date</label>
+              <input type="date" value={cdDate} onChange={e => setCdDate(e.target.value)}
+                min={new Date().toISOString().split("T")[0]}
+                className="block mt-1 rounded-lg border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-ring outline-none" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-foreground">Time</label>
+              <input type="time" value={cdTime} onChange={e => setCdTime(e.target.value)}
+                className="block mt-1 rounded-lg border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-ring outline-none" />
+            </div>
+            <div className="flex items-end gap-2">
+              <Button
+                size="sm"
+                disabled={!cdDate || cdSaving}
+                onClick={async () => {
+                  if (!cdDate) { toast.error("Pick a date"); return; }
+                  setCdSaving(true);
+                  const publishAt = new Date(`${cdDate}T${cdTime}:00`).toISOString();
+                  const { error } = await supabase.from("results")
+                    .update({ publish_at: publishAt })
+                    .eq("class", cls).eq("exam_type", examType).eq("year", year);
+                  setCdSaving(false);
+                  if (error) { toast.error("Failed to schedule"); return; }
+                  toast.success("✅ Auto-publish scheduled!");
+                  qc.invalidateQueries({ queryKey });
+                }}
+                className="bg-amber-500 hover:bg-amber-600 text-white gap-1.5"
+              >
+                {cdSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Timer className="w-3.5 h-3.5" />}
+                Set Schedule
+              </Button>
+              <Button size="sm" variant="outline" onClick={async () => {
+                await supabase.from("results").update({ publish_at: null }).eq("class", cls).eq("exam_type", examType).eq("year", year);
+                toast.success("Schedule cleared");
+                qc.invalidateQueries({ queryKey });
+              }}>Clear</Button>
+            </div>
+          </div>
+          {/* Live countdown display */}
+          {results.length > 0 && results[0]?.publish_at && !results.every(r => r.is_published) && (
+            <ResultCountdownTimer
+              targetDate={results[0].publish_at}
+              cls={cls} examType={examType} year={year}
+              onPublished={() => { toast.success("🎉 Results auto-published!"); qc.invalidateQueries({ queryKey }); }}
+            />
+          )}
         </div>
       )}
 
