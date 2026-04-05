@@ -13,6 +13,7 @@ import TeachersTab from "./tabs/TeachersTab";
 import ProfileTab from "./tabs/ProfileTab";
 import RollNumbersTab from "./tabs/RollNumbersTab";
 import ResultCardTab from "./tabs/ResultCardTab";
+import TestsTab from "./tabs/TestsTab";
 
 const tabComponents: Record<string, React.ComponentType<any>> = {
   overview:      OverviewTab,
