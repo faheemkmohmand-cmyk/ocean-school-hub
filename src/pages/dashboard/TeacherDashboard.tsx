@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Home, Calendar, BarChart3, Bell, Newspaper, BookOpen, Image, Trophy,
   Users, User, LogOut, GraduationCap, Menu, X, ExternalLink, Moon, Sun,
-  Video, Hash, FileText, ClipboardList, Shield
+  Video, Hash, FileText, ClipboardList, Shield, MessageSquare
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
@@ -20,6 +20,8 @@ import AchievementsTab  from "@/pages/dashboard/tabs/AchievementsTab";
 import TeachersTab      from "@/pages/dashboard/tabs/TeachersTab";
 import ProfileTab       from "@/pages/dashboard/tabs/ProfileTab";
 import RollNumbersTab   from "@/pages/dashboard/tabs/RollNumbersTab";
+import MessagesTab      from "@/pages/dashboard/tabs/MessagesTab";
+import DiscussionTab    from "@/pages/dashboard/tabs/DiscussionTab";
 import ResultCardTab    from "@/pages/dashboard/tabs/ResultCardTab";
 import ResultsTab       from "@/pages/dashboard/tabs/ResultsTab";
 import TimetableTab     from "@/pages/dashboard/tabs/TimetableTab";
@@ -65,6 +67,8 @@ const tabComponents: Record<string, React.ComponentType<any>> = {
   achievements:    AchievementsTab,
   teachers:        TeachersTab,
   profile:         ProfileTab,
+  messages:          MessagesTab,
+  discussion:        DiscussionTab,
   "edit-timetable": AdminTimetables,
   "upload-results": AdminResults,
   attendance:       AdminAttendance,
