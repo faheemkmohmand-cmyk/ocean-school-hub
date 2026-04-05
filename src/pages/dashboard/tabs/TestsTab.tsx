@@ -360,110 +360,187 @@ function ResultsScreen({ test, attempt, onBack }: { test: Test; attempt: TestAtt
   const myRank = (allAttempts || []).findIndex((a) => a.user_id === attempt.user_id) + 1;
 
   const downloadPDF = () => {
-    const doc = new jsPDF();
-    const navy = "#042C53";
-    const w = doc.internal.pageSize.getWidth();
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const w = doc.internal.pageSize.getWidth();   // 210
+    const pageH = doc.internal.pageSize.getHeight(); // 297
+    const margin = 15;
+    const contentW = w - margin * 2;
+    const footerH = 12;
+    const safeBottom = pageH - footerH - 5; // leave room for footer
 
-    // Header
-    doc.setFillColor(4, 44, 83);
-    doc.rect(0, 0, w, 35, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    doc.text("GHS Babi Khel", w / 2, 16, { align: "center" });
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.text("MCQ Test Result Card", w / 2, 26, { align: "center" });
-
-    // Test info
-    doc.setTextColor(4, 44, 83);
-    doc.setFontSize(11);
-    let y = 45;
-    doc.setFont("helvetica", "bold");
-    doc.text("Test:", 20, y);
-    doc.setFont("helvetica", "normal");
-    doc.text(test.title, 50, y);
-    y += 8;
-    doc.setFont("helvetica", "bold");
-    doc.text("Subject:", 20, y);
-    doc.setFont("helvetica", "normal");
-    doc.text(test.subject, 50, y);
-    y += 8;
-    doc.setFont("helvetica", "bold");
-    doc.text("Type:", 20, y);
-    doc.setFont("helvetica", "normal");
-    doc.text(test.type, 50, y);
-    y += 8;
-    doc.setFont("helvetica", "bold");
-    doc.text("Date:", 20, y);
-    doc.setFont("helvetica", "normal");
-    doc.text(new Date(attempt.completed_at).toLocaleDateString(), 50, y);
-
-    // Student info
-    y += 15;
-    doc.setFont("helvetica", "bold");
-    doc.text("Student:", 20, y);
-    doc.setFont("helvetica", "normal");
-    doc.text(attempt.student_name, 55, y);
-    y += 8;
-    doc.setFont("helvetica", "bold");
-    doc.text("Class:", 20, y);
-    doc.setFont("helvetica", "normal");
-    doc.text(attempt.student_class || "—", 55, y);
-    y += 8;
-    doc.setFont("helvetica", "bold");
-    doc.text("Roll No:", 20, y);
-    doc.setFont("helvetica", "normal");
-    doc.text(attempt.roll_number || "—", 55, y);
-
-    // Result box
-    y += 15;
-    doc.setDrawColor(4, 44, 83);
-    doc.setLineWidth(0.5);
-    doc.rect(20, y, w - 40, 30);
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(4, 44, 83);
-    doc.text(`Score: ${attempt.score}/${attempt.total_questions}`, 30, y + 12);
-    doc.text(`Percentage: ${attempt.percentage}%`, 30, y + 22);
-    doc.text(`Grade: ${grade}`, w / 2 + 20, y + 12);
-    doc.text(`Status: ${passed ? "PASS" : "FAIL"}`, w / 2 + 20, y + 22);
-
-    // Question summary
-    y += 40;
-    if (questions) {
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
-      doc.text("Question Summary:", 20, y);
-      y += 8;
-      doc.setFontSize(9);
+    // ── Helper: draw the footer on the CURRENT page ──────────────────
+    const drawFooter = () => {
+      doc.setFillColor(4, 44, 83);
+      doc.rect(0, pageH - footerH, w, footerH, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
+      doc.text("Official Result — GHS Babi Khel", w / 2, pageH - 4, { align: "center" });
+    };
+
+    // ── Helper: add new page with header repeated ────────────────────
+    const addPage = () => {
+      drawFooter(); // footer on current page before turning
+      doc.addPage();
+      // Minimal page header
+      doc.setFillColor(4, 44, 83);
+      doc.rect(0, 0, w, 14, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.text(`GHS Babi Khel — ${test.title} (continued)`, w / 2, 9, { align: "center" });
+      return 22; // new y start after mini-header
+    };
+
+    // ── Page 1 Header ─────────────────────────────────────────────────
+    doc.setFillColor(4, 44, 83);
+    doc.rect(0, 0, w, 32, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("GHS Babi Khel", w / 2, 13, { align: "center" });
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("MCQ Test Result Card", w / 2, 23, { align: "center" });
+
+    let y = 40;
+
+    // ── Info grid ─────────────────────────────────────────────────────
+    const infoRows: [string, string][] = [
+      ["Test",    test.title],
+      ["Subject", test.subject],
+      ["Type",    test.type.charAt(0).toUpperCase() + test.type.slice(1)],
+      ["Date",    new Date(attempt.completed_at).toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"numeric" })],
+      ["Student", attempt.student_name],
+      ["Class",   attempt.student_class || "—"],
+      ["Roll No", attempt.roll_number || "—"],
+    ];
+
+    doc.setFontSize(9.5);
+    infoRows.forEach(([label, value]) => {
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(4, 44, 83);
+      doc.text(label + ":", margin, y);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(30, 30, 30);
+      // Wrap long values
+      const lines = doc.splitTextToSize(value, contentW - 40) as string[];
+      lines.forEach((line: string, li: number) => {
+        doc.text(line, margin + 36, y + li * 5);
+      });
+      y += Math.max(7, lines.length * 5 + 2);
+    });
+
+    y += 5;
+
+    // ── Result box ────────────────────────────────────────────────────
+    const boxH = 28;
+    doc.setFillColor(240, 247, 255);
+    doc.setDrawColor(4, 44, 83);
+    doc.setLineWidth(0.6);
+    doc.roundedRect(margin, y, contentW, boxH, 3, 3, "FD");
+
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(4, 44, 83);
+    doc.text(`${attempt.score} / ${attempt.total_questions}`, margin + 10, y + 11);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80, 80, 80);
+    doc.text("Score", margin + 10, y + 17);
+
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(4, 44, 83);
+    doc.text(`${attempt.percentage}%`, margin + 50, y + 11);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80, 80, 80);
+    doc.text("Percentage", margin + 50, y + 17);
+
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(4, 44, 83);
+    doc.text(grade, margin + 95, y + 11);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80, 80, 80);
+    doc.text("Grade", margin + 95, y + 17);
+
+    const passColor: [number, number, number] = passed ? [22, 163, 74] : [220, 38, 38];
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...passColor);
+    doc.text(passed ? "PASS" : "FAIL", margin + 128, y + 11);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80, 80, 80);
+    doc.text("Status", margin + 128, y + 17);
+
+    y += boxH + 8;
+
+    // ── Rank ──────────────────────────────────────────────────────────
+    if (myRank > 0) {
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(4, 44, 83);
+      doc.text(`Class Rank: #${myRank}`, margin, y);
+      y += 9;
+    }
+
+    // ── Question summary ──────────────────────────────────────────────
+    if (questions && questions.length > 0) {
+      y += 3;
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(4, 44, 83);
+      doc.text("Question-by-Question Summary", margin, y);
+      y += 7;
+
       questions.forEach((q, i) => {
-        if (y > 270) { doc.addPage(); y = 20; }
+        // Check if we need a new page
+        if (y > safeBottom - 16) { y = addPage(); }
+
         const userAns = attempt.answers[q.id] || "—";
         const isCorrect = userAns === q.correct_option;
-        const mark = isCorrect ? "✓" : "✗";
-        doc.text(`Q${i + 1}: ${mark} (Your: ${userAns}, Correct: ${q.correct_option})`, 25, y);
-        y += 6;
+
+        // Row background
+        doc.setFillColor(isCorrect ? 240 : 255, isCorrect ? 253 : 240, isCorrect ? 244 : 240);
+        doc.setDrawColor(isCorrect ? 187 : 252, isCorrect ? 247 : 165, isCorrect ? 208 : 165);
+        doc.setLineWidth(0.3);
+
+        // Wrap question text to fit
+        const qText = `Q${i + 1}: ${q.question_text}`;
+        const wrappedQ = doc.splitTextToSize(qText, contentW - 50) as string[];
+        const rowH = Math.max(10, wrappedQ.length * 4.5 + 5);
+
+        if (y + rowH > safeBottom) { y = addPage(); }
+
+        doc.roundedRect(margin, y, contentW, rowH, 1, 1, "FD");
+
+        // Question text
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(30, 30, 30);
+        wrappedQ.forEach((line: string, li: number) => {
+          doc.text(line, margin + 2, y + 4 + li * 4.5);
+        });
+
+        // Answer info on the right
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(isCorrect ? 22 : 220, isCorrect ? 163 : 38, isCorrect ? 74 : 38);
+        doc.text(isCorrect ? "✓ Correct" : "✗ Wrong", w - margin - 38, y + 4);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(80, 80, 80);
+        doc.setFontSize(7.5);
+        doc.text(`Your: ${userAns}  Correct: ${q.correct_option}`, w - margin - 40, y + 8.5);
+
+        y += rowH + 2;
       });
     }
 
-    if (myRank > 0) {
-      y += 8;
-      doc.setFont("helvetica", "bold");
-      doc.text(`Class Rank: ${myRank}`, 20, y);
-    }
-
-    // Footer
-    const pageH = doc.internal.pageSize.getHeight();
-    doc.setFillColor(4, 44, 83);
-    doc.rect(0, pageH - 15, w, 15, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.text("Official Result — GHS Babi Khel", w / 2, pageH - 6, { align: "center" });
-
-    doc.save(`${test.title}_Result_${attempt.student_name}.pdf`);
+    drawFooter();
+    doc.save(`${test.title}_Result_${attempt.student_name.replace(/\s+/g, "_")}.pdf`);
   };
 
   return (
