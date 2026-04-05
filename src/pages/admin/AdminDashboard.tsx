@@ -18,6 +18,7 @@ const AdminAchievements      = lazy(() => import("./tabs/AdminAchievements"));
 const AdminUsers             = lazy(() => import("./tabs/AdminUsers"));
 const AdminVideos            = lazy(() => import("./tabs/AdminVideos"));
 const AdminExamRollNumbers   = lazy(() => import("./tabs/AdminExamRollNumbers"));
+const AdminTests             = lazy(() => import("./tabs/AdminTests"));
 
 const tabMap: Record<string, React.LazyExoticComponent<() => JSX.Element>> = {
   overview:          AdminOverview,
@@ -34,6 +35,7 @@ const tabMap: Record<string, React.LazyExoticComponent<() => JSX.Element>> = {
   library:           AdminLibrary,
   achievements:      AdminAchievements,
   "exam-rolls":      AdminExamRollNumbers,
+  tests:             AdminTests,
   videos:            AdminVideos,
   users:             AdminUsers,
 };
