@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { Hash, Search, Download, Loader2, Timer, Lock } from "lucide-react";
@@ -18,15 +18,23 @@ interface RollEntry {
   class: string; class_roll_no: string; exam_roll_no: string; serial_number: number;
 }
 
-// Live countdown timer
-function CountdownTimer({ targetDate, label }: { targetDate: string; label: string }) {
+// Live countdown timer — auto-publishes when it hits zero
+function CountdownTimer({ targetDate, label, sessionId }: { targetDate: string; label: string; sessionId: string }) {
   const [timeLeft, setTimeLeft] = useState("");
   const [expired, setExpired] = useState(false);
 
   useEffect(() => {
     const calc = () => {
       const diff = new Date(targetDate).getTime() - Date.now();
-      if (diff <= 0) { setExpired(true); setTimeLeft(""); return; }
+      if (diff <= 0) {
+        if (!expired) {
+          setExpired(true); setTimeLeft("");
+          supabase.from("exam_roll_sessions").update({ is_published: true }).eq("id", sessionId).eq("is_published", false).then(() => {
+            qc.invalidateQueries({ queryKey: ["dash-exam-sessions"] });
+          });
+        }
+        return;
+      }
       const d = Math.floor(diff / 86400000);
       const h = Math.floor((diff % 86400000) / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
@@ -56,6 +64,7 @@ function CountdownTimer({ targetDate, label }: { targetDate: string; label: stri
 
 const RollNumbersTab = () => {
   const { profile } = useAuth();
+  const qc = useQueryClient();
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
@@ -205,6 +214,7 @@ const RollNumbersTab = () => {
             <CountdownTimer
               targetDate={selectedSession.publish_at}
               label={selectedSession.countdown_label || "Exam Roll Numbers will be published in"}
+              sessionId={selectedSession.id}
             />
           )}
 
