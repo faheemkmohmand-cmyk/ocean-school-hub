@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Home, Calendar, BarChart3, Bell, Newspaper, BookOpen, Image, Trophy,
   Users, User, LogOut, GraduationCap, Menu, X, ExternalLink, Moon, Sun,
-  Video, Hash, FileText, ClipboardList, Shield, MessageSquare
+  Video, Hash, FileText, ClipboardList, Shield, MessageSquare, ClipboardCheck
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
@@ -30,6 +30,7 @@ import TimetableTab     from "@/pages/dashboard/tabs/TimetableTab";
 import AdminTimetables  from "@/pages/admin/tabs/AdminTimetables";
 import AdminResults     from "@/pages/admin/tabs/AdminResults";
 import AdminAttendance  from "@/pages/admin/tabs/AdminAttendance";
+import AdminTests       from "@/pages/admin/tabs/AdminTests";
 
 // Nav items visible to teachers
 const navItems = [
@@ -51,6 +52,7 @@ const navItems = [
   { id: "edit-timetable",  label: "Edit Timetable",  icon: Calendar,     section: "edit"   },
   { id: "upload-results",  label: "Upload Results",  icon: BarChart3,    section: "edit"   },
   { id: "attendance",      label: "Attendance",      icon: ClipboardList,section: "edit"   },
+  { id: "mcq-tests",       label: "MCQ Tests",       icon: ClipboardCheck,section: "edit"   },
 ];
 
 const tabComponents: Record<string, React.ComponentType<any>> = {
@@ -72,6 +74,7 @@ const tabComponents: Record<string, React.ComponentType<any>> = {
   "edit-timetable": AdminTimetables,
   "upload-results": AdminResults,
   attendance:       AdminAttendance,
+  "mcq-tests":      AdminTests,
 };
 
 const TeacherDashboard = () => {
