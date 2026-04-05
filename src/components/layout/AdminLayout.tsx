@@ -25,6 +25,7 @@ const navItems = [
   { id: "exam-rolls", label: "Exam Roll Numbers", icon: Hash },
   { id: "tests", label: "MCQ Tests", icon: ClipboardCheck },
   { id: "messages", label: "User Messages", icon: MessageSquare },
+  { id: "discussion", label: "Group Discussion", icon: Users },
   { id: "videos", label: "Videos", icon: Video },
   { id: "users", label: "Users", icon: UserCog },
 ];
