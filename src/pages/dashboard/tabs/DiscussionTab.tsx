@@ -91,10 +91,14 @@ const DiscussionTab = () => {
   const sendMessage = async () => {
     if (!text.trim() || !user) return;
     setSending(true);
+    // Ensure sender_name is never a UUID or null
+    const safeName = profile?.full_name && !profile.full_name.includes("-")
+      ? profile.full_name
+      : "User";
     await supabase.from("discussion_messages").insert({
       user_id: user.id,
       content: text.trim(),
-      sender_name: profile?.full_name || "User",
+      sender_name: safeName,
       sender_role: profile?.role || "user",
     });
     setSending(false);
@@ -166,10 +170,12 @@ const DiscussionTab = () => {
                 )}
 
                 <div className={`max-w-[70%] ${mine ? "items-end" : "items-start"} flex flex-col`}>
-                  {/* Name + role badge for first in group */}
-                  {isFirst && !mine && (
-                    <div className="flex items-center gap-1.5 mb-1 px-1">
-                      <span className="text-xs font-semibold text-foreground">{msg.sender_name || "User"}</span>
+                  {/* Name + role badge for first in group — shown for ALL senders */}
+                  {isFirst && (
+                    <div className={`flex items-center gap-1.5 mb-1 px-1 ${mine ? "justify-end flex-row-reverse" : ""}`}>
+                      <span className="text-xs font-semibold text-foreground">
+                        {msg.sender_name && !msg.sender_name.includes("-") ? msg.sender_name : (mine ? (profile?.full_name || "Me") : "User")}
+                      </span>
                       <RoleBadge role={msg.sender_role} />
                     </div>
                   )}
