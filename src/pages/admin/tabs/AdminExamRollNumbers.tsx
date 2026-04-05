@@ -229,40 +229,125 @@ const AdminExamRollNumbers = () => {
 
   const downloadPrint = () => {
     if (!selectedSession || rollNumbers.length === 0) return;
+
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const pageW = doc.internal.pageSize.getWidth();
-    const byClass: Record<string, ExamRollEntry[]> = {};
-    for (const r of rollNumbers) { if (!byClass[r.class]) byClass[r.class] = []; byClass[r.class].push(r); }
-    let isFirst = true;
-    const drawHeader = () => {
-      doc.setFillColor(14, 165, 233); doc.rect(0, 0, pageW, 28, "F");
-      doc.setTextColor(255, 255, 255); doc.setFontSize(14); doc.setFont("helvetica", "bold");
-      doc.text("Government High School Babi Khel", pageW / 2, 10, { align: "center" });
-      doc.setFontSize(9); doc.setFont("helvetica", "normal");
-      doc.text(`${selectedSession.title}  |  ${selectedSession.exam_term} ${selectedSession.exam_year}`, pageW / 2, 17, { align: "center" });
-      doc.text(`Total Students: ${rollNumbers.length}`, pageW / 2, 23, { align: "center" });
+    const pageW  = 210; // A4 width mm
+    const pageH  = 297; // A4 height mm
+    const margin = 10;  // page margin mm
+
+    // Slip layout: 2 columns × 4 rows = 8 slips per page
+    const cols      = 2;
+    const rows      = 4;
+    const slipW     = (pageW - margin * 2 - 4) / cols;   // 4 mm gap between cols
+    const slipH     = (pageH - margin * 2 - rows * 3) / rows; // ~3 mm gap between rows
+    const gapX      = 4;
+    const gapY      = 3;
+
+    const drawSlip = (slip: ExamRollEntry, x: number, y: number) => {
+      const w = slipW;
+      const h = slipH;
+
+      // Outer border — thin grey
+      doc.setDrawColor(160, 160, 160);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(x, y, w, h, 2, 2, "S");
+
+      // Top accent line — dark navy (not colorful)
+      doc.setFillColor(4, 44, 83); // #042C53 school navy
+      doc.rect(x, y, w, 5, "F");
+
+      // School name in accent bar
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(6);
+      doc.setFont("helvetica", "bold");
+      doc.text("GHS BABI KHEL", x + w / 2, y + 3.5, { align: "center" });
+
+      // "ADMIT CARD" label
+      doc.setTextColor(4, 44, 83);
+      doc.setFontSize(6.5);
+      doc.setFont("helvetica", "bold");
+      doc.text("ADMIT CARD", x + w / 2, y + 9, { align: "center" });
+
+      // Divider
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.2);
+      doc.line(x + 3, y + 10.5, x + w - 3, y + 10.5);
+
+      // Exam Roll Number — prominent
+      doc.setTextColor(4, 44, 83);
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text(slip.exam_roll_no, x + w / 2, y + 19, { align: "center" });
+
+      // "Roll Number" label under the number
+      doc.setFontSize(5.5);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100, 100, 100);
+      doc.text("EXAM ROLL NUMBER", x + w / 2, y + 22.5, { align: "center" });
+
+      // Divider
+      doc.line(x + 3, y + 24, x + w - 3, y + 24);
+
+      // Student name
+      doc.setTextColor(30, 30, 30);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "bold");
+      // Truncate long names to fit
+      const nameStr = slip.student_name.length > 28 ? slip.student_name.slice(0, 26) + "…" : slip.student_name;
+      doc.text(nameStr, x + 3, y + 28.5);
+
+      // Father name
+      doc.setFontSize(6);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
+      const fatherStr = (slip.father_name || "—").length > 30 ? (slip.father_name || "—").slice(0, 28) + "…" : (slip.father_name || "—");
+      doc.text(`S/O: ${fatherStr}`, x + 3, y + 32.5);
+
+      // Class and class roll side by side
+      doc.setFontSize(6);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(4, 44, 83);
+      doc.text(`Class: ${slip.class}`, x + 3, y + 36.5);
+      doc.text(`Class Roll: ${slip.class_roll_no}`, x + w / 2, y + 36.5);
+
+      // Bottom info: session and year
+      doc.setFontSize(5.5);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(120, 120, 120);
+      const sessionStr = `${selectedSession!.exam_term} ${selectedSession!.exam_year}`;
+      doc.text(sessionStr, x + w / 2, y + h - 2.5, { align: "center" });
+
+      // Dashed cut line at bottom edge
+      doc.setLineDashPattern([1, 1], 0);
+      doc.setDrawColor(180, 180, 180);
+      doc.setLineWidth(0.15);
+      doc.line(x, y + h, x + w, y + h);
+      doc.setLineDashPattern([], 0); // reset dash
     };
-    drawHeader();
+
+    // Sort all roll numbers by class order then serial
+    const ordered: ExamRollEntry[] = [];
     for (const cls of selectedSession.class_order) {
-      const students = byClass[cls];
-      if (!students?.length) continue;
-      if (!isFirst) { doc.addPage(); drawHeader(); }
-      isFirst = false;
-      autoTable(doc, {
-        head: [["#", "Exam Roll No", "Student Name", "Father Name", "Class Roll No"]],
-        body: students.map(s => [s.serial_number.toString(), s.exam_roll_no, s.student_name, s.father_name || "—", s.class_roll_no]),
-        startY: 33,
-        styles: { fontSize: 9, cellPadding: 3 },
-        headStyles: { fillColor: [3, 105, 161], textColor: 255, fontStyle: "bold" },
-        alternateRowStyles: { fillColor: [240, 249, 255] },
-        didDrawPage: () => {
-          doc.setFontSize(7); doc.setFont("helvetica", "normal"); doc.setTextColor(150, 150, 150);
-          doc.text("Government High School Babi Khel", pageW / 2, 290, { align: "center" });
-        },
-      });
+      const group = rollNumbers.filter(r => r.class === cls).sort((a, b) => a.serial_number - b.serial_number);
+      ordered.push(...group);
     }
-    doc.save(`ExamRollNumbers-${selectedSession.title}-${selectedSession.exam_year}.pdf`);
-    toast.success("PDF downloaded!");
+
+    let slipIdx = 0;
+    for (const slip of ordered) {
+      const posOnPage = slipIdx % (cols * rows);
+      if (posOnPage === 0 && slipIdx > 0) {
+        doc.addPage();
+      }
+      const col = posOnPage % cols;
+      const row = Math.floor(posOnPage / cols);
+      const x = margin + col * (slipW + gapX);
+      const y = margin + row * (slipH + gapY);
+      drawSlip(slip, x, y);
+      slipIdx++;
+    }
+
+    doc.save(`AdmitCards-${selectedSession.title}-${selectedSession.exam_year}.pdf`);
+    toast.success(`${ordered.length} admit cards downloaded — ${Math.ceil(ordered.length / (cols * rows))} pages`);
   };
 
   const filteredRolls = detailSearch
