@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   BarChart3, Settings, Users, GraduationCap, ClipboardList, CheckSquare,
   Calendar, Bell, Newspaper, Image, BookOpen, Trophy, UserCog, LogOut,
-  Menu, X, ExternalLink, Shield, Moon, Sun, Video, Clock, Hash
+  Menu, X, ExternalLink, Shield, Moon, Sun, Video, Clock, Hash, ClipboardCheck
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/hooks/useDarkMode";
