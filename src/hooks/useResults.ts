@@ -38,6 +38,7 @@ export function useResults(options: {
         .select("id, student_id, class, exam_type, year, total_marks, obtained_marks, percentage, grade, position, is_pass, remarks, created_at, students(full_name, roll_number, photo_url)")
         .eq("class", classFilter)
         .eq("exam_type", examType)
+        .eq("is_published", true)
         .order("position", { ascending: true, nullsFirst: false })
         .order("percentage", { ascending: false });
 
