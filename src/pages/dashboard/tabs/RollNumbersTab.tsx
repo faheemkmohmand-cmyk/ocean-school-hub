@@ -22,16 +22,23 @@ interface RollEntry {
 function CountdownTimer({ targetDate, label, sessionId }: { targetDate: string; label: string; sessionId: string }) {
   const [timeLeft, setTimeLeft] = useState("");
   const [expired, setExpired] = useState(false);
+  const qc = useQueryClient(); // ← must be INSIDE the component
 
   useEffect(() => {
-    const calc = () => {
+    const calc = async () => {
       const diff = new Date(targetDate).getTime() - Date.now();
       if (diff <= 0) {
         if (!expired) {
-          setExpired(true); setTimeLeft("");
-          supabase.from("exam_roll_sessions").update({ is_published: true }).eq("id", sessionId).eq("is_published", false).then(() => {
-            qc.invalidateQueries({ queryKey: ["dash-exam-sessions"] });
-          });
+          setExpired(true);
+          setTimeLeft("");
+          // Auto-publish when countdown finishes
+          await supabase
+            .from("exam_roll_sessions")
+            .update({ is_published: true })
+            .eq("id", sessionId)
+            .eq("is_published", false);
+          qc.invalidateQueries({ queryKey: ["dash-exam-sessions"] });
+          qc.invalidateQueries({ queryKey: ["dash-exam-rolls"] });
         }
         return;
       }
@@ -46,7 +53,7 @@ function CountdownTimer({ targetDate, label, sessionId }: { targetDate: string; 
     calc();
     const t = setInterval(calc, 1000);
     return () => clearInterval(t);
-  }, [targetDate]);
+  }, [targetDate, sessionId, expired, qc]);
 
   if (expired) return null;
 
