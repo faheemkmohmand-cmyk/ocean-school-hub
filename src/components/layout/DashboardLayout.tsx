@@ -118,6 +118,15 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
               Admin Panel
             </Link>
           )}
+          {(profile?.role === "teacher") && (
+            <Link
+              to="/teacher"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+            >
+              <Shield className="w-4 h-4" />
+              Teacher Panel
+            </Link>
+          )}
           <button
             onClick={handleSignOut}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
