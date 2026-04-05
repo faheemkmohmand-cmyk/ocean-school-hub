@@ -74,7 +74,10 @@ const buildDMC = (r: ResultRecord, school: SchoolInfo): string => {
   const photoUrl     = r.students?.photo_url    || null;
   const logoUrl      = school.logo_url           || null;
 
-  const subjects = r.subject_marks ? Object.entries(r.subject_marks) : [];
+  // Filter out subjects where both obtained AND total are 0 — these were not included in this result
+  const subjects = r.subject_marks
+    ? Object.entries(r.subject_marks).filter(([, m]) => !(m.obtained === 0 && m.total === 0))
+    : [];
 
   const subjectRows = subjects.map(([name, m], idx) => {
     const pct   = m.total > 0 ? Math.round((m.obtained / m.total) * 100) : 0;
@@ -423,11 +426,11 @@ const ResultCard = () => {
                         </div>
 
                         {/* Subject preview */}
-                        {r.subject_marks && Object.keys(r.subject_marks).length > 0 && (
+                        {r.subject_marks && Object.entries(r.subject_marks).some(([, m]) => !(m.obtained === 0 && m.total === 0)) && (
                           <div className="px-5 py-4 border-b border-border">
                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Subject-wise Marks</p>
                             <div className="space-y-2">
-                              {Object.entries(r.subject_marks).map(([sub, m]) => {
+                              {Object.entries(r.subject_marks).filter(([, m]) => !(m.obtained === 0 && m.total === 0)).map(([sub, m]) => {
                                 const pct = m.total > 0 ? Math.round((m.obtained / m.total) * 100) : 0;
                                 return (
                                   <div key={sub} className="flex items-center gap-3">
