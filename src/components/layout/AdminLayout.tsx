@@ -23,6 +23,7 @@ const navItems = [
   { id: "library", label: "Library", icon: BookOpen },
   { id: "achievements", label: "Achievements", icon: Trophy },
   { id: "exam-rolls", label: "Exam Roll Numbers", icon: Hash },
+  { id: "tests", label: "MCQ Tests", icon: ClipboardCheck },
   { id: "videos", label: "Videos", icon: Video },
   { id: "users", label: "Users", icon: UserCog },
 ];

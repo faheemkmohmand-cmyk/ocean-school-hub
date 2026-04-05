@@ -27,6 +27,7 @@ const tabComponents: Record<string, React.ComponentType<any>> = {
   gallery:       GalleryTab,
   videos:        VideosTab,
   achievements:  AchievementsTab,
+  tests:         TestsTab,
   teachers:      TeachersTab,
   profile:       ProfileTab,
 };

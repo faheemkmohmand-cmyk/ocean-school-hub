@@ -21,6 +21,7 @@ const navItems = [
   { id: "gallery",      label: "Gallery",      icon: Image       },
   { id: "videos",       label: "Videos",       icon: Video       }, // ✅ NEW
   { id: "achievements", label: "Achievements", icon: Trophy      },
+  { id: "tests",        label: "MCQ Tests",    icon: ClipboardCheck },
   { id: "teachers",     label: "Teachers",     icon: Users       },
   { id: "profile",      label: "My Profile",   icon: User        },
 ];
