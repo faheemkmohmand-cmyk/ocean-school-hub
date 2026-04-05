@@ -19,6 +19,7 @@ const AdminUsers             = lazy(() => import("./tabs/AdminUsers"));
 const AdminVideos            = lazy(() => import("./tabs/AdminVideos"));
 const AdminExamRollNumbers   = lazy(() => import("./tabs/AdminExamRollNumbers"));
 const AdminTests             = lazy(() => import("./tabs/AdminTests"));
+const AdminMessages          = lazy(() => import("./tabs/AdminMessages"));
 
 const tabMap: Record<string, React.LazyExoticComponent<() => JSX.Element>> = {
   overview:          AdminOverview,
