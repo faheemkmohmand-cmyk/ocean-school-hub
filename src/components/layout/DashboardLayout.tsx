@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Home, Calendar, BarChart3, Bell, Newspaper, BookOpen, Image, Trophy,
   Users, User, LogOut, GraduationCap, Menu, X, Shield, ExternalLink, Moon, Sun,
-  Video, Hash, FileText, ClipboardCheck
+  Video, Hash, FileText, MessageSquare, Users, ClipboardCheck
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
@@ -23,6 +23,8 @@ const navItems = [
   { id: "achievements", label: "Achievements", icon: Trophy      },
   { id: "tests",        label: "MCQ Tests",    icon: ClipboardCheck },
   { id: "teachers",     label: "Teachers",     icon: Users       },
+  { id: "messages",    label: "Message Admin", icon: MessageSquare },
+  { id: "discussion",  label: "Discussion",   icon: Users       },
   { id: "profile",      label: "My Profile",   icon: User        },
 ];
 
