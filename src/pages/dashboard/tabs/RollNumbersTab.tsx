@@ -145,7 +145,7 @@ const RollNumbersTab = () => {
     doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(156, 163, 175);
-    doc.text("GHS Babi Khel · ghs-babi-khel.vercel.app", pageW / 2, pageH - 12, { align: "center" });
+    doc.text("Government High School Babi Khel", pageW / 2, pageH - 12, { align: "center" });
     doc.text("Keep this card safe. Bring it to the examination hall.", pageW / 2, pageH - 7, { align: "center" });
 
     doc.save(`AdmitCard-${r.exam_roll_no}-${r.student_name.replace(/\s+/g, "_")}.pdf`);
