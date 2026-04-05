@@ -14,6 +14,8 @@ import ProfileTab from "./tabs/ProfileTab";
 import RollNumbersTab from "./tabs/RollNumbersTab";
 import ResultCardTab from "./tabs/ResultCardTab";
 import TestsTab from "./tabs/TestsTab";
+import MessagesTab from "./tabs/MessagesTab";
+import DiscussionTab from "./tabs/DiscussionTab";
 
 const tabComponents: Record<string, React.ComponentType<any>> = {
   overview:      OverviewTab,
@@ -30,6 +32,8 @@ const tabComponents: Record<string, React.ComponentType<any>> = {
   tests:         TestsTab,
   teachers:      TeachersTab,
   profile:       ProfileTab,
+  messages:      MessagesTab,
+  discussion:    DiscussionTab,
 };
 
 const UserDashboard = () => {
