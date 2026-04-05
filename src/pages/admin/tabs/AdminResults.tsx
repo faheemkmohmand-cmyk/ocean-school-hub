@@ -305,12 +305,32 @@ const AdminResults = () => {
 
   // ── CSV import ──────────────────────────────────────────────────────────────
   const downloadCSVTemplate = () => {
-    const csv = "student_name,class_roll_number,exam_roll_number,total_marks,obtained_marks,remarks\nAli Khan,001,100001,100,85,Good\nSara Ahmed,002,100002,100,72,";
+    const subjects = getSubjects(cls);
+    // Build header: fixed columns + one obtained+total pair per subject
+    const subjectHeaders = subjects.flatMap(s => [`${s}_obtained`, `${s}_total`]);
+    const headers = ["student_name", "class_roll_number", "exam_roll_number", ...subjectHeaders, "remarks"];
+
+    // Build two example rows
+    const makeRow = (name: string, roll: string, examRoll: string, remark: string) => {
+      const subjectValues = subjects.flatMap((_, i) => [
+        String(Math.floor(45 + i * 3)),   // example obtained
+        String(DEFAULT_SUBJECT_MAX),       // example total (75)
+      ]);
+      return [name, roll, examRoll, ...subjectValues, remark];
+    };
+
+    const row1 = makeRow("Ali Khan",   "001", "100001", "Good performance");
+    const row2 = makeRow("Sara Ahmed", "002", "100002", "");
+
+    const csv = [headers, row1, row2].map(r => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = "results_template.csv"; a.click();
+    a.href = url;
+    a.download = `results_template_class${cls}.csv`;
+    a.click();
     URL.revokeObjectURL(url);
+    toast.success(`Template downloaded for Class ${cls} with all ${subjects.length} subjects!`);
   };
 
   const exportResultsExcel = () => {
@@ -350,15 +370,29 @@ const AdminResults = () => {
     if (lines.length < 2) { toast.error("CSV is empty"); setCsvImporting(false); return; }
 
     const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/['"]/g, ""));
-    const nameIdx = headers.indexOf("student_name");
-    const rollIdx = headers.indexOf("class_roll_number");
+    const nameIdx     = headers.indexOf("student_name");
+    const rollIdx     = headers.indexOf("class_roll_number");
     const examRollIdx = headers.indexOf("exam_roll_number");
-    const totalIdx = headers.indexOf("total_marks");
-    const obtainedIdx = headers.indexOf("obtained_marks");
-    const remarksIdx = headers.indexOf("remarks");
+    const remarksIdx  = headers.indexOf("remarks");
 
-    if (totalIdx === -1 || obtainedIdx === -1) {
-      toast.error("CSV must have total_marks and obtained_marks columns");
+    // Detect subject columns: anything ending in _obtained or _total
+    const subjects = getSubjects(cls);
+    const subjectIdxMap: Record<string, { obtainedIdx: number; totalIdx: number }> = {};
+    subjects.forEach(sub => {
+      const key = sub.toLowerCase().replace(/[^a-z0-9]/g, "_");
+      const oIdx = headers.findIndex(h => h === `${key}_obtained` || h === `${sub.toLowerCase()}_obtained`);
+      const tIdx = headers.findIndex(h => h === `${key}_total`   || h === `${sub.toLowerCase()}_total`);
+      if (oIdx !== -1) subjectIdxMap[sub] = { obtainedIdx: oIdx, totalIdx: tIdx };
+    });
+
+    // Also support legacy total_marks / obtained_marks columns
+    const totalIdx    = headers.indexOf("total_marks");
+    const obtainedIdx = headers.indexOf("obtained_marks");
+    const hasSubjects = Object.keys(subjectIdxMap).length > 0;
+    const hasLegacy   = totalIdx !== -1 && obtainedIdx !== -1;
+
+    if (!hasSubjects && !hasLegacy) {
+      toast.error("CSV must have subject columns (e.g. English_obtained, English_total) or total_marks and obtained_marks");
       setCsvImporting(false); return;
     }
 
@@ -368,13 +402,31 @@ const AdminResults = () => {
     for (let i = 0; i < dataLines.length; i++) {
       const cols = dataLines[i].split(",").map(s => s.trim().replace(/['"]/g, ""));
       const studentName = nameIdx !== -1 ? cols[nameIdx] : "";
-      const rollNumber = rollIdx !== -1 ? cols[rollIdx] : "";
-      const examRollNo = examRollIdx !== -1 ? cols[examRollIdx] : "";
-      const totalMarks = Number(cols[totalIdx]);
-      const obtainedMarks = Number(cols[obtainedIdx]);
-      const remarks = remarksIdx !== -1 ? cols[remarksIdx] || null : null;
+      const rollNumber  = rollIdx  !== -1 ? cols[rollIdx]  : "";
+      const examRollNo  = examRollIdx !== -1 ? cols[examRollIdx] : "";
+      const remarks     = remarksIdx !== -1 ? cols[remarksIdx] || null : null;
 
-      if (isNaN(totalMarks) || isNaN(obtainedMarks)) { skipped++; continue; }
+      // Build subject_marks from subject columns
+      let subjectMarksData: Record<string, { obtained: number; total: number }> | null = null;
+      let totalMarks = 0;
+      let obtainedMarks = 0;
+
+      if (hasSubjects) {
+        subjectMarksData = {};
+        subjects.forEach(sub => {
+          const idxs = subjectIdxMap[sub];
+          if (!idxs) return;
+          const obtained = Number(cols[idxs.obtainedIdx] ?? 0);
+          const total    = idxs.totalIdx !== -1 ? Number(cols[idxs.totalIdx] ?? DEFAULT_SUBJECT_MAX) : DEFAULT_SUBJECT_MAX;
+          subjectMarksData![sub] = { obtained: isNaN(obtained) ? 0 : obtained, total: isNaN(total) ? DEFAULT_SUBJECT_MAX : total };
+          totalMarks    += subjectMarksData![sub].total;
+          obtainedMarks += subjectMarksData![sub].obtained;
+        });
+      } else {
+        totalMarks    = Number(cols[totalIdx]);
+        obtainedMarks = Number(cols[obtainedIdx]);
+        if (isNaN(totalMarks) || isNaN(obtainedMarks)) { skipped++; continue; }
+      }
 
       // Find student
       let student = rollNumber ? students.find(s => s.roll_number === rollNumber) : null;
@@ -391,6 +443,7 @@ const AdminResults = () => {
         total_marks: totalMarks, obtained_marks: obtainedMarks,
         percentage, grade: g, is_pass: percentage >= 33, remarks,
         exam_roll_no: examRollNo || null,
+        subject_marks: subjectMarksData,
       }, { onConflict: "student_id,class,exam_type,year" });
 
       if (!error) added++; else skipped++;
