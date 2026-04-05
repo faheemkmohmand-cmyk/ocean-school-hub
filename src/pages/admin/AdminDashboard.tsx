@@ -20,6 +20,7 @@ const AdminVideos            = lazy(() => import("./tabs/AdminVideos"));
 const AdminExamRollNumbers   = lazy(() => import("./tabs/AdminExamRollNumbers"));
 const AdminTests             = lazy(() => import("./tabs/AdminTests"));
 const AdminMessages          = lazy(() => import("./tabs/AdminMessages"));
+const DiscussionTab          = lazy(() => import("../../pages/dashboard/tabs/DiscussionTab"));
 
 const tabMap: Record<string, React.LazyExoticComponent<() => JSX.Element>> = {
   overview:          AdminOverview,
@@ -39,6 +40,8 @@ const tabMap: Record<string, React.LazyExoticComponent<() => JSX.Element>> = {
   tests:             AdminTests,
   videos:            AdminVideos,
   users:             AdminUsers,
+  messages:          AdminMessages,
+  discussion:        DiscussionTab as any,
 };
 
 const Fallback = () => (
