@@ -217,6 +217,7 @@ const ResultCardTab = () => {
       let query = supabase
         .from("results")
         .select("id,class,exam_type,year,total_marks,obtained_marks,percentage,grade,is_pass,remarks,exam_roll_no,position,subject_marks,students(full_name,roll_number,father_name,photo_url,class)")
+        .eq("is_published", true)
         .order("year", { ascending: false });
 
       if (searchRoll.trim()) {
