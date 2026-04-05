@@ -20,10 +20,12 @@ const SignUp           = lazy(() => import("./pages/auth/SignUp"));
 const ForgotPassword   = lazy(() => import("./pages/auth/ForgotPassword"));
 const ResetPassword    = lazy(() => import("./pages/auth/ResetPassword"));
 const UserDashboard    = lazy(() => import("./pages/dashboard/UserDashboard"));
+const TeacherDashboard = lazy(() => import("./pages/dashboard/TeacherDashboard"));
 const AdminDashboard   = lazy(() => import("./pages/admin/AdminDashboard"));
 const NotFound         = lazy(() => import("./pages/NotFound"));
-const ProtectedRoute      = lazy(() => import("./components/layout/ProtectedRoute"));
-const AdminProtectedRoute = lazy(() => import("./components/layout/AdminProtectedRoute"));
+const ProtectedRoute         = lazy(() => import("./components/layout/ProtectedRoute"));
+const AdminProtectedRoute    = lazy(() => import("./components/layout/AdminProtectedRoute"));
+const TeacherProtectedRoute  = lazy(() => import("./components/layout/TeacherProtectedRoute"));
 
 // ✅ Tiny spinner — shows for <200ms on fast connections, graceful on slow ones
 const PageSkeleton = () => (
@@ -85,6 +87,14 @@ const App = () => (
                 <ProtectedRoute>
                   <UserDashboard />
                 </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teacher"
+              element={
+                <TeacherProtectedRoute>
+                  <TeacherDashboard />
+                </TeacherProtectedRoute>
               }
             />
             <Route
