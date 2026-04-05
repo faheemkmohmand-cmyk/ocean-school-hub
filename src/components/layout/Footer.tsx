@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { GraduationCap, MapPin, Phone, Mail, ExternalLink } from "lucide-react";
+import { GraduationCap, MapPin, Phone, Mail, ExternalLink, Facebook, MessageCircle } from "lucide-react";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 
 const footerLinks = {
@@ -72,6 +72,29 @@ const Footer = () => {
                 <span className="text-white/70">{settings?.email || "ghsbabkhel@edu.pk"}</span>
               </div>
             </div>
+
+            {/* Social Media */}
+            <div className="flex items-center gap-3 mt-5">
+              <a
+                href="https://www.facebook.com/share/1EERTSk1W7/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Follow us on Facebook"
+                className="w-9 h-9 rounded-lg bg-[#1877F2] flex items-center justify-center hover:opacity-90 hover:scale-105 transition-all duration-200 shadow-sm"
+              >
+                <Facebook className="w-4 h-4 text-white" />
+              </a>
+              <a
+                href="https://wa.me/923469898295"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Contact us on WhatsApp"
+                className="w-9 h-9 rounded-lg bg-[#25D366] flex items-center justify-center hover:opacity-90 hover:scale-105 transition-all duration-200 shadow-sm"
+              >
+                <MessageCircle className="w-4 h-4 text-white fill-white" />
+              </a>
+              <span className="text-xs text-white/50 ml-1">Follow &amp; Contact Us</span>
+            </div>
           </div>
 
           {/* Quick Links */}
@@ -134,9 +157,25 @@ const Footer = () => {
           <p className="text-sm text-white/50">
             © {new Date().getFullYear()} {settings?.school_name || "GHS Babi Khel"}. All rights reserved.
           </p>
-          <p className="text-sm text-white/40">
-            EMIS Code: {settings?.emis_code || "60673"}
-          </p>
+          <div className="flex items-center gap-4">
+            <a
+              href="https://www.facebook.com/share/1EERTSk1W7/"
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-white/50 hover:text-[#1877F2] transition-colors"
+            >
+              <Facebook className="w-3.5 h-3.5" /> Facebook
+            </a>
+            <a
+              href="https://wa.me/923469898295"
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-white/50 hover:text-[#25D366] transition-colors"
+            >
+              <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+            </a>
+            <p className="text-sm text-white/40">
+              EMIS: {settings?.emis_code || "60673"}
+            </p>
+          </div>
         </div>
       </div>
     </footer>
