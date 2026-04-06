@@ -15,6 +15,7 @@ import RollNumbersTab from "./tabs/RollNumbersTab";
 import ResultCardTab from "./tabs/ResultCardTab";
 import TestsTab from "./tabs/TestsTab";
 import MessagesTab from "./tabs/MessagesTab";
+import AIAssistantTab from "./tabs/AIAssistantTab";
 import DiscussionTab from "./tabs/DiscussionTab";
 
 const tabComponents: Record<string, React.ComponentType<any>> = {
@@ -32,8 +33,23 @@ const tabComponents: Record<string, React.ComponentType<any>> = {
   tests:         TestsTab,
   teachers:      TeachersTab,
   profile:       ProfileTab,
+  "ai-assistant": AIAssistantTab,
   messages:      MessagesTab,
   discussion:    DiscussionTab,
+};
+
+const UserDashboard = () => {
+  const [activeTab, setActiveTab] = useState("overview");
+  const TabComponent = tabComponents[activeTab] || OverviewTab;
+
+  return (
+    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
+      <TabComponent onNavigate={setActiveTab} />
+    </DashboardLayout>
+  );
+};
+
+export default UserDashboard;
 };
 
 const UserDashboard = () => {
