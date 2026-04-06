@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
-import { Users, Send, Loader2, ShieldCheck, GraduationCap, User } from "lucide-react";
+import { Users, Send, Loader2, ShieldCheck, GraduationCap, User, Trash2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface DiscussionMessage {
@@ -120,6 +120,13 @@ const DiscussionTab = () => {
 
   const isMe = (msg: DiscussionMessage) => msg.user_id === user?.id;
 
+  const deleteMessage = async (msgId: string) => {
+    await supabase.from("discussion_messages").delete().eq("id", msgId);
+    qc.setQueryData<DiscussionMessage[]>(["discussion-messages"], (old = []) =>
+      old.filter(m => m.id !== msgId)
+    );
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-10rem)] max-h-[750px]">
       {/* Header */}
@@ -180,15 +187,23 @@ const DiscussionTab = () => {
                     </div>
                   )}
 
-                  <div className={`rounded-2xl px-4 py-2.5 ${
-                    mine
-                      ? "bg-primary text-primary-foreground rounded-tr-sm"
-                      : "bg-card border border-border rounded-tl-sm"
-                  }`}>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                  <div className="flex items-end gap-1.5 group/msg">
+                    {(mine || profile?.role === "admin") && (
+                      <button onClick={() => deleteMessage(msg.id)}
+                        className={`opacity-0 group-hover/msg:opacity-100 p-1 rounded-lg hover:bg-destructive/10 text-destructive transition-all shrink-0 ${mine ? "order-first" : "order-last"}`}
+                        title="Delete">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    <div className={`rounded-2xl px-4 py-2.5 ${
+                      mine
+                        ? "bg-primary text-primary-foreground rounded-tr-sm"
+                        : "bg-card border border-border rounded-tl-sm"
+                    }`}>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                    </div>
                   </div>
 
-                  {/* Timestamp for last in group */}
                   <p className="text-[10px] text-muted-foreground mt-0.5 px-1">
                     {new Date(msg.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
                   </p>
