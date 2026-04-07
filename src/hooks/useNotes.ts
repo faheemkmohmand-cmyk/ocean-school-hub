@@ -186,8 +186,20 @@ export async function saveQuizResult(userId: string, quizId: string, score: numb
 }
 
 export async function incrementViewCount(chapterId: string) {
-  await supabase.rpc("increment_chapter_views", { chapter_id: chapterId }).catch(() => {
-    // fallback: just update directly
-    supabase.from("note_chapters").update({ view_count: 999 }).eq("id", chapterId);
-  });
+  const { error } = await supabase.rpc("increment_chapter_views", { chapter_id: chapterId });
+
+  if (!error) {
+    return;
+  }
+
+  const { data: chapter } = await supabase
+    .from("note_chapters")
+    .select("view_count")
+    .eq("id", chapterId)
+    .maybeSingle();
+
+  await supabase
+    .from("note_chapters")
+    .update({ view_count: (chapter?.view_count ?? 0) + 1 })
+    .eq("id", chapterId);
 }

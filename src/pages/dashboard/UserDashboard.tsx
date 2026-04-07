@@ -16,6 +16,7 @@ import ResultCardTab from "./tabs/ResultCardTab";
 import TestsTab from "./tabs/TestsTab";
 import MessagesTab from "./tabs/MessagesTab";
 import AIAssistantTab from "./tabs/AIAssistantTab";
+import NotesTab from "../notes/NotesTab";
 import DiscussionTab from "./tabs/DiscussionTab";
 
 const tabComponents: Record<string, React.ComponentType<any>> = {
@@ -26,6 +27,7 @@ const tabComponents: Record<string, React.ComponentType<any>> = {
   "result-card": ResultCardTab,
   notices: NoticesTab,
   news: NewsTab,
+  notes: NotesTab,
   library: LibraryTab,
   gallery: GalleryTab,
   videos: VideosTab,
