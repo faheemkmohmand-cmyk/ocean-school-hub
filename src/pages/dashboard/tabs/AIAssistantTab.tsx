@@ -316,4 +316,3 @@ const AIAssistantTab = () => {
 };
 
 export default AIAssistantTab;
-              
