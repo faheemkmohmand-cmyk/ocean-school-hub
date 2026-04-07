@@ -190,5 +190,4 @@ export async function incrementViewCount(chapterId: string) {
     // fallback: just update directly
     supabase.from("note_chapters").update({ view_count: 999 }).eq("id", chapterId);
   });
-        }
-          
+                               }
