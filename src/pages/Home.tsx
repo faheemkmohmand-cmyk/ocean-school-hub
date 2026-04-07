@@ -89,14 +89,14 @@ const Home = () => {
       {/* ════════ NEWS TICKER ════════ */}
       <NewsTicker />
 
-      {/* ════════ HERO ════════ */}
-      <section className="relative min-h-[100vh] flex items-center overflow-hidden">
+      {/* ════════ HERO ════════ (contain layout for faster paint) */}
+      <section className="relative min-h-[100vh] flex items-center overflow-hidden" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 100vh' }}>
         {/* Background */}
         {settings?.banner_url ? (
           <img
             src={settings.banner_url}
             alt="School banner"
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover will-change-transform"
             loading="eager"
             decoding="async"
             fetchPriority="high"
