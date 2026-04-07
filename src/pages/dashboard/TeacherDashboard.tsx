@@ -365,8 +365,12 @@ const AIAssistantTab = () => {
   );
 };
 
-export default AIAssistantTab;
-="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+export default TeacherDashboard;
+<div 
+  className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" 
+  onClick={() => setSidebarOpen(false)} 
+/>
+
           <div className="relative w-72 bg-card h-full shadow-elevated flex flex-col overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b border-border">
               <span className="font-heading font-bold text-foreground">Teacher Menu</span>
