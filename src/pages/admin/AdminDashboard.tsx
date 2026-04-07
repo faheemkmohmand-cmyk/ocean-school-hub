@@ -19,7 +19,7 @@ const AdminUsers             = lazy(() => import("./tabs/AdminUsers"));
 const AdminVideos            = lazy(() => import("./tabs/AdminVideos"));
 const AdminExamRollNumbers   = lazy(() => import("./tabs/AdminExamRollNumbers"));
 const AdminTests             = lazy(() => import("./tabs/AdminTests"));
-const AdminNotes             = lazy(() => import("./tabs/AdminNotes"));
+const AdminNotes             = lazy(() => import("../notes/AdminNotes"));
 const AdminMessages          = lazy(() => import("./tabs/AdminMessages"));
 const DiscussionTab          = lazy(() => import("../../pages/dashboard/tabs/DiscussionTab"));
 

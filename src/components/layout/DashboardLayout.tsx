@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Home, Calendar, BarChart3, Bell, Newspaper, BookOpen, Image, Trophy,
   Users, User, LogOut, GraduationCap, Menu, X, Shield, ExternalLink, Moon, Sun,
-  Video, Hash, FileText, MessageSquare, Users, Bot, BookMarked, ClipboardCheck
+  Video, Hash, FileText, MessageSquare, Bot, BookMarked, ClipboardCheck
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
@@ -265,74 +265,6 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
 };
 
 export default DashboardLayout;
-const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutProps) => {
-  const { profile, signOut } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const navigate = useNavigate();
-  const { isDark, toggle } = useDarkMode();
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
-  };
-
-  const initials = profile?.full_name
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase() || "U";
-
-  return (
-    <div className="min-h-screen bg-background flex">
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 bg-card border-r border-border shrink-0 sticky top-0 h-screen">
-        {/* Logo */}
-        <div className="p-4 border-b border-border">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg gradient-hero flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="font-heading font-bold text-foreground">GHS Babi Khel</span>
-          </Link>
-        </div>
-
-        {/* Profile */}
-        <div className="p-4 border-b border-border">
-          <div className="flex items-center gap-3">
-            {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" loading="lazy" />
-            ) : (
-              <div className="w-10 h-10 rounded-full gradient-accent flex items-center justify-center text-primary-foreground text-sm font-bold">
-                {initials}
-              </div>
-            )}
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground truncate">{profile?.full_name || "User"}</p>
-              <span className="inline-block text-xs font-medium capitalize bg-primary/10 text-primary px-2 py-0.5 rounded-full mt-0.5">
-                {profile?.role || "user"}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Nav */}
-        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => onTabChange(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === item.id
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-              }`}
-            >
-              <item.icon className="w-4 h-4 shrink-0" />
-              {item.label}
-            </button>
-          ))}
-        </nav>
 
         {/* Footer */}
         <div className="p-3 border-t border-border space-y-1">
