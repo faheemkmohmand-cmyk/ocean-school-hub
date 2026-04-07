@@ -70,15 +70,34 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-const AIAssistantTab = () => {
-  const { profile } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showQuick, setShowQuick] = useState(true);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const [history, setHistory] = useState<{ role: string; parts: { text: string }[] }[]>([]);
+const TeacherDashboard = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  return (
+    <div className="fixed inset-0 z-50">
+
+      {/* Overlay */}
+      <div
+        className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
+        onClick={() => setSidebarOpen(false)}
+      ></div>
+
+      {/* Sidebar */}
+      <div className="relative w-72 bg-card h-full shadow-elevated flex flex-col overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <span className="font-heading font-bold text-foreground">
+            Teacher Menu
+          </span>
+        </div>
+
+        {/* Add your menu items here */}
+      </div>
+
+    </div>
+  );
+};
+
+export default TeacherDashboard;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
