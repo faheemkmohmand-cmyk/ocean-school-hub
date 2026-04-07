@@ -20,38 +20,24 @@ import NotesTab from "./tabs/NotesTab";
 import DiscussionTab from "./tabs/DiscussionTab";
 
 const tabComponents: Record<string, React.ComponentType<any>> = {
-  overview:      OverviewTab,
-  timetable:     TimetableTab,
-  results:       ResultsTab,
-  "exam-rolls":  RollNumbersTab,
+  overview: OverviewTab,
+  timetable: TimetableTab,
+  results: ResultsTab,
+  "exam-rolls": RollNumbersTab,
   "result-card": ResultCardTab,
-  notices:       NoticesTab,
-  news:          NewsTab,
-  library:       LibraryTab,
-  gallery:       GalleryTab,
-  videos:        VideosTab,
-  achievements:  AchievementsTab,
-  tests:         TestsTab,
-  teachers:      TeachersTab,
-  profile:       ProfileTab,
+  notices: NoticesTab,
+  news: NewsTab,
+  library: LibraryTab,
+  gallery: GalleryTab,
+  videos: VideosTab,
+  achievements: AchievementsTab,
+  tests: TestsTab,
+  teachers: TeachersTab,
+  profile: ProfileTab,
   "ai-assistant": AIAssistantTab,
-  notes:           NotesTab,
-  messages:      MessagesTab,
-  discussion:    DiscussionTab,
-};
-
-const UserDashboard = () => {
-  const [activeTab, setActiveTab] = useState("overview");
-  const TabComponent = tabComponents[activeTab] || OverviewTab;
-
-  return (
-    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
-      <TabComponent onNavigate={setActiveTab} />
-    </DashboardLayout>
-  );
-};
-
-export default UserDashboard;
+  notes: NotesTab,
+  messages: MessagesTab,
+  discussion: DiscussionTab,
 };
 
 const UserDashboard = () => {
