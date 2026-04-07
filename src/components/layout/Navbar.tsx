@@ -17,6 +17,7 @@ const navLinks = [
   { to: "/result-card", label: "Result Card" },
   { to: "/gallery", label: "Gallery" },
   { to: "/library", label: "Library" },
+  { to: "/notes", label: "📚 Notes" },
 ];
 
 const Navbar = () => {
@@ -270,3 +271,4 @@ const Navbar = () => {
 };
 
 export default Navbar;
+                  
