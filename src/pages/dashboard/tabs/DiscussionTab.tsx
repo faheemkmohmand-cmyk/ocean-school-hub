@@ -187,10 +187,10 @@ const DiscussionTab = () => {
                     </div>
                   )}
 
-                  <div className="flex items-end gap-1.5 group/msg">
+                  <div className="flex items-end gap-1.5">
                     {(mine || profile?.role === "admin") && (
                       <button onClick={() => deleteMessage(msg.id)}
-                        className={`opacity-0 group-hover/msg:opacity-100 p-1 rounded-lg hover:bg-destructive/10 text-destructive transition-all shrink-0 ${mine ? "order-first" : "order-last"}`}
+                        className={`p-1 rounded-lg bg-destructive/10 hover:bg-destructive/20 text-destructive transition-all shrink-0 ${mine ? "order-first" : "order-last"}`}
                         title="Delete">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -241,3 +241,4 @@ const DiscussionTab = () => {
 };
 
 export default DiscussionTab;
+          
