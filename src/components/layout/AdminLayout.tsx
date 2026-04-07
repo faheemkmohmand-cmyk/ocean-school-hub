@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   BarChart3, Settings, Users, GraduationCap, ClipboardList, CheckSquare,
   Calendar, Bell, Newspaper, Image, BookOpen, Trophy, UserCog, LogOut,
-  Menu, X, ExternalLink, Shield, Moon, Sun, Video, Clock, Hash, ClipboardCheck, MessageSquare
+  Menu, X, ExternalLink, Shield, Moon, Sun, Video, Clock, Hash, ClipboardCheck, MessageSquare, BookMarked
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/hooks/useDarkMode";
@@ -23,6 +23,7 @@ const navItems = [
   { id: "library", label: "Library", icon: BookOpen },
   { id: "achievements", label: "Achievements", icon: Trophy },
   { id: "exam-rolls", label: "Exam Roll Numbers", icon: Hash },
+  { id: "notes", label: "📚 Notes Manager", icon: BookMarked },
   { id: "tests", label: "MCQ Tests", icon: ClipboardCheck },
   { id: "messages", label: "User Messages", icon: MessageSquare },
   { id: "discussion", label: "Group Discussion", icon: Users },
@@ -245,3 +246,4 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
 };
 
 export default AdminLayout;
+          
