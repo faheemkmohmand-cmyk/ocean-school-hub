@@ -1,3 +1,10 @@
+/* ── Performance: GPU-accelerate common animations ── */
+@layer base {
+  img, video {
+    content-visibility: auto;
+  }
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
