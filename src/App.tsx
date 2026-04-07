@@ -20,6 +20,9 @@ const SignUp           = lazy(() => import("./pages/auth/SignUp"));
 const ForgotPassword   = lazy(() => import("./pages/auth/ForgotPassword"));
 const ResetPassword    = lazy(() => import("./pages/auth/ResetPassword"));
 const UserDashboard    = lazy(() => import("./pages/dashboard/UserDashboard"));
+const NotesPage        = lazy(() => import("./pages/notes/NotesPage"));
+const SubjectPage      = lazy(() => import("./pages/notes/SubjectPage"));
+const ChapterPage      = lazy(() => import("./pages/notes/ChapterPage"));
 const TeacherDashboard = lazy(() => import("./pages/dashboard/TeacherDashboard"));
 const AdminDashboard   = lazy(() => import("./pages/admin/AdminDashboard"));
 const NotFound         = lazy(() => import("./pages/NotFound"));
@@ -105,6 +108,9 @@ const App = () => (
                 </AdminProtectedRoute>
               }
             />
+            <Route path="/notes" element={<NotesPage />} />
+            <Route path="/notes/:subject" element={<SubjectPage />} />
+            <Route path="/notes/:subject/:chapter" element={<ChapterPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
@@ -114,3 +120,4 @@ const App = () => (
 );
 
 export default App;
+              
