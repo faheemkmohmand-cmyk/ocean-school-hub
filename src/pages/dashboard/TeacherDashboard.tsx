@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Home, Calendar, BarChart3, Bell, Newspaper, BookOpen, Image, Trophy,
   Users, User, LogOut, GraduationCap, Menu, X, ExternalLink, Moon, Sun,
-  Video, Hash, FileText, ClipboardList, Shield, MessageSquare, ClipboardCheck, Bot
+  Video, Hash, FileText, ClipboardList, Shield, MessageSquare, ClipboardCheck
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
@@ -21,7 +21,6 @@ import TeachersTab      from "@/pages/dashboard/tabs/TeachersTab";
 import ProfileTab       from "@/pages/dashboard/tabs/ProfileTab";
 import RollNumbersTab   from "@/pages/dashboard/tabs/RollNumbersTab";
 import MessagesTab      from "@/pages/dashboard/tabs/MessagesTab";
-import AIAssistantTab   from "@/pages/dashboard/tabs/AIAssistantTab";
 import DiscussionTab    from "@/pages/dashboard/tabs/DiscussionTab";
 import ResultCardTab    from "@/pages/dashboard/tabs/ResultCardTab";
 import ResultsTab       from "@/pages/dashboard/tabs/ResultsTab";
@@ -37,7 +36,6 @@ import AdminTests       from "@/pages/admin/tabs/AdminTests";
 const navItems = [
   // ── View tabs (same as user dashboard) ──
   { id: "overview",        label: "Overview",        icon: Home,         section: "view"   },
-  { id: "ai-assistant",    label: "AI Assistant",    icon: Bot,          section: "view"   },
   { id: "timetable",       label: "Timetable",       icon: Calendar,     section: "view"   },
   { id: "results",         label: "Results",         icon: BarChart3,    section: "view"   },
   { id: "exam-rolls",      label: "Exam Roll No",    icon: Hash,         section: "view"   },
@@ -71,7 +69,6 @@ const tabComponents: Record<string, React.ComponentType<any>> = {
   achievements:    AchievementsTab,
   teachers:        TeachersTab,
   profile:         ProfileTab,
-  "ai-assistant":    AIAssistantTab,
   messages:          MessagesTab,
   discussion:        DiscussionTab,
   "edit-timetable": AdminTimetables,
@@ -301,4 +298,5 @@ const TeacherDashboard = () => {
 };
 
 export default TeacherDashboard;
+
         
