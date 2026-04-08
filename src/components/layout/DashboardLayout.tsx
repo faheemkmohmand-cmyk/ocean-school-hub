@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Home, Calendar, BarChart3, Bell, Newspaper, BookOpen, Image, Trophy,
   Users, User, LogOut, GraduationCap, Menu, X, Shield, ExternalLink, Moon, Sun,
-  Video, Hash, FileText, MessageSquare, Bot, BookMarked, ClipboardCheck
+  Video, Hash, FileText, MessageSquare, BookMarked, ClipboardCheck
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
@@ -11,7 +11,6 @@ import { useDarkMode } from "@/hooks/useDarkMode";
 
 const navItems = [
   { id: "overview",     label: "Overview",     icon: Home        },
-  { id: "ai-assistant", label: "AI Assistant", icon: Bot         },
   { id: "notes",        label: "Study Notes",  icon: BookMarked  },
   { id: "timetable",    label: "Timetable",    icon: Calendar    },
   { id: "results",      label: "Results",      icon: BarChart3   },
@@ -265,3 +264,4 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
 };
 
 export default DashboardLayout;
+            
