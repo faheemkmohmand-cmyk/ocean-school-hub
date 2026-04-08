@@ -15,7 +15,6 @@ import RollNumbersTab from "./tabs/RollNumbersTab";
 import ResultCardTab from "./tabs/ResultCardTab";
 import TestsTab from "./tabs/TestsTab";
 import MessagesTab from "./tabs/MessagesTab";
-import AIAssistantTab from "./tabs/AIAssistantTab";
 import NotesTab from "../notes/NotesTab";
 import DiscussionTab from "./tabs/DiscussionTab";
 
@@ -35,7 +34,6 @@ const tabComponents: Record<string, React.ComponentType<any>> = {
   tests: TestsTab,
   teachers: TeachersTab,
   profile: ProfileTab,
-  "ai-assistant": AIAssistantTab,
   messages: MessagesTab,
   discussion: DiscussionTab,
 };
