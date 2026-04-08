@@ -24,717 +24,183 @@ import confetti from "canvas-confetti";
 
 // ── FIXED Audio Player Component ─────────────────────────────────────────────
 const AudioPlayer = ({ content, onClose }: { content: string; onClose: () => void }) => {
-  const [status, setStatus] = useState<"idle" | "loading" | "playing" | "paused" | "error">("idle");
+  const [playing, setPlaying] = useState(false);
+  const [paused, setPaused] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [progress, setProgress] = useState(0);
-  const [errorMsg, setErrorMsg] = useState("");
-  
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const synthRef = useRef<typeof window.speechSynthesis | null>(null);
-  const contentRef = useRef(content);
+  const utterRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const textRef = useRef<string>("");
 
-  if (!html) return "";
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, 'text/html');
-  doc.querySelectorAll('style, script').forEach(el => el.remove());
-  let text = doc.body.textContent || '';
-  text = text.replace(/\s+/g, ' ').trim();
-  return text.substring(0, 5000);
-  
+  // Extract text from HTML — the KEY fix for the nano-second stop bug
+  // Chrome cancels speech if the utterance text is empty or if voices not loaded
+  const getCleanText = (html: string): string => {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = html;
+    // Remove scripts and style tags
+    tmp.querySelectorAll("script, style").forEach(el => el.remove());
+    const raw = tmp.textContent || tmp.innerText || "";
+    // Clean up whitespace
+    return raw.replace(/\s+/g, " ").replace(/\n+/g, " ").trim().substring(0, 8000);
+  };
 
-  // Initialize
-  useEffect(() => {
-    if (!window.speechSynthesis) {
-      setStatus("error");
-      setErrorMsg("Your browser doesn't support text-to-speech");
-      return;
-    }
+  const speak = (rate: number) => {
+    window.speechSynthesis.cancel();
 
-    synthRef.current = window.speechSynthesis;
-    
-    // Load voices
-    const loadVoices = () => synthRef.current?.getVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices();
-    
-    if (synthRef.current.paused) {
-      synthRef.current.resume();
-    }
-    
-    synthRef.current.cancel();
+    // Wait for voices to load — this is the main reason it stops instantly in Chrome
+    const doSpeak = () => {
+      const text = textRef.current;
+      if (!text || text.length < 5) return;
 
-    return () => {
-      synthRef.current?.cancel();
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.rate = rate;
+      utt.pitch = 1.0;
+      utt.volume = 1.0;
+      utt.lang = "en-US";
+
+      // Pick best English voice
+      const voices = window.speechSynthesis.getVoices();
+      const best = voices.find(v => v.name.includes("Google US English"))
+        || voices.find(v => v.name.includes("Samantha"))
+        || voices.find(v => v.lang === "en-US" && !v.localService)
+        || voices.find(v => v.lang.startsWith("en"))
+        || voices[0];
+      if (best) utt.voice = best;
+
+      utt.onstart = () => { setPlaying(true); setPaused(false); };
+      utt.onend   = () => { setPlaying(false); setPaused(false); setProgress(100); };
+      utt.onpause = () => { setPaused(true); };
+      utt.onresume = () => { setPaused(false); };
+      utt.onerror = (e) => {
+        if (e.error !== "canceled" && e.error !== "interrupted") {
+          setPlaying(false); setPaused(false);
+        }
+      };
+      utt.onboundary = (e) => {
+        if (e.name === "word") setProgress(Math.round((e.charIndex / text.length) * 100));
+      };
+
+      utterRef.current = utt;
+      window.speechSynthesis.speak(utt);
+
+      // Chrome-specific: it pauses after ~15s without this keepAlive
+      // This is the #1 bug causing audio to stop in nano seconds on some browsers
     };
-  }, []);
 
-  const startSpeech = useCallback((rate: number) => {
-    if (!synthRef.current) return;
-
-    synthRef.current.cancel();
-    
-    setTimeout(() => {
-      const text = extractReadableText(contentRef.current);
-      
-      if (!text || text.length < 10) {
-        setErrorMsg("No readable content found");
-        setStatus("error");
-        return;
-      }
-
-      const utterance = new SpeechSynthesisUtterance(text);
-      utteranceRef.current = utterance;
-      
-      utterance.rate = rate;
-      utterance.pitch = 1;
-      utterance.volume = 1;
-      
-      // Select best voice
-      const voices = synthRef.current.getVoices();
-      const preferredVoice = voices.find(v => 
-        v.name.includes("Google US English") || 
-        v.name.includes("Samantha") ||
-        v.name.includes("Daniel") ||
-        (v.lang === "en-US" && !v.localService)
-      ) || voices.find(v => v.lang === "en-US") || voices[0];
-      
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
-      }
-
-      utterance.onstart = () => {
-        setStatus("playing");
-        setErrorMsg("");
-      };
-      
-      utterance.onend = () => {
-        setStatus("idle");
-        setProgress(100);
-      };
-      
-      utterance.onpause = () => setStatus("paused");
-      
-      utterance.onerror = (event) => {
-        if (event.error !== "canceled") {
-          setErrorMsg(`Error: ${event.error}`);
-          setStatus("error");
-        }
-      };
-
-      utterance.onboundary = (event) => {
-        if (event.name === "word") {
-          const percent = (event.charIndex / text.length) * 100;
-          setProgress(percent);
-        }
-      };
-
-      try {
-        synthRef.current.speak(utterance);
-        
-        // Chrome fix
-        setTimeout(() => {
-          if (synthRef.current?.paused) {
-            synthRef.current.resume();
-          }
-        }, 150);
-        
-      } catch (err) {
-        setErrorMsg("Failed to start");
-        setStatus("error");
-      }
-    }, 200);
-  }, [extractReadableText]);
-
-  const play = () => {
-    if (status === "paused") {
-      synthRef.current?.resume();
-      setStatus("playing");
+    // Chrome needs voices to be loaded first
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      doSpeak();
     } else {
-      setStatus("loading");
-      startSpeech(speed);
+      // Voices not loaded yet — wait for them
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.onvoiceschanged = null;
+        doSpeak();
+      };
+      // Fallback: try after 500ms anyway
+      setTimeout(doSpeak, 500);
     }
   };
 
-  const pause = () => {
-    synthRef.current?.pause();
-    setStatus("paused");
-  };
+  // Chrome keepAlive fix — Chrome stops TTS after ~15 seconds without this
+  useEffect(() => {
+    if (!playing || paused) return;
+    const keepAlive = setInterval(() => {
+      if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+        window.speechSynthesis.pause();
+        window.speechSynthesis.resume();
+      }
+    }, 10000);
+    return () => clearInterval(keepAlive);
+  }, [playing, paused]);
 
-  const stop = () => {
-    synthRef.current?.cancel();
-    setStatus("idle");
-    setProgress(0);
-  };
+  // Load text on mount
+  useEffect(() => {
+    textRef.current = getCleanText(content);
+  }, [content]);
 
-  const changeSpeed = (newSpeed: number) => {
-    setSpeed(newSpeed);
-    if (status === "playing") {
-      stop();
-      setTimeout(() => startSpeech(newSpeed), 200);
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => { window.speechSynthesis.cancel(); };
+  }, []);
+
+  const handlePlay = () => {
+    if (paused) {
+      window.speechSynthesis.resume();
+      setPaused(false); setPlaying(true);
+    } else {
+      speak(speed);
     }
   };
-
-  // Auto-play
-  useEffect(() => {
-    const timer = setTimeout(() => play(), 800);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Cleanup
-  useEffect(() => {
-    return () => synthRef.current?.cancel();
-  }, []);
+  const handlePause = () => { window.speechSynthesis.pause(); setPaused(true); };
+  const handleStop  = () => { window.speechSynthesis.cancel(); setPlaying(false); setPaused(false); setProgress(0); };
+  const handleSpeed = (s: number) => {
+    setSpeed(s);
+    if (playing || paused) { handleStop(); setTimeout(() => speak(s), 300); }
+  };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 20, scale: 0.95 }}
-      className="fixed bottom-24 right-4 z-50 bg-card border border-border rounded-2xl shadow-2xl p-5 w-80 backdrop-blur-md"
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      className="fixed bottom-24 right-4 z-50 bg-card border border-border rounded-2xl shadow-2xl p-4 w-72"
     >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Volume2 className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <h4 className="font-bold text-sm text-foreground">Read Aloud</h4>
-            <p className="text-xs text-muted-foreground">
-              {status === "playing" ? "Speaking..." : 
-               status === "paused" ? "Paused" : 
-               status === "loading" ? "Loading..." : 
-               status === "error" ? "Error" : "Ready"}
-            </p>
-          </div>
+          <Volume2 className="w-4 h-4 text-primary" />
+          <span className="text-sm font-bold text-foreground">Read Aloud</span>
+          {playing && !paused && (
+            <span className="flex gap-0.5 items-end h-4">
+              {[0,1,2].map(i => (
+                <span key={i} className="w-1 bg-primary rounded-full animate-pulse"
+                  style={{ height: `${8+i*4}px`, animationDelay: `${i*150}ms` }} />
+              ))}
+            </span>
+          )}
         </div>
-        <button 
-          onClick={() => { stop(); onClose(); }}
-          className="p-2 hover:bg-destructive/10 hover:text-destructive rounded-lg transition-colors"
-        >
-          <X className="w-4 h-4" />
+        <button onClick={() => { handleStop(); onClose(); }} className="p-1 hover:bg-secondary rounded-lg transition-colors">
+          <X className="w-4 h-4 text-muted-foreground" />
         </button>
       </div>
 
-      {/* Error Display */}
-      {errorMsg && (
-        <div className="mb-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-          <p className="text-xs text-destructive">{errorMsg}</p>
-        </div>
-      )}
-
-      {/* Progress Bar */}
-      <div className="mb-4">
-        <div className="h-2 bg-muted rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-primary rounded-full transition-all"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        <p className="text-xs text-muted-foreground mt-1 text-right">{Math.round(progress)}%</p>
+      {/* Progress bar */}
+      <div className="h-1.5 bg-muted rounded-full mb-3 overflow-hidden">
+        <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
       </div>
 
       {/* Controls */}
-      <div className="flex gap-2 mb-4">
-        {status === "playing" ? (
-          <button 
-            onClick={pause}
-            className="flex-1 flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-xl font-semibold"
-          >
-            <Pause className="w-4 h-4" /> Pause
+      <div className="flex gap-2 mb-3">
+        {!playing || paused ? (
+          <button onClick={handlePlay}
+            className="flex-1 flex items-center justify-center gap-1.5 bg-primary text-primary-foreground py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity">
+            <Play className="w-4 h-4" /> {paused ? "Resume" : "Play"}
           </button>
         ) : (
-          <button 
-            onClick={play}
-            disabled={status === "loading"}
-            className="flex-1 flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground py-2.5 rounded-xl font-semibold disabled:opacity-50"
-          >
-            {status === "loading" ? (
-              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <Play className="w-4 h-4" />
-            )}
-            {status === "paused" ? "Resume" : "Play"}
+          <button onClick={handlePause}
+            className="flex-1 flex items-center justify-center gap-1.5 bg-amber-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:opacity-90">
+            <Pause className="w-4 h-4" /> Pause
           </button>
         )}
-        
-        <button 
-          onClick={stop}
-          className="p-2.5 border border-border hover:bg-secondary rounded-xl"
-        >
+        <button onClick={handleStop}
+          className="w-10 h-10 flex items-center justify-center border border-border rounded-xl hover:bg-secondary transition-colors">
           <Square className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Speed Control */}
-      <div className="flex gap-1 bg-muted/50 p-1 rounded-xl">
-        {[0.5, 0.75, 1, 1.25, 1.5, 2].map((s) => (
-          <button
-            key={s}
-            onClick={() => changeSpeed(s)}
-            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              speed === s 
-                ? "bg-primary text-primary-foreground shadow-sm" 
-                : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-            }`}
-          >
+      {/* Speed */}
+      <div className="flex gap-1">
+        {[0.75, 1, 1.25, 1.5].map(s => (
+          <button key={s} onClick={() => handleSpeed(s)}
+            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${speed === s ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-secondary/70"}`}>
             {s}x
           </button>
         ))}
       </div>
-
-      {/* Status */}
-      <div className="mt-3 flex items-center justify-center gap-2">
-        <span className={`w-2 h-2 rounded-full ${
-          status === "playing" ? "bg-green-500 animate-pulse" : 
-          status === "error" ? "bg-destructive" : 
-          "bg-muted"
-        }`} />
-        <span className="text-xs text-muted-foreground">
-          {status === "playing" ? "Audio playing" : 
-           status === "paused" ? "Audio paused" : 
-           status === "error" ? "Check error" : 
-           "Click play to start"}
-        </span>
-      </div>
+      <p className="text-[10px] text-muted-foreground text-center mt-2">
+        {textRef.current.length > 0 ? `~${Math.ceil(textRef.current.length / (speed * 200))} min read` : "Loading..."}
+      </p>
     </motion.div>
-  );
-};
-
-// ── Chart Component ───────────────────────────────────────────────────────────
-function ChapterChart({ config }: { config: any }) {
-  if (!config) return null;
-
-  const COLORS = config.colors || ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
-
-  let data = config.data || [];
-  if (config.equation) {
-    data = [];
-    const [xMin, xMax] = config.xRange || [-10, 10];
-    for (let x = xMin; x <= xMax; x += 0.5) {
-      try {
-        const eq = config.equation
-          .replace(/\^/g, "**")
-          .replace(/sin\(/g, "Math.sin(")
-          .replace(/cos\(/g, "Math.cos(")
-          .replace(/tan\(/g, "Math.tan(")
-          .replace(/sqrt\(/g, "Math.sqrt(")
-          .replace(/abs\(/g, "Math.abs(")
-          .replace(/log\(/g, "Math.log(")
-          .replace(/pi/gi, "Math.PI")
-          .replace(/e\b/g, "Math.E");
-        const y = new Function("x", `return ${eq}`)(x);
-        if (isFinite(y)) data.push({ name: x.toFixed(1), value: parseFloat(y.toFixed(3)) });
-      } catch { }
-    }
-  }
-
-  const commonProps = {
-    data,
-    margin: { top: 10, right: 20, left: 0, bottom: 0 },
-  };
-
-  const title = config.title || (config.equation ? `y = ${config.equation}` : "Chart");
-  const type = config.type || (config.equation ? "line" : "bar");
-
-  return (
-    <div className="bg-card border border-border rounded-2xl p-5 mt-8">
-      <h3 className="text-base font-bold text-foreground mb-1 flex items-center gap-2">
-        📊 {title}
-      </h3>
-      {config.equation && (
-        <p className="text-sm text-muted-foreground mb-4 font-mono bg-muted px-3 py-1.5 rounded-lg inline-block">
-          y = {config.equation}
-        </p>
-      )}
-      <div style={{ width: "100%", overflowX: "auto" }}>
-        <ResponsiveContainer width="100%" height={300} minWidth={280}>
-          {type === "bar" ? (
-            <BarChart {...commonProps}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="value" fill={COLORS[0]} radius={[4, 4, 0, 0]} />
-              {config.data?.[0]?.value2 !== undefined && <Bar dataKey="value2" fill={COLORS[1]} radius={[4, 4, 0, 0]} />}
-            </BarChart>
-          ) : type === "area" ? (
-            <AreaChart {...commonProps}>
-              <defs>
-                <linearGradient id="grad1" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={COLORS[0]} stopOpacity={0.3} />
-                  <stop offset="95%" stopColor={COLORS[0]} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Area type="monotone" dataKey="value" stroke={COLORS[0]} fill="url(#grad1)" strokeWidth={2} />
-            </AreaChart>
-          ) : type === "pie" ? (
-            <PieChart>
-              <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                {data.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          ) : (
-            <LineChart {...commonProps}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v: any) => [parseFloat(v).toFixed(3), "y"]} />
-              <Line type="monotone" dataKey="value" stroke={COLORS[0]} strokeWidth={2.5} dot={false} />
-              {config.data?.[0]?.value2 !== undefined && <Line type="monotone" dataKey="value2" stroke={COLORS[1]} strokeWidth={2.5} dot={false} />}
-            </LineChart>
-          )}
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-}
-
-// ── Adaptive Quiz ─────────────────────────────────────────────────────────────
-const AdaptiveQuiz = ({
-  quizId, chapterId, userId
-}: { quizId: string; chapterId: string; userId: string }) => {
-  const { data: allQuestions = [] } = useNoteQuestions(quizId);
-  const { data: quiz } = useNoteQuiz(chapterId);
-  const [step, setStep] = useState<"start"|"quiz"|"result">("start");
-  const [current, setCurrent] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [selected, setSelected] = useState<string|null>(null);
-  const [revealed, setRevealed] = useState(false);
-  const [adaptiveDiff, setAdaptiveDiff] = useState<"easy"|"medium"|"hard">("medium");
-  const [correctStreak, setCorrectStreak] = useState(0);
-  const [diffMsg, setDiffMsg] = useState("");
-  const [points, setPoints] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
-
-  if (!allQuestions.length) return null;
-
-  const easy = allQuestions.filter(q => q.difficulty === "easy");
-  const medium = allQuestions.filter(q => q.difficulty === "medium");
-  const hard = allQuestions.filter(q => q.difficulty === "hard");
-
-  const getPool = () => {
-    const pool: NoteQuestion[] = [];
-    const used = new Set<string>();
-    [...medium, ...easy, ...hard].forEach(q => { if (!used.has(q.id)) { pool.push(q); used.add(q.id); } });
-    return pool;
-  };
-
-  const pool = getPool();
-  const q = pool[Math.min(current, pool.length - 1)];
-  if (!q) return null;
-
-  const totalQ = Math.min(pool.length, 10);
-  const score = Object.values(answers).filter((a, i) => pool[i] && a === pool[i].correct).length;
-  const totalPoints = Object.entries(answers).reduce((sum, [i, a]) => {
-    const qi = pool[parseInt(i)];
-    if (!qi || a !== qi.correct) return sum;
-    return sum + (qi.difficulty === "hard" ? 3 : qi.difficulty === "medium" ? 2 : 1);
-  }, 0);
-  const maxPoints = pool.slice(0, totalQ).reduce((s, q) => s + (q.difficulty === "hard" ? 3 : q.difficulty === "medium" ? 2 : 1), 0);
-  const pct = Math.round((score / Math.max(totalQ, 1)) * 100);
-
-  const timeLimit = quiz?.time_limit_secs || 0;
-
-  const startTimer = () => {
-    if (!timeLimit) return;
-    setTimeLeft(timeLimit);
-    timerRef.current = setInterval(() => {
-      setTimeLeft(t => {
-        if (t <= 1) {
-          clearInterval(timerRef.current);
-          if (!revealed) {
-            setRevealed(true);
-            setAnswers(prev => ({ ...prev, [current]: "__timeout__" }));
-          }
-          return 0;
-        }
-        return t - 1;
-      });
-    }, 1000);
-  };
-
-  const selectAnswer = async (opt: string) => {
-    if (revealed) return;
-    clearInterval(timerRef.current);
-    setSelected(opt);
-    setRevealed(true);
-    setAnswers(prev => ({ ...prev, [current]: opt }));
-    const correct = opt === q.correct;
-    if (correct) {
-      const pts = q.difficulty === "hard" ? 3 : q.difficulty === "medium" ? 2 : 1;
-      setPoints(p => p + pts);
-      const newStreak = correctStreak + 1;
-      setCorrectStreak(newStreak);
-      if (newStreak >= 2 && adaptiveDiff !== "hard") {
-        setAdaptiveDiff(d => d === "easy" ? "medium" : "hard");
-        setDiffMsg("🔥 Great job! Moving to harder questions!");
-      } else setDiffMsg("");
-      if (!q.explanation) await removeWrongAnswer(userId, q.id);
-    } else {
-      setCorrectStreak(0);
-      if (adaptiveDiff !== "easy") {
-        setAdaptiveDiff(d => d === "hard" ? "medium" : "easy");
-        setDiffMsg("💪 Let's try an easier one!");
-      } else setDiffMsg("");
-      await saveWrongAnswer(userId, q.id, opt);
-    }
-  };
-
-  const next = async () => {
-    if (current < totalQ - 1) {
-      setCurrent(c => c + 1);
-      setSelected(null);
-      setRevealed(false);
-      setDiffMsg("");
-      startTimer();
-    } else {
-      clearInterval(timerRef.current);
-      const passed = pct >= (quiz?.pass_score || 60);
-      await saveQuizResult(userId, quizId, score, totalQ, passed);
-      await saveProgress(userId, chapterId, { completed: true });
-      const bonusPts = passed ? 25 : 10;
-      if (pct === 100) {
-        await awardPoints(userId, bonusPts + 25, "quiz_master");
-        confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 } });
-      } else {
-        await awardPoints(userId, bonusPts);
-        if (passed) confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-      }
-      setStep("result");
-    }
-  };
-
-  const optionStyle = (opt: string) => {
-    if (!revealed) return "bg-card border-border hover:border-primary hover:bg-primary/5 cursor-pointer";
-    if (opt === q.correct) return "bg-green-50 border-green-500 dark:bg-green-900/20";
-    if (opt === selected && opt !== q.correct) return "bg-red-50 border-red-400 dark:bg-red-900/20";
-    return "bg-card border-border opacity-50";
-  };
-
-  const diffColor = adaptiveDiff === "hard" ? "text-red-500 bg-red-50" : adaptiveDiff === "medium" ? "text-amber-500 bg-amber-50" : "text-green-500 bg-green-50";
-  const diffDot = adaptiveDiff === "hard" ? "🔴" : adaptiveDiff === "medium" ? "🟡" : "🟢";
-
-  if (step === "start") return (
-    <div className="bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 border border-violet-200 dark:border-violet-700/30 rounded-3xl p-6 md:p-8 text-center mt-10">
-      <div className="text-5xl mb-3">🧠</div>
-      <h3 className="text-2xl font-black text-foreground mb-2">Chapter Quiz</h3>
-      <p className="text-muted-foreground mb-1">{Math.min(pool.length, 10)} questions • Pass: {quiz?.pass_score || 60}%</p>
-      <p className="text-sm text-muted-foreground mb-1">🎯 Adaptive difficulty — gets harder as you improve!</p>
-      {timeLimit > 0 && <p className="text-sm text-amber-600 mb-4">⏱ {timeLimit}s per question</p>}
-      <button onClick={() => { setStep("quiz"); startTimer(); }}
-        className="bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold px-8 py-3 rounded-2xl hover:opacity-90 transition-opacity text-base">
-        Start Quiz 🚀
-      </button>
-    </div>
-  );
-
-  if (step === "quiz") return (
-    <div className="mt-10 bg-card border border-border rounded-3xl overflow-hidden shadow-lg">
-      {/* Progress bar */}
-      <div className="h-1.5 bg-muted">
-        <div className="h-full bg-gradient-to-r from-violet-500 to-indigo-600 transition-all duration-500"
-          style={{ width: `${(current / totalQ) * 100}%` }} />
-      </div>
-      {/* Timer bar */}
-      {timeLimit > 0 && (
-        <div className="h-1 bg-muted">
-          <div className="h-full bg-amber-400 transition-all duration-1000"
-            style={{ width: `${(timeLeft / timeLimit) * 100}%` }} />
-        </div>
-      )}
-
-      <div className="p-5 md:p-8">
-        <div className="flex justify-between items-center mb-5 flex-wrap gap-2">
-          <span className="text-sm font-semibold text-muted-foreground">Q {current + 1} / {totalQ}</span>
-          <div className="flex items-center gap-2">
-            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${diffColor}`}>{diffDot} {adaptiveDiff}</span>
-            {timeLimit > 0 && <span className={`text-sm font-bold font-mono ${timeLeft < 10 ? "text-red-500" : "text-foreground"}`}>⏱ {timeLeft}s</span>}
-            <span className="text-sm bg-primary/10 text-primary font-bold px-3 py-1 rounded-full">⭐ {points} pts</span>
-          </div>
-        </div>
-
-        {diffMsg && (
-          <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-            className="text-sm font-semibold text-center mb-4 text-violet-600 bg-violet-50 dark:bg-violet-900/20 py-2 px-4 rounded-xl">
-            {diffMsg}
-          </motion.p>
-        )}
-
-        <AnimatePresence mode="wait">
-          <motion.div key={current} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-            <h4 className="text-lg md:text-xl font-bold text-foreground mb-5 leading-relaxed">{q.question}</h4>
-
-            <div className="grid grid-cols-1 gap-3">
-              {(["a","b","c","d"] as const).map(opt => (
-                <button key={opt} onClick={() => selectAnswer(opt)} disabled={revealed}
-                  className={`w-full text-left px-4 py-4 md:px-5 rounded-2xl border-2 font-medium transition-all duration-200 min-h-[56px] ${optionStyle(opt)}`}>
-                  <span className="font-black text-primary mr-3 uppercase">{opt}.</span>
-                  {q[`option_${opt}` as keyof NoteQuestion] as string}
-                  {revealed && opt === q.correct && <span className="ml-2">✅</span>}
-                  {revealed && opt === selected && opt !== q.correct && <span className="ml-2">❌</span>}
-                </button>
-              ))}
-            </div>
-
-            {revealed && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-4 space-y-3">
-                {selected !== q.correct && q.explanation && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700/30 rounded-xl p-4 text-sm text-blue-800 dark:text-blue-300">
-                    <p className="font-bold mb-1">📖 Step-by-step solution:</p>
-                    <p>{q.explanation}</p>
-                  </div>
-                )}
-                {selected !== q.correct && (
-                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 rounded-xl p-3 text-sm text-green-700 dark:text-green-400">
-                    ✅ Correct answer: <strong>{q.correct.toUpperCase()}. {q[`option_${q.correct}` as keyof NoteQuestion] as string}</strong>
-                  </div>
-                )}
-                <button onClick={next}
-                  className="w-full bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold py-3.5 rounded-2xl hover:opacity-90 transition-opacity text-base">
-                  {current < totalQ - 1 ? "Next Question →" : "See Results 🏆"}
-                </button>
-              </motion.div>
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-    </div>
-  );
-
-  if (step === "result") {
-    const emoji = pct === 100 ? "🏆" : pct >= 80 ? "⭐" : pct >= 60 ? "👍" : "💪";
-    const msg = pct === 100 ? "Perfect Score! Amazing!" : pct >= 80 ? "Excellent Work!" : pct >= 60 ? "Good Job!" : "Keep Practicing!";
-    return (
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-        className="mt-10 bg-card border border-border rounded-3xl p-6 md:p-8 text-center shadow-lg">
-        <div className="text-6xl mb-3">{emoji}</div>
-        <h3 className="text-2xl font-black text-foreground mb-1">{msg}</h3>
-        <div className="text-5xl font-black text-primary my-3">{score}/{totalQ}</div>
-        <div className="w-full bg-muted rounded-full h-3 mb-1">
-          <div className="h-full rounded-full bg-gradient-to-r from-violet-500 to-indigo-600 transition-all" style={{ width: `${pct}%` }} />
-        </div>
-        <p className="text-muted-foreground text-sm mb-2">{pct}% score</p>
-        <p className="text-amber-600 font-bold text-sm mb-6">⭐ You earned {points} / {maxPoints} points!</p>
-        <button onClick={() => { setCurrent(0); setAnswers({}); setSelected(null); setRevealed(false); setStep("quiz"); setPoints(0); setCorrectStreak(0); setAdaptiveDiff("medium"); startTimer(); }}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl border border-border hover:bg-secondary font-semibold text-sm mx-auto">
-          <RotateCcw className="w-4 h-4" /> Try Again
-        </button>
-      </motion.div>
-    );
-  }
-  return null;
-};
-
-// ── Flashcard Mode ────────────────────────────────────────────────────────────
-const FlashcardMode = ({ chapterId, onClose }: { chapterId: string; onClose: () => void }) => {
-  const { data: cards = [] } = useFlashcards(chapterId);
-  const [idx, setIdx] = useState(0);
-  const [flipped, setFlipped] = useState(false);
-  const [known, setKnown] = useState<Set<string>>(new Set());
-  const [done, setDone] = useState(false);
-
-  const remaining = cards.filter(c => !known.has(c.id));
-  const card = remaining[idx] || cards[idx];
-  const progress = Math.round((known.size / Math.max(cards.length, 1)) * 100);
-
-  if (!cards.length) return (
-    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-      <div className="bg-card rounded-3xl p-8 text-center max-w-sm w-full">
-        <p className="text-4xl mb-3">📇</p>
-        <p className="font-bold text-foreground">No flashcards yet for this chapter</p>
-        <button onClick={onClose} className="mt-4 px-6 py-2 rounded-xl bg-primary text-primary-foreground font-semibold">Close</button>
-      </div>
-    </div>
-  );
-
-  const markKnown = () => {
-    const newKnown = new Set(known);
-    newKnown.add(card.id);
-    setKnown(newKnown);
-    setFlipped(false);
-    if (newKnown.size === cards.length) { setDone(true); return; }
-    const nextIdx = remaining.findIndex((c, i) => i > idx && !newKnown.has(c.id));
-    setIdx(nextIdx >= 0 ? nextIdx : 0);
-  };
-
-  const markReview = () => {
-    setFlipped(false);
-    const next = (idx + 1) % remaining.length;
-    setIdx(next);
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-      <div className="bg-card rounded-3xl w-full max-w-lg overflow-hidden">
-        <div className="flex items-center justify-between p-5 border-b border-border">
-          <div>
-            <h3 className="font-bold text-foreground">📇 Flashcards</h3>
-            <p className="text-xs text-muted-foreground">{known.size}/{cards.length} mastered</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-24 bg-muted rounded-full h-2">
-              <div className="h-full bg-green-500 rounded-full" style={{ width: `${progress}%` }} />
-            </div>
-            <button onClick={onClose} className="p-2 rounded-xl hover:bg-secondary"><X className="w-5 h-5" /></button>
-          </div>
-        </div>
-
-        {done ? (
-          <div className="p-10 text-center">
-            <div className="text-5xl mb-4">🎉</div>
-            <h3 className="text-xl font-black text-foreground mb-2">All Mastered!</h3>
-            <p className="text-muted-foreground mb-6">You've gone through all {cards.length} flashcards</p>
-            <div className="flex gap-3 justify-center">
-              <button onClick={() => { setKnown(new Set()); setIdx(0); setDone(false); setFlipped(false); }}
-                className="px-5 py-2.5 rounded-xl border border-border hover:bg-secondary font-semibold text-sm flex items-center gap-2">
-                <RotateCcw className="w-4 h-4" /> Restart
-              </button>
-              <button onClick={onClose} className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm">Done ✓</button>
-            </div>
-          </div>
-        ) : (
-          <div className="p-6">
-            <p className="text-xs text-center text-muted-foreground mb-4">Card {idx + 1} of {remaining.length} remaining • Tap to flip</p>
-
-            <div className="perspective-1000 cursor-pointer mb-6" onClick={() => setFlipped(f => !f)} style={{ perspective: "1000px" }}>
-              <motion.div animate={{ rotateY: flipped ? 180 : 0 }} transition={{ duration: 0.5 }}
-                style={{ transformStyle: "preserve-3d", position: "relative", height: "200px" }}>
-                <div style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
-                  className="absolute inset-0 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl flex items-center justify-center p-6">
-                  <p className="text-white text-lg font-bold text-center leading-relaxed">{card?.front}</p>
-                </div>
-                <div style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
-                  className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center p-6">
-                  <p className="text-white text-base text-center leading-relaxed">{card?.back}</p>
-                </div>
-              </motion.div>
-            </div>
-
-            {flipped && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3">
-                <button onClick={markReview} className="flex-1 py-3 rounded-2xl border-2 border-amber-400 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 font-bold text-sm">
-                  🔄 Review Again
-                </button>
-                <button onClick={markKnown} className="flex-1 py-3 rounded-2xl border-2 border-green-400 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 font-bold text-sm">
-                  ✅ Got It!
-                </button>
-              </motion.div>
-            )}
-            {!flipped && <p className="text-center text-sm text-muted-foreground mt-2">👆 Tap the card to see the answer</p>}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  )
 };
 
 // ── Pomodoro Timer ────────────────────────────────────────────────────────────
@@ -988,7 +454,7 @@ const ChapterPage = () => {
               </div>
               <div className="flex-1 overflow-y-auto p-2">
                 {chapters.map((ch, i) => (
-                  <Link key={ch.id} to={`/notes/${subjectSlug}/${ch.slug}`} onClick={() => setSidebarOpen(false)}>
+          <Link key={ch.id} to={`/notes/${subjectSlug}/${ch.slug}`} onClick={() => setSidebarOpen(false)}>
                     <div className={`flex items-center gap-2 px-3 py-3 rounded-xl text-sm ${ch.slug === chapterSlug ? "font-bold text-white" : "text-muted-foreground"}`}
                       style={ch.slug === chapterSlug ? { backgroundColor: subject.color } : {}}>
                       <span className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[10px] shrink-0">{i + 1}</span>
@@ -1192,3 +658,6 @@ const ChapterPage = () => {
 
 export default ChapterPage;
         
+
+
+            
