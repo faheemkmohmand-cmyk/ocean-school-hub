@@ -33,45 +33,14 @@ const AudioPlayer = ({ content, onClose }: { content: string; onClose: () => voi
   const synthRef = useRef<typeof window.speechSynthesis | null>(null);
   const contentRef = useRef(content);
 
-  // Extract readable text from styled HTML notes
-  const extractReadableText = useCallback((input: string): string => {
-    if (!input) return "";
-    
-    let text = input;
-    
-    // Remove HTML comments
-    text = text.replace(/<!--[\s\S]*?-->/g, " ");
-    
-    // Remove CSS style blocks
-    text = text.replace(/<style[\s\S]*?<\/style>/gi, " ");
-    
-    // Remove script blocks
-    text = text.replace(/<script[\s\S]*?<\/script>/gi, " ");
-    
-    // Add spaces after content tags
-    text = text
-      .replace(/<\/(p|h[1-6]|div|section|article|li|td|tr|th)>/gi, "$& ")
-      .replace(/<(br|hr)\s*\/?>/gi, ". ");
-    
-    // Remove all HTML tags
-    text = text.replace(/<[^>]+>/g, " ");
-    
-    // Decode HTML entities
-    if (typeof document !== "undefined") {
-      const textarea = document.createElement("textarea");
-      textarea.innerHTML = text;
-      text = textarea.value;
-    }
-    
-    // Clean up for speech
-    text = text
-      .replace(/\s+/g, " ")
-      .replace(/([.!?])\s*\1+/g, "$1")
-      .replace(/\s+([.,!?;:])/g, "$1")
-      .trim();
-    
-    return text.substring(0, 5000);
-  }, []);
+  if (!html) return "";
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  doc.querySelectorAll('style, script').forEach(el => el.remove());
+  let text = doc.body.textContent || '';
+  text = text.replace(/\s+/g, ' ').trim();
+  return text.substring(0, 5000);
+  
 
   // Initialize
   useEffect(() => {
