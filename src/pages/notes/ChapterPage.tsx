@@ -1,22 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  ArrowLeft, ArrowRight, Clock, Bookmark, BookmarkCheck, Download,
-  CheckCircle, ChevronRight, Zap, Trophy, RotateCcw, ThumbsUp,
-  ThumbsDown, Menu, X, Volume2, Play, Pause, Square,
-  Timer, CreditCard, BookOpen, Star, Award
-} from "lucide-react";
-import {
-  LineChart, Line, BarChart, Bar, AreaChart, Area, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter
-} from "recharts";
+import { ArrowLeft, ArrowRight, Clock, Bookmark, BookmarkCheck, Download, CircleCheck as CheckCircle, ChevronRight, Zap, Trophy, RotateCcw, ThumbsUp, ThumbsDown, Menu, X, Volume2, Play, Pause, Square, Timer, CreditCard, BookOpen, Star, Award } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
+import ChapterChart from "@/components/notes/ChapterChart";
+import FlashcardMode from "@/components/notes/FlashcardMode";
+import AdaptiveQuiz from "@/components/notes/AdaptiveQuiz";
+import PrintOptimized from "@/components/notes/PrintOptimized";
 import {
   useNoteSubjects, useNoteChapters, useNoteQuiz, useNoteQuestions,
   useNoteProgress, useFlashcards, useHighlights, useGamification,
   saveProgress, saveQuizResult, saveWrongAnswer, removeWrongAnswer,
-  awardPoints, NoteQuestion
+  awardPoints, incrementViewCount, NoteQuestion
 } from "@/hooks/useNotes";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -289,6 +284,16 @@ const ChapterPage = () => {
   const [showAudio, setShowAudio] = useState(false);
   const [showPomodoro, setShowPomodoro] = useState(false);
   const [showFlashcards, setShowFlashcards] = useState(false);
+  const [showPrint, setShowPrint] = useState(false);
+  const [liteMode, setLiteMode] = useState(() => {
+    const saved = localStorage.getItem("lite-mode");
+    if (saved) return JSON.parse(saved);
+    if (typeof navigator !== "undefined" && (navigator as any).connection) {
+      const type = (navigator as any).connection.effectiveType;
+      return type === "2g" || type === "slow-2g";
+    }
+    return false;
+  });
 
   const { data: subjects = [] } = useNoteSubjects();
   const subject = subjects.find(s => s.slug === subjectSlug);
@@ -312,7 +317,9 @@ const ChapterPage = () => {
     if (user && chapter) {
       saveProgress(user.id, chapter.id, { started: true });
       awardPoints(user.id, 5);
-      incrementViewCount(chapter.id);
+      (async () => {
+        await incrementViewCount(chapter.id);
+      })();
     }
   }, [user?.id, chapter?.id]);
 
@@ -335,6 +342,10 @@ const ChapterPage = () => {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, [onScroll]);
+
+  useEffect(() => {
+    localStorage.setItem("lite-mode", JSON.stringify(liteMode));
+  }, [liteMode]);
 
   useEffect(() => {
     if (!chapter?.animation_code || !animRef.current) return;
@@ -373,10 +384,6 @@ const ChapterPage = () => {
     if (next) await awardPoints(user.id, 5);
   };
 
-  const incrementViewCount = async (id: string) => {
-    const { incrementViewCount: inc } = await import("@/hooks/useNotes");
-    await inc(id);
-  };
 
   if (!subject || !chapter) return (
     <PageLayout>
@@ -399,6 +406,7 @@ const ChapterPage = () => {
       {showAudio && chapter.content && <AudioPlayer content={chapter.content} onClose={() => setShowAudio(false)} />}
       {showPomodoro && <PomodoroTimer onClose={() => setShowPomodoro(false)} />}
       {showFlashcards && <FlashcardMode chapterId={chapter.id} onClose={() => setShowFlashcards(false)} />}
+      {showPrint && <PrintOptimized chapter={chapter} subject={subject} schoolName="GHS Babi Khel" onClose={() => setShowPrint(false)} />}
 
       {/* Floating action buttons */}
       <div className="fixed bottom-28 right-4 z-40 flex flex-col gap-2">
@@ -498,7 +506,7 @@ const ChapterPage = () => {
                 <div className="flex items-center gap-1.5 text-sm text-white/80">
                   <Clock className="w-4 h-4" /> {chapter.read_time_mins} min
                 </div>
-                {chapter.animation_code && <div className="flex items-center gap-1.5 text-sm text-white.animation_code && <div className="flex items-center gap-1.5 text-sm text-white/80"><Zap className="w-4 h-4" /> Interactive</div>}
+                {chapter.animation_code && <div className="flex items-center gap-1.5 text-sm text-white/80"><Zap className="w-4 h-4" /> Interactive</div>}
                 {flashcards.length > 0 && <div className="flex items-center gap-1.5 text-sm text-white/80">📇 {flashcards.length} cards</div>}
 
                 <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -507,12 +515,20 @@ const ChapterPage = () => {
                     {bookmarked ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
                     <span className="hidden sm:inline">{bookmarked ? "Saved" : "Save"}</span>
                   </button>
+                  <button onClick={() => setShowPrint(true)}
+                    className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-xl text-sm font-medium transition-colors">
+                    <Download className="w-4 h-4" /> <span className="hidden sm:inline">Print</span>
+                  </button>
                   {chapter.pdf_url && (
                     <a href={chapter.pdf_url} target="_blank" rel="noreferrer"
                       className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-xl text-sm font-medium">
                       <Download className="w-4 h-4" /> <span className="hidden sm:inline">PDF</span>
                     </a>
                   )}
+                  <button onClick={() => setLiteMode(!liteMode)} title={liteMode ? "Disable Lite Mode" : "Enable Lite Mode"}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${liteMode ? "bg-white/30 text-white" : "bg-white/20 hover:bg-white/30 text-white"}`}>
+                    {liteMode ? "🔆" : "📡"}
+                  </button>
                   <button onClick={() => setSidebarOpen(true)}
                     className="lg:hidden flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-xl text-sm font-medium">
                     <Menu className="w-4 h-4" />
@@ -524,21 +540,21 @@ const ChapterPage = () => {
 
           {/* Chapter Content */}
           <div ref={contentRef}
-            className="notes-content prose prose-base md:prose-lg max-w-none dark:prose-invert
+            className={`notes-content prose prose-base md:prose-lg max-w-none dark:prose-invert
               prose-h2:text-orange-500 prose-h2:font-black
               prose-h3:text-blue-600 prose-h3:font-bold
               prose-strong:text-foreground
               prose-code:bg-primary/10 prose-code:text-primary prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
-              prose-table:border prose-th:bg-muted prose-td:border prose-td:border-border"
+              prose-table:border prose-th:bg-muted prose-td:border prose-td:border-border ${liteMode ? "prose-img:hidden" : ""}`}
             style={{ fontSize: "17px", lineHeight: "1.85" }}>
             {chapter.content
-              ? <div dangerouslySetInnerHTML={{ __html: chapter.content }} />
+              ? <div dangerouslySetInnerHTML={{ __html: liteMode ? chapter.content.replace(/<img[^>]*>/g, "") : chapter.content }} />
               : <div className="text-center py-16 text-muted-foreground"><p className="text-4xl mb-3">📝</p><p>Content coming soon...</p></div>
             }
           </div>
 
           {/* Interactive Animation */}
-          {chapter.animation_code && (
+          {chapter.animation_code && !liteMode && (
             <div className="mt-8">
               <h3 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
                 <Zap className="w-5 h-5 text-violet-500" /> Interactive Demo
@@ -572,7 +588,7 @@ const ChapterPage = () => {
           )}
 
           {/* Chart / Graph */}
-          <ChapterChart config={chapter.graph_config} />
+          {!liteMode && <ChapterChart config={chapter.graph_config} />}
 
           {/* Helpful */}
           <div className="mt-8 flex items-center gap-4 bg-secondary/50 rounded-2xl p-4">

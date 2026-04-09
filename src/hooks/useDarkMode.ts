@@ -3,7 +3,17 @@ import { useState, useEffect } from "react";
 export function useDarkMode() {
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem("ghs-dark-mode");
-    return saved ? JSON.parse(saved) : false;
+    const manualOverride = localStorage.getItem("ghs-dark-mode-manual");
+
+    if (manualOverride !== null) {
+      return JSON.parse(manualOverride);
+    }
+
+    const now = new Date();
+    const utc5Hours = new Date(now.getTime() + (5 * 60 * 60 * 1000)).getHours();
+    const isDarkSchedule = utc5Hours >= 18 || utc5Hours < 6;
+
+    return saved ? JSON.parse(saved) : isDarkSchedule;
   });
 
   useEffect(() => {
@@ -13,10 +23,24 @@ export function useDarkMode() {
     } else {
       root.classList.remove("dark");
     }
-    localStorage.setItem("ghs-dark-mode", JSON.stringify(isDark));
   }, [isDark]);
 
-  const toggle = () => setIsDark((prev: boolean) => !prev);
+  const toggle = () => {
+    setIsDark((prev: boolean) => {
+      const newValue = !prev;
+      localStorage.setItem("ghs-dark-mode", JSON.stringify(newValue));
+      localStorage.setItem("ghs-dark-mode-manual", JSON.stringify(newValue));
+      return newValue;
+    });
+  };
 
-  return { isDark, toggle };
+  const resetToSchedule = () => {
+    localStorage.removeItem("ghs-dark-mode-manual");
+    const now = new Date();
+    const utc5Hours = new Date(now.getTime() + (5 * 60 * 60 * 1000)).getHours();
+    const isDarkSchedule = utc5Hours >= 18 || utc5Hours < 6;
+    setIsDark(isDarkSchedule);
+  };
+
+  return { isDark, toggle, resetToSchedule };
 }
