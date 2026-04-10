@@ -79,6 +79,15 @@ const DiscussionTab = () => {
           return [...old, payload.new as DiscussionMessage];
         });
       })
+      .on("postgres_changes", {
+        event: "DELETE",
+        schema: "public",
+        table: "discussion_messages",
+      }, (payload) => {
+        qc.setQueryData<DiscussionMessage[]>(["discussion-messages"], (old = []) =>
+          (old ?? []).filter(m => m.id !== payload.old.id)
+        );
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [qc]);
@@ -121,6 +130,10 @@ const DiscussionTab = () => {
   const isMe = (msg: DiscussionMessage) => msg.user_id === user?.id;
 
   const deleteMessage = async (msgId: string) => {
+    // Optimistically remove from UI immediately
+    qc.setQueryData<DiscussionMessage[]>(["discussion-messages"], (old = []) =>
+      old.filter(m => m.id !== msgId)
+    );
     await supabase.from("discussion_messages").delete().eq("id", msgId);
     qc.setQueryData<DiscussionMessage[]>(["discussion-messages"], (old = []) =>
       old.filter(m => m.id !== msgId)
@@ -241,3 +254,4 @@ const DiscussionTab = () => {
 };
 
 export default DiscussionTab;
+                      
