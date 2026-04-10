@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
-import { MessageSquare, Send, Loader2, ShieldCheck } from "lucide-react";
+import { MessageSquare, Send, Loader2, ShieldCheck, Trash2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Message {
@@ -71,6 +71,13 @@ const MessagesTab = () => {
     if (!error) setText("");
   };
 
+  const deleteMessage = async (msgId: string) => {
+    // Users can only delete their own non-admin-reply messages
+    if (!user) return;
+    await supabase.from("user_messages").delete().eq("id", msgId).eq("user_id", user.id);
+    qc.invalidateQueries({ queryKey: ["user-messages", user.id] });
+  };
+
   const handleKey = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
@@ -100,29 +107,44 @@ const MessagesTab = () => {
             <p className="text-sm text-muted-foreground">Send a message below and admin will reply here</p>
           </div>
         ) : (
-          messages.map(msg => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.is_admin_reply ? "justify-start" : "justify-end"}`}
-            >
-              <div className={`max-w-[75%] rounded-2xl px-4 py-3 space-y-1 ${
-                msg.is_admin_reply
-                  ? "bg-card border border-border rounded-tl-sm"
-                  : "bg-primary text-primary-foreground rounded-tr-sm"
-              }`}>
-                {msg.is_admin_reply && (
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-                    <span className="text-xs font-semibold text-primary">Admin</span>
-                  </div>
+          messages.map(msg => {
+            const isOwn = !msg.is_admin_reply;
+            return (
+              <div
+                key={msg.id}
+                className={`flex items-end gap-1.5 ${isOwn ? "justify-end" : "justify-start"}`}
+              >
+                {/* Delete button — only for own messages, shown on left of bubble */}
+                {isOwn && (
+                  <button
+                    onClick={() => deleteMessage(msg.id)}
+                    className="p-1 rounded-lg bg-destructive/10 hover:bg-destructive/20 text-destructive opacity-0 hover:opacity-100 group-hover:opacity-100 transition-all shrink-0 order-first"
+                    title="Delete message"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 )}
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                <p className={`text-[10px] ${msg.is_admin_reply ? "text-muted-foreground" : "text-primary-foreground/70"}`}>
-                  {new Date(msg.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                </p>
+                <div
+                  className={`group max-w-[75%] rounded-2xl px-4 py-3 space-y-1 ${
+                    isOwn
+                      ? "bg-primary text-primary-foreground rounded-tr-sm"
+                      : "bg-card border border-border rounded-tl-sm"
+                  }`}
+                >
+                  {msg.is_admin_reply && (
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                      <span className="text-xs font-semibold text-primary">Admin</span>
+                    </div>
+                  )}
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                  <p className={`text-[10px] ${isOwn ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                    {new Date(msg.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
         <div ref={bottomRef} />
       </div>
@@ -150,3 +172,4 @@ const MessagesTab = () => {
 };
 
 export default MessagesTab;
+      
