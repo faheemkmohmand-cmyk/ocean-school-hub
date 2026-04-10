@@ -3,18 +3,24 @@ import { Radio } from "lucide-react";
 import { useNews } from "@/hooks/useNews";
 
 const NewsTicker = () => {
-  const { data: news = [] } = useNews(10);
-  const tickerRef = useRef<HTMLDivElement>(null);
+  const { data: news = [] } = useNews(20); // fetch more items for fuller ticker
 
-  // Duplicate items so loop is seamless
-  const items = news.length > 0
-    ? [...news, ...news]
+  // Use real DB news; fall back to school defaults only if DB is empty
+  const baseItems = news.length > 0
+    ? news
     : [
         { id: "1", title: "Welcome to GHS Babi Khel — Excellence in Education" },
         { id: "2", title: "Admissions Open for Session 2025-26 — Apply Now" },
         { id: "3", title: "BISE Peshawar Annual Exams Results Published" },
         { id: "4", title: "Science Lab Inauguration Ceremony — District Mohmand" },
-      ].flatMap(i => [i, i]);
+      ];
+
+  // Triple-duplicate so the seamless loop never shows a gap
+  const items = [...baseItems, ...baseItems, ...baseItems];
+
+  // Calculate scroll duration based on item count so speed stays consistent
+  // ~120px per item at ~80px/s ≈ good reading pace
+  const durationSecs = Math.max(8, baseItems.length * 4);
 
   return (
     <div className="bg-primary text-primary-foreground py-2 overflow-hidden">
@@ -32,11 +38,8 @@ const NewsTicker = () => {
           <div className="absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-primary to-transparent z-10 pointer-events-none" />
 
           <div
-            ref={tickerRef}
             className="flex gap-12 whitespace-nowrap"
-            style={{
-              animation: "ticker-scroll 18s linear infinite",
-            }}
+            style={{ animation: `ticker-scroll ${durationSecs}s linear infinite` }}
           >
             {items.map((item, idx) => (
               <span key={`${item.id}-${idx}`} className="text-sm font-medium inline-flex items-center gap-2">
@@ -51,7 +54,7 @@ const NewsTicker = () => {
       <style>{`
         @keyframes ticker-scroll {
           0%   { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+          100% { transform: translateX(-33.333%); }
         }
       `}</style>
     </div>
