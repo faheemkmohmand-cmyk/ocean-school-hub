@@ -28,10 +28,7 @@ const navItems = [
   { id: "videos",         label: "Videos",          icon: Video          },
   { id: "achievements",   label: "Achievements",    icon: Trophy         },
   { id: "tests",          label: "MCQ Tests",       icon: ClipboardCheck },
-  { id: "teachers",       label: "Teachers",        icon: Users          },
-  { id: "messages",       label: "Message Admin",   icon: MessageSquare  },
-  { id: "discussion",     label: "Discussion",      icon: Users          },
-  { id: "profile",        label: "My Profile",      icon: User           },
+  { id: "teachers",       label: "Teachers",        icon: Users          },  { id: "profile",        label: "My Profile",      icon: User           },
 ];
 
 interface DashboardLayoutProps {
@@ -270,4 +267,4 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
 
 export default DashboardLayout;
 
-              
+
