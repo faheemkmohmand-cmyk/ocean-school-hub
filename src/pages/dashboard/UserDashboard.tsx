@@ -17,6 +17,11 @@ import TestsTab from "./tabs/TestsTab";
 import MessagesTab from "./tabs/MessagesTab";
 import NotesTab from "../notes/NotesTab";
 import DiscussionTab from "./tabs/DiscussionTab";
+// ── New feature tabs ──
+import HomeworkTab from "./tabs/HomeworkTab";
+import AnalyticsTab from "./tabs/AnalyticsTab";
+import ExamScheduleTab from "./tabs/ExamScheduleTab";
+import HonorRollTab from "./tabs/HonorRollTab";
 
 const tabComponents: Record<string, React.ComponentType<any>> = {
   overview: OverviewTab,
@@ -24,6 +29,7 @@ const tabComponents: Record<string, React.ComponentType<any>> = {
   results: ResultsTab,
   "exam-rolls": RollNumbersTab,
   "result-card": ResultCardTab,
+  "exam-schedule": ExamScheduleTab,
   notices: NoticesTab,
   news: NewsTab,
   notes: NotesTab,
@@ -36,6 +42,9 @@ const tabComponents: Record<string, React.ComponentType<any>> = {
   profile: ProfileTab,
   messages: MessagesTab,
   discussion: DiscussionTab,
+  homework: HomeworkTab,
+  analytics: AnalyticsTab,
+  "honor-roll": HonorRollTab,
 };
 
 const UserDashboard = () => {
