@@ -27,10 +27,7 @@ const navItems = [
   { id: "achievements",      label: "Achievements",       icon: Trophy         },
   { id: "exam-rolls",        label: "Exam Roll Numbers",  icon: Hash           },
   { id: "notes",             label: "📚 Notes Manager",  icon: BookMarked     },
-  { id: "tests",             label: "MCQ Tests",          icon: ClipboardCheck },
-  { id: "messages",          label: "User Messages",      icon: MessageSquare  },
-  { id: "discussion",        label: "Group Discussion",   icon: Users          },
-  { id: "videos",            label: "Videos",             icon: Video          },
+  { id: "tests",             label: "MCQ Tests",          icon: ClipboardCheck },  { id: "videos",            label: "Videos",             icon: Video          },
   { id: "users",             label: "Users",              icon: UserCog        },
   { id: "extras",            label: "✨ Extras",          icon: Star           },
 ];
@@ -251,4 +248,5 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
 
 export default AdminLayout;
         
+
  
