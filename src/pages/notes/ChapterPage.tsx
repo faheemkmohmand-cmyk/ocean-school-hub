@@ -31,7 +31,7 @@ import confetti from "canvas-confetti";
 // 3. HTML content wasn't properly stripped
 // FIX: Split text into sentence chunks, speak one at a time with queue
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
+ 
 function htmlToText(html: string): string {
   // Use DOMParser — most reliable for HTML stripping
   const doc = new DOMParser().parseFromString(html, "text/html");
