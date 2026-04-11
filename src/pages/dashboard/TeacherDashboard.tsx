@@ -20,8 +20,6 @@ import AchievementsTab  from "@/pages/dashboard/tabs/AchievementsTab";
 import TeachersTab      from "@/pages/dashboard/tabs/TeachersTab";
 import ProfileTab       from "@/pages/dashboard/tabs/ProfileTab";
 import RollNumbersTab   from "@/pages/dashboard/tabs/RollNumbersTab";
-import MessagesTab      from "@/pages/dashboard/tabs/MessagesTab";
-import DiscussionTab    from "@/pages/dashboard/tabs/DiscussionTab";
 import ResultCardTab    from "@/pages/dashboard/tabs/ResultCardTab";
 import ResultsTab       from "@/pages/dashboard/tabs/ResultsTab";
 import TimetableTab     from "@/pages/dashboard/tabs/TimetableTab";
@@ -68,10 +66,7 @@ const tabComponents: Record<string, React.ComponentType<any>> = {
   videos:          VideosTab,
   achievements:    AchievementsTab,
   teachers:        TeachersTab,
-  profile:         ProfileTab,
-  messages:          MessagesTab,
-  discussion:        DiscussionTab,
-  "edit-timetable": AdminTimetables,
+  profile:         ProfileTab,  "edit-timetable": AdminTimetables,
   "upload-results": AdminResults,
   attendance:       AdminAttendance,
   "mcq-tests":      AdminTests,
@@ -299,4 +294,5 @@ const TeacherDashboard = () => {
 
 export default TeacherDashboard;
 
-        
+
+  
