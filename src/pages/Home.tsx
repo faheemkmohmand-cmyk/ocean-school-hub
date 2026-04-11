@@ -16,6 +16,7 @@ import { useTypingAnimation } from "@/hooks/useTypingAnimation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import NewsTicker from "@/components/shared/NewsTicker";
+import DailyQuoteCard from "@/components/shared/DailyQuoteCard";
 
 /* ─── Stagger helpers ─── */
 const stagger = {
@@ -255,6 +256,16 @@ const Home = () => {
               </motion.div>
             ))}
           </motion.div>
+        </div>
+      </section>
+
+      {/* ════════ DAILY QUOTE / HADITH ════════ */}
+      <section className="py-10 cv-auto">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <div className="mb-4 text-center">
+            <span className="text-sm font-semibold uppercase tracking-widest text-primary">Thought of the Day</span>
+          </div>
+          <DailyQuoteCard />
         </div>
       </section>
 
