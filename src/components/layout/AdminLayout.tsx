@@ -3,32 +3,36 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   BarChart3, Settings, Users, GraduationCap, ClipboardList, CheckSquare,
   Calendar, Bell, Newspaper, Image, BookOpen, Trophy, UserCog, LogOut,
-  Menu, X, ExternalLink, Shield, Moon, Sun, Video, Clock, Hash, ClipboardCheck, MessageSquare, BookMarked
+  Menu, X, ExternalLink, Shield, Moon, Sun, Video, Clock, Hash,
+  ClipboardCheck, MessageSquare, BookMarked, TrendingUp, Star
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/hooks/useDarkMode";
 
 const navItems = [
-  { id: "overview", label: "Overview", icon: BarChart3 },
-  { id: "pending-requests", label: "Pending Requests", icon: Clock },
-  { id: "settings", label: "School Settings", icon: Settings },
-  { id: "teachers", label: "Manage Teachers", icon: Users },
-  { id: "students", label: "Manage Students", icon: GraduationCap },
-  { id: "results", label: "Manage Results", icon: ClipboardList },
-  { id: "attendance", label: "Attendance", icon: CheckSquare },
-  { id: "timetables", label: "Timetables", icon: Calendar },
-  { id: "notices", label: "Notices", icon: Bell },
-  { id: "news", label: "News", icon: Newspaper },
-  { id: "gallery", label: "Gallery", icon: Image },
-  { id: "library", label: "Library", icon: BookOpen },
-  { id: "achievements", label: "Achievements", icon: Trophy },
-  { id: "exam-rolls", label: "Exam Roll Numbers", icon: Hash },
-  { id: "notes", label: "📚 Notes Manager", icon: BookMarked },
-  { id: "tests", label: "MCQ Tests", icon: ClipboardCheck },
-  { id: "messages", label: "User Messages", icon: MessageSquare },
-  { id: "discussion", label: "Group Discussion", icon: Users },
-  { id: "videos", label: "Videos", icon: Video },
-  { id: "users", label: "Users", icon: UserCog },
+  { id: "overview",          label: "Overview",           icon: BarChart3      },
+  { id: "pending-requests",  label: "Pending Requests",   icon: Clock          },
+  { id: "settings",          label: "School Settings",    icon: Settings       },
+  { id: "teachers",          label: "Manage Teachers",    icon: Users          },
+  { id: "students",          label: "Manage Students",    icon: GraduationCap  },
+  { id: "results",           label: "Manage Results",     icon: ClipboardList  },
+  { id: "merit-list",        label: "🏆 Merit List",      icon: TrendingUp     },
+  { id: "homework",          label: "📝 Homework Board",  icon: BookOpen       },
+  { id: "attendance",        label: "Attendance",         icon: CheckSquare    },
+  { id: "timetables",        label: "Timetables",         icon: Calendar       },
+  { id: "notices",           label: "Notices",            icon: Bell           },
+  { id: "news",              label: "News",               icon: Newspaper      },
+  { id: "gallery",           label: "Gallery",            icon: Image          },
+  { id: "library",           label: "Library",            icon: BookOpen       },
+  { id: "achievements",      label: "Achievements",       icon: Trophy         },
+  { id: "exam-rolls",        label: "Exam Roll Numbers",  icon: Hash           },
+  { id: "notes",             label: "📚 Notes Manager",  icon: BookMarked     },
+  { id: "tests",             label: "MCQ Tests",          icon: ClipboardCheck },
+  { id: "messages",          label: "User Messages",      icon: MessageSquare  },
+  { id: "discussion",        label: "Group Discussion",   icon: Users          },
+  { id: "videos",            label: "Videos",             icon: Video          },
+  { id: "users",             label: "Users",              icon: UserCog        },
+  { id: "extras",            label: "✨ Extras",          icon: Star           },
 ];
 
 interface AdminLayoutProps {
@@ -167,7 +171,7 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
         <main className="flex-1 p-4 md:p-6 pb-20 lg:pb-6">{children}</main>
       </div>
 
-      {/* ✅ Mobile bottom bar — quick access for admin on phone */}
+      {/* Mobile bottom bar */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border">
         <div className="flex items-center justify-around py-1">
           <button
@@ -246,3 +250,4 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
 };
 
 export default AdminLayout;
+        
