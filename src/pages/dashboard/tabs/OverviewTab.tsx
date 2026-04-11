@@ -10,6 +10,7 @@ import { useNotices } from "@/hooks/useNotices";
 import { useNews } from "@/hooks/useNews";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
+import DailyQuoteCard from "@/components/shared/DailyQuoteCard";
 
 const quickActions = [
   { id: "timetable", label: "Timetable", icon: Calendar },
@@ -165,6 +166,9 @@ const OverviewTab = ({ onNavigate }: Props) => {
         </div>
       </div>
 
+      {/* Daily Quote */}
+      <DailyQuoteCard />
+
       {/* Quick Access */}
       <div>
         <h3 className="font-heading font-semibold text-foreground mb-3">Quick Access</h3>
@@ -188,3 +192,4 @@ const OverviewTab = ({ onNavigate }: Props) => {
 };
 
 export default OverviewTab;
+     
