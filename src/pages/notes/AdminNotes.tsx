@@ -124,6 +124,300 @@ const GraphBuilder = ({ value, onChange }: { value: string; onChange: (v: string
   );
 };
 
+// ── TEMPLATES ────────────────────────────────────────────────────────────────
+const TEMPLATES: Record<string, string> = {
+  pendulum: `<!DOCTYPE html>
+<html><head><style>
+body{margin:0;background:#f8f9ff;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif}
+canvas{border-radius:16px;border:1px solid #e0e0e0}
+p{color:#7C3AED;font-weight:bold;margin-bottom:8px;font-size:14px}
+</style></head><body>
+<p>⚡ Simple Pendulum — SHM Demo</p>
+<canvas id="c" width="320" height="260"></canvas>
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+const cx=160,cy=30,L=180;
+let angle=Math.PI/5,omega=0;
+function draw(){
+  const alpha=-(9.8/L)*Math.sin(angle);
+  omega+=alpha*0.02; angle+=omega*0.02;
+  ctx.clearRect(0,0,320,260);
+  ctx.beginPath();ctx.arc(cx,cy,7,0,Math.PI*2);ctx.fillStyle='#374151';ctx.fill();
+  const bx=cx+L*Math.sin(angle),by=cy+L*Math.cos(angle);
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(bx,by);
+  ctx.strokeStyle='#6b7280';ctx.lineWidth=2;ctx.stroke();
+  ctx.beginPath();ctx.arc(bx,by,22,0,Math.PI*2);
+  ctx.fillStyle='#7C3AED';ctx.fill();ctx.strokeStyle='#5b21b6';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#374151';ctx.font='13px sans-serif';
+  ctx.fillText('θ = '+(angle*180/Math.PI).toFixed(1)+'°',10,250);
+  ctx.fillText('a ∝ −x',200,250);
+  requestAnimationFrame(draw);
+}
+draw();
+</script></body></html>`,
+
+  spring: `<!DOCTYPE html>
+<html><head><style>
+body{margin:0;background:#f8f9ff;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif}
+canvas{border-radius:16px;border:1px solid #e0e0e0}
+p{color:#059669;font-weight:bold;margin-bottom:8px;font-size:14px}
+</style></head><body>
+<p>🔧 Mass-Spring System — Hooke's Law</p>
+<canvas id="c" width="340" height="200"></canvas>
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let pos=170,vel=0,eq=170;
+function drawSpring(x1,x2,y,coils){
+  ctx.beginPath();ctx.moveTo(x1,y);
+  for(let i=0;i<=coils;i++){
+    const sx=x1+(x2-x1)*i/coils;
+    const sy=y+(i%2===0?-14:14);
+    i===0?ctx.moveTo(sx,y):ctx.lineTo(sx,sy);
+  }
+  ctx.lineTo(x2,y);
+  ctx.strokeStyle='#6366f1';ctx.lineWidth=2.5;ctx.stroke();
+}
+function draw(){
+  const F=-300*(pos-eq)/60;
+  vel+=(F/1)*0.016;pos+=vel*0.016;
+  ctx.clearRect(0,0,340,200);
+  ctx.fillStyle='#374151';ctx.fillRect(0,70,18,60);
+  drawSpring(18,pos-35,100,12);
+  ctx.fillStyle='#7C3AED';ctx.fillRect(pos-35,70,55,60);
+  ctx.fillStyle='white';ctx.font='bold 16px sans-serif';ctx.fillText('m',pos-16,106);
+  ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(eq,55);ctx.lineTo(eq,150);
+  ctx.strokeStyle='#9ca3af';ctx.lineWidth=1;ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#6b7280';ctx.font='11px sans-serif';
+  ctx.fillText('F=−kx='+(-(pos-eq)/20).toFixed(1)+'N',10,185);
+  requestAnimationFrame(draw);
+}
+draw();
+</script></body></html>`,
+
+  wave: `<!DOCTYPE html>
+<html><head><style>
+body{margin:0;background:#f0f9ff;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif}
+canvas{border-radius:16px;border:1px solid #bae6fd}
+p{color:#0891B2;font-weight:bold;margin-bottom:8px;font-size:14px}
+</style></head><body>
+<p>🌊 Transverse vs Longitudinal Waves</p>
+<canvas id="c" width="340" height="280"></canvas>
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let t=0;
+function draw(){
+  t+=0.05;
+  ctx.clearRect(0,0,340,280);
+  ctx.font='bold 13px sans-serif';
+  ctx.fillStyle='#0891B2';ctx.fillText('Transverse Wave (light, water surface)',10,22);
+  for(let x=0;x<=320;x+=20){
+    const y=60+Math.sin(x/20+t)*35;
+    ctx.beginPath();ctx.arc(x+10,y,6,0,Math.PI*2);
+    ctx.fillStyle=`hsl(${200+x/3},80%,55%)`;ctx.fill();
+  }
+  ctx.fillStyle='#059669';ctx.fillText('Longitudinal Wave (sound)',10,152);
+  const density=[...Array(16)].map((_,i)=>{
+    const base=i*20+10;
+    return base+Math.sin(i*0.7-t)*12;
+  });
+  density.forEach((x,i)=>{
+    const w=i<density.length-1?Math.abs(density[i+1]-x)-2:18;
+    ctx.fillStyle=`rgba(5,150,105,${0.4+Math.abs(Math.sin(i-t))*0.6})`;
+    ctx.fillRect(x,165,Math.max(4,w),30);
+  });
+  ctx.fillStyle='#6b7280';ctx.font='11px sans-serif';
+  ctx.fillText('Compression / Rarefaction',10,215);
+  ctx.fillText('v = fλ    (speed = frequency × wavelength)',10,265);
+  requestAnimationFrame(draw);
+}
+draw();
+</script></body></html>`,
+
+  blank: `<!DOCTYPE html>
+<html><head><style>
+body{margin:0;padding:20px;background:#ffffff;font-family:sans-serif;min-height:100vh}
+</style></head><body>
+<!-- Write your interactive content here -->
+<!-- You can use HTML, CSS, JavaScript, Canvas, SVG — anything! -->
+
+<h2 style="color:#6366f1">Your Interactive Demo</h2>
+<p>Replace this with your content</p>
+
+<canvas id="c" width="400" height="300" style="background:#f0f9ff;border-radius:12px;border:1px solid #e0e0e0"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+// Your animation code here
+ctx.fillStyle = '#6366f1';
+ctx.font = 'bold 20px sans-serif';
+ctx.fillText('Hello! Add your code here', 50, 150);
+</script>
+</body></html>`,
+};
+
+// ── InteractiveTab Component ──────────────────────────────────────────────────
+const InteractiveTab = ({
+  animCode, graphConfig, onAnimChange, onGraphChange
+}: {
+  animCode: string; graphConfig: string;
+  onAnimChange: (v: string) => void; onGraphChange: (v: string) => void;
+}) => {
+  const [activePanel, setActivePanel] = useState<"html"|"graph">("html");
+  const [showPreview, setShowPreview] = useState(false);
+  const [htmlContent, setHtmlContent] = useState(animCode || "");
+  const [previewKey, setPreviewKey] = useState(0);
+
+  // Sync external value on mount
+  useState(() => { if (animCode) setHtmlContent(animCode); });
+
+  const applyTemplate = (key: string) => {
+    const t = TEMPLATES[key];
+    if (!t) return;
+    setHtmlContent(t);
+    onAnimChange(t);
+    setShowPreview(true);
+    setPreviewKey(k => k + 1);
+  };
+
+  const handleChange = (v: string) => {
+    setHtmlContent(v);
+    onAnimChange(v);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Panel selector */}
+      <div className="flex rounded-2xl bg-secondary p-1 gap-1">
+        <button onClick={() => setActivePanel("html")}
+          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${activePanel==="html"?"bg-card text-foreground shadow-sm":"text-muted-foreground hover:text-foreground"}`}>
+          ⚡ Interactive Demo (HTML)
+        </button>
+        <button onClick={() => setActivePanel("graph")}
+          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${activePanel==="graph"?"bg-card text-foreground shadow-sm":"text-muted-foreground hover:text-foreground"}`}>
+          📊 Chart / Graph
+        </button>
+      </div>
+
+      {/* HTML PANEL */}
+      {activePanel === "html" && (
+        <Card>
+          <CardContent className="pt-5 space-y-4">
+            {/* Info banner */}
+            <div className="bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 border border-violet-200 dark:border-violet-700/30 rounded-2xl p-4">
+              <p className="text-sm font-bold text-violet-700 dark:text-violet-300 mb-1">⚡ Full HTML Interactive Demo</p>
+              <p className="text-xs text-violet-600 dark:text-violet-400 leading-relaxed">
+                Paste a <strong>complete HTML page</strong> here. You can use any HTML, CSS, JavaScript, Canvas 2D, SVG, animations — anything a browser supports.
+                Students see it in a sandboxed iframe. No restrictions. No special variables needed.
+              </p>
+            </div>
+
+            {/* Quick templates */}
+            <div>
+              <Label className="mb-2 block text-sm">Quick Start Templates</Label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key:"pendulum", label:"🔮 Pendulum (SHM)" },
+                  { key:"spring",   label:"🔧 Mass-Spring" },
+                  { key:"wave",     label:"🌊 Wave Motion" },
+                  { key:"blank",    label:"📄 Blank" },
+                ].map(t => (
+                  <button key={t.key} onClick={() => applyTemplate(t.key)}
+                    className="px-3 py-1.5 bg-secondary hover:bg-primary hover:text-primary-foreground border border-border rounded-xl text-xs font-semibold transition-all">
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Code editor + preview side by side on desktop */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">HTML Code</Label>
+                <button
+                  onClick={() => { setShowPreview(v=>!v); setPreviewKey(k=>k+1); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold hover:opacity-90 transition-opacity">
+                  {showPreview ? "Hide Preview" : "▶ Preview"}
+                </button>
+              </div>
+
+              <div className={`grid gap-4 ${showPreview ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"}`}>
+                {/* Code area */}
+                <div>
+                  <textarea
+                    value={htmlContent}
+                    onChange={e => handleChange(e.target.value)}
+                    rows={showPreview ? 20 : 18}
+                    spellCheck={false}
+                    placeholder={"<!DOCTYPE html>
+<html><head><style>
+body { margin:0; background:#f8f9ff; }
+</style></head><body>
+
+<!-- Your interactive content -->
+
+</body></html>"}
+                    className="w-full rounded-xl border border-input bg-background px-4 py-3 text-xs font-mono outline-none focus:ring-2 focus:ring-ring resize-y leading-relaxed"
+                    style={{ minHeight: "380px", tabSize: 2 }}
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {htmlContent.length} characters • Full HTML/CSS/JS supported • No restrictions
+                  </p>
+                </div>
+
+                {/* Live preview */}
+                {showPreview && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-semibold text-muted-foreground">Live Preview</p>
+                      <button onClick={() => setPreviewKey(k=>k+1)}
+                        className="text-[10px] text-primary hover:underline">↺ Reload</button>
+                    </div>
+                    <div className="rounded-2xl overflow-hidden border-2 border-violet-200 dark:border-violet-700/40 shadow-lg" style={{height:"380px"}}>
+                      <iframe
+                        key={previewKey}
+                        srcDoc={htmlContent}
+                        sandbox="allow-scripts"
+                        className="w-full h-full"
+                        style={{ border: "none" }}
+                        title="Interactive Demo Preview"
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1 text-center">
+                      🔒 Sandboxed — safe for students
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* GRAPH PANEL */}
+      {activePanel === "graph" && (
+        <Card>
+          <CardContent className="pt-5 space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700/30 rounded-2xl p-4">
+              <p className="text-sm font-bold text-blue-700 dark:text-blue-300 mb-1">📊 Chart / Graph Builder</p>
+              <p className="text-xs text-blue-600 dark:text-blue-400">Build beautiful interactive charts using Recharts. Choose equation mode to plot math functions automatically.</p>
+            </div>
+            <GraphBuilder value={graphConfig} onChange={onGraphChange} />
+            {graphConfig && (
+              <div className="bg-muted rounded-xl p-3">
+                <p className="text-xs font-bold text-muted-foreground mb-1">Current graph config:</p>
+                <pre className="text-xs text-foreground overflow-auto max-h-32">{graphConfig}</pre>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+};
+
 // ── Subject Form ──────────────────────────────────────────────────────────────
 const SubjectForm = ({ initial, onSave, onCancel }: { initial?: NoteSubject | null; onSave: (d: Partial<NoteSubject>) => void; onCancel: () => void }) => {
   const [form, setForm] = useState({
@@ -133,7 +427,7 @@ const SubjectForm = ({ initial, onSave, onCancel }: { initial?: NoteSubject | nu
   });
   const set = (k: string, v: any) => setForm(p=>({...p,[k]:v}));
   return (
-    <Card>
+   <Card>
       <CardHeader><CardTitle className="text-base">{initial?"Edit Subject":"New Subject"}</CardTitle></CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -256,42 +550,12 @@ const ChapterForm = ({ initial, subjectId, onSave, onCancel }: {
       )}
 
       {tab==="interactive" && (
-        <Card>
-          <CardContent className="pt-5 space-y-5">
-            <div>
-              <Label className="mb-1 block">Custom Animation Code (JavaScript)</Label>
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-500/20 rounded-xl p-3 mb-3 text-xs text-amber-700 dark:text-amber-400">
-                <p className="font-bold mb-1">💡 Example: Bouncing ball</p>
-                <code className="whitespace-pre-wrap text-[11px]">{`container.innerHTML = '<canvas id="c" width="300" height="200" style="background:#f0f9ff;border-radius:12px"></canvas>';
-const c = container.querySelector('#c').getContext('2d');
-let x=150,y=50,vx=3,vy=2,r=20;
-__trackedInterval(() => {
-  c.clearRect(0,0,300,200);
-  c.beginPath(); c.arc(x,y,r,0,Math.PI*2);
-  c.fillStyle='#6366f1'; c.fill();
-  x+=vx; y+=vy;
-  if(x>280||x<20) vx*=-1;
-  if(y>180||y<20) vy*=-1;
-}, 16);`}</code>
-                <p className="mt-2 text-[11px]">⚠️ Use <strong>__trackedInterval</strong> instead of setInterval so animation stops properly</p>
-              </div>
-              <textarea value={form.animation_code} onChange={e=>set("animation_code",e.target.value)}
-                rows={12} placeholder="// JavaScript code for interactive demo..."
-                className="w-full rounded-xl border border-input bg-background px-4 py-3 text-xs font-mono outline-none focus:ring-2 focus:ring-ring resize-y" />
-            </div>
-
-            <div>
-              <Label className="mb-2 block">Graph / Chart Builder</Label>
-              <GraphBuilder value={form.graph_config} onChange={v=>set("graph_config",v)} />
-              {form.graph_config && (
-                <div className="mt-2 bg-muted rounded-xl p-3">
-                  <p className="text-xs font-bold text-muted-foreground mb-1">Current config:</p>
-                  <pre className="text-xs text-foreground overflow-auto max-h-32">{form.graph_config}</pre>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <InteractiveTab
+          animCode={form.animation_code}
+          graphConfig={form.graph_config}
+          onAnimChange={v=>set("animation_code",v)}
+          onGraphChange={v=>set("graph_config",v)}
+        />
       )}
 
       {tab==="settings" && (
