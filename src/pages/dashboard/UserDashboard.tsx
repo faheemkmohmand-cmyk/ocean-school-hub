@@ -279,7 +279,8 @@ function AnalyticsTab() {
           <option value="">All Years</option>{years.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
       </div>
- {/* Attendance ring */}
+
+      {/* Attendance ring */}
       {attStat && (
         <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
           <h3 className="font-semibold text-foreground text-sm flex items-center gap-2 mb-4"><Calendar className="w-4 h-4 text-primary" />Attendance — {MONTHS[currentMonth - 1]}</h3>
