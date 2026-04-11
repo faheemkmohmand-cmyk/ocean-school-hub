@@ -22,28 +22,36 @@ const AdminTests             = lazy(() => import("./tabs/AdminTests"));
 const AdminNotes             = lazy(() => import("../notes/AdminNotes"));
 const AdminMessages          = lazy(() => import("./tabs/AdminMessages"));
 const DiscussionTab          = lazy(() => import("../../pages/dashboard/tabs/DiscussionTab"));
+// ── New feature admin tabs ──
+const AdminHomework          = lazy(() => import("./tabs/AdminHomework"));
+const AdminMeritList         = lazy(() => import("./tabs/AdminMeritList"));
+const AdminExtras            = lazy(() => import("./tabs/AdminExtras"));
 
 const tabMap: Record<string, React.LazyExoticComponent<() => JSX.Element>> = {
-  overview:          AdminOverview,
+  overview:           AdminOverview,
   "pending-requests": AdminPendingRequests,
-  settings:          AdminSchoolSettings,
-  teachers:          AdminTeachers,
-  students:          AdminStudents,
-  results:           AdminResults,
-  attendance:        AdminAttendance,
-  timetables:        AdminTimetables,
-  notices:           AdminNotices,
-  news:              AdminNews,
-  gallery:           AdminGallery,
-  library:           AdminLibrary,
-  achievements:      AdminAchievements,
-  "exam-rolls":      AdminExamRollNumbers,
-  tests:             AdminTests,
-  videos:            AdminVideos,
-  "notes":           AdminNotes,
-  users:             AdminUsers,
-  messages:          AdminMessages,
-  discussion:        DiscussionTab as any,
+  settings:           AdminSchoolSettings,
+  teachers:           AdminTeachers,
+  students:           AdminStudents,
+  results:            AdminResults,
+  attendance:         AdminAttendance,
+  timetables:         AdminTimetables,
+  notices:            AdminNotices,
+  news:               AdminNews,
+  gallery:            AdminGallery,
+  library:            AdminLibrary,
+  achievements:       AdminAchievements,
+  "exam-rolls":       AdminExamRollNumbers,
+  tests:              AdminTests,
+  videos:             AdminVideos,
+  notes:              AdminNotes,
+  users:              AdminUsers,
+  messages:           AdminMessages,
+  discussion:         DiscussionTab as any,
+  // ── New features ──
+  homework:           AdminHomework,
+  "merit-list":       AdminMeritList,
+  extras:             AdminExtras,
 };
 
 const Fallback = () => (
@@ -70,3 +78,4 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+      
