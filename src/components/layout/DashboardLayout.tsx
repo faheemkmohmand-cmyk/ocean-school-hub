@@ -3,30 +3,35 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Home, Calendar, BarChart3, Bell, Newspaper, BookOpen, Image, Trophy,
   Users, User, LogOut, GraduationCap, Menu, X, Shield, ExternalLink, Moon, Sun,
-  Video, Hash, FileText, MessageSquare, BookMarked, ClipboardCheck
+  Video, Hash, FileText, MessageSquare, BookMarked, ClipboardCheck,
+  BookMarked as Homework, TrendingUp, Star
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
 import { useDarkMode } from "@/hooks/useDarkMode";
 
 const navItems = [
-  { id: "overview",     label: "Overview",     icon: Home        },
-  { id: "notes",        label: "Study Notes",  icon: BookMarked  },
-  { id: "timetable",    label: "Timetable",    icon: Calendar    },
-  { id: "results",      label: "Results",      icon: BarChart3   },
-  { id: "exam-rolls",   label: "Exam Roll No", icon: Hash        },
-  { id: "result-card",  label: "Result Card",  icon: FileText    },
-  { id: "notices",      label: "Notices",      icon: Bell        },
-  { id: "news",         label: "News",         icon: Newspaper   },
-  { id: "library",      label: "Library",      icon: BookOpen    },
-  { id: "gallery",      label: "Gallery",      icon: Image       },
-  { id: "videos",       label: "Videos",       icon: Video       }, // ✅ NEW
-  { id: "achievements", label: "Achievements", icon: Trophy      },
-  { id: "tests",        label: "MCQ Tests",    icon: ClipboardCheck },
-  { id: "teachers",     label: "Teachers",     icon: Users       },
-  { id: "messages",    label: "Message Admin", icon: MessageSquare },
-  { id: "discussion",  label: "Discussion",   icon: Users       },
-  { id: "profile",      label: "My Profile",   icon: User        },
+  { id: "overview",      label: "Overview",       icon: Home           },
+  { id: "notes",         label: "Study Notes",    icon: BookMarked     },
+  { id: "homework",      label: "Homework",       icon: Homework       },
+  { id: "timetable",     label: "Timetable",      icon: Calendar       },
+  { id: "exam-schedule", label: "Exam Schedule",  icon: Calendar       },
+  { id: "results",       label: "Results",        icon: BarChart3      },
+  { id: "exam-rolls",    label: "Exam Roll No",   icon: Hash           },
+  { id: "result-card",   label: "Result Card",    icon: FileText       },
+  { id: "analytics",     label: "My Analytics",   icon: TrendingUp     },
+  { id: "honor-roll",    label: "Honor Roll",     icon: Star           },
+  { id: "notices",       label: "Notices",        icon: Bell           },
+  { id: "news",          label: "News",           icon: Newspaper      },
+  { id: "library",       label: "Library",        icon: BookOpen       },
+  { id: "gallery",       label: "Gallery",        icon: Image          },
+  { id: "videos",        label: "Videos",         icon: Video          },
+  { id: "achievements",  label: "Achievements",   icon: Trophy         },
+  { id: "tests",         label: "MCQ Tests",      icon: ClipboardCheck },
+  { id: "teachers",      label: "Teachers",       icon: Users          },
+  { id: "messages",      label: "Message Admin",  icon: MessageSquare  },
+  { id: "discussion",    label: "Discussion",     icon: Users          },
+  { id: "profile",       label: "My Profile",     icon: User           },
 ];
 
 interface DashboardLayoutProps {
@@ -122,7 +127,7 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
               Admin Panel
             </Link>
           )}
-          {(profile?.role === "teacher") && (
+          {profile?.role === "teacher" && (
             <Link
               to="/teacher"
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
@@ -194,7 +199,6 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
               <span className="text-[10px] font-medium">{item.label}</span>
             </button>
           ))}
-          {/* ✅ Main Website button — always visible on mobile */}
           <Link
             to="/"
             className="flex flex-col items-center gap-0.5 p-2 min-w-[3rem] text-primary"
@@ -264,4 +268,4 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
 };
 
 export default DashboardLayout;
-            
+        
