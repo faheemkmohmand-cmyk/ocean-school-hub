@@ -17,7 +17,6 @@ const navItems = [
   { id: "students",          label: "Manage Students",    icon: GraduationCap  },
   { id: "results",           label: "Manage Results",     icon: ClipboardList  },
   { id: "merit-list",        label: "🏆 Merit List",      icon: TrendingUp     },
-  { id: "homework",          label: "📝 Homework Board",  icon: BookOpen       },
   { id: "attendance",        label: "Attendance",         icon: CheckSquare    },
   { id: "timetables",        label: "Timetables",         icon: Calendar       },
   { id: "notices",           label: "Notices",            icon: Bell           },
@@ -249,4 +248,5 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
 export default AdminLayout;
         
 
-                
+
+          
