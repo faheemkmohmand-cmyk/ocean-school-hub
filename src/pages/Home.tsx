@@ -16,6 +16,7 @@ import { useTypingAnimation } from "@/hooks/useTypingAnimation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import NewsTicker from "@/components/shared/NewsTicker";
+import { useLeaderboard } from "@/hooks/useNotes";
 import DailyQuoteCard from "@/components/shared/DailyQuoteCard";
 
 /* ─── Stagger helpers ─── */
@@ -60,6 +61,90 @@ const TYPING_WORDS = [
 ];
 
 /* ─── MAIN ─── */
+/* ─── TopperSection — fetches #1 student from leaderboard ─── */
+const TopperSection = () => {
+  const { data: leaderboard = [] } = useLeaderboard();
+  const topper = leaderboard[0];
+
+  if (!topper) return null;
+
+  // Generate initials avatar
+  const name = topper.full_name || "Top Student";
+  const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+
+  // Anonymous nickname logic
+  const nicknames = ["Math Wizard", "Science Star", "Study Champion", "Knowledge King", "Quiz Master"];
+  const nickname = nicknames[Math.abs(topper.user_id?.charCodeAt(0) || 0) % nicknames.length];
+
+  const badges: Record<string, string> = {
+    first_step: "🌟", bookworm: "📚", quiz_master: "🏆",
+    on_fire: "🔥", legend: "👑", top_student: "⭐", subject_done: "💯",
+  };
+
+  return (
+    <section className="py-16 cv-auto">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-8">
+          <span className="text-sm font-semibold uppercase tracking-widest text-primary">Hall of Fame</span>
+          <h2 className="mt-2 text-3xl md:text-4xl font-heading font-bold text-foreground">Top Student This Week</h2>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="max-w-sm mx-auto"
+        >
+          <div className="relative bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 dark:from-amber-900/20 dark:via-yellow-900/20 dark:to-orange-900/20 border-2 border-amber-300 dark:border-amber-600 rounded-3xl p-8 text-center shadow-elevated overflow-hidden">
+            {/* Background glow */}
+            <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/10 to-orange-400/10 pointer-events-none" />
+
+            {/* Rank badge */}
+            <div className="absolute top-4 left-4 w-10 h-10 rounded-full bg-amber-400 flex items-center justify-center">
+              <span className="text-white font-black text-base">#1</span>
+            </div>
+
+            {/* Crown */}
+            <div className="text-4xl mb-1">👑</div>
+
+            {/* Avatar */}
+            <div className="w-24 h-24 rounded-full mx-auto mb-4 bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-3xl font-heading font-black shadow-lg ring-4 ring-amber-300 ring-offset-2">
+              {initials}
+            </div>
+
+            {/* Name */}
+            <h3 className="text-xl font-heading font-black text-foreground">{name}</h3>
+            <p className="text-sm text-muted-foreground mt-0.5 italic">"{nickname}"</p>
+
+            {/* Points + streak */}
+            <div className="flex items-center justify-center gap-4 mt-4">
+              <div className="bg-amber-100 dark:bg-amber-900/30 rounded-2xl px-4 py-2">
+                <p className="text-2xl font-black text-amber-600">⭐ {topper.total_points}</p>
+                <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold">Points</p>
+              </div>
+              <div className="bg-orange-100 dark:bg-orange-900/30 rounded-2xl px-4 py-2">
+                <p className="text-2xl font-black text-orange-500">🔥 {topper.streak_days}</p>
+                <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold">Day Streak</p>
+              </div>
+            </div>
+
+            {/* Badges */}
+            {topper.badges?.length > 0 && (
+              <div className="flex items-center justify-center gap-1.5 mt-4 flex-wrap">
+                {topper.badges.slice(0, 5).map((b: string, i: number) => (
+                  <span key={i} title={b} className="text-xl">{badges[b] || "🏅"}</span>
+                ))}
+              </div>
+            )}
+
+            <p className="text-xs text-muted-foreground mt-4">Based on study points earned this week</p>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+};
+
 const Home = () => {
   const { data: settings, isLoading: settingsLoading } = useSchoolSettings();
   const { data: notices = [], isLoading: noticesLoading } = useNotices(4);
@@ -219,6 +304,57 @@ const Home = () => {
         </div>
       </section>
 
+      {/* ════════ SCROLLING SUBJECTS MARQUEE ════════ */}
+      <section className="py-4 bg-primary/5 overflow-hidden border-y border-border">
+        <div className="relative flex overflow-hidden">
+          <div
+            className="flex gap-8 shrink-0 animate-none"
+            style={{
+              animation: "marqueeScroll 28s linear infinite",
+              willChange: "transform",
+            }}
+          >
+            {[
+              { emoji: "📐", label: "Mathematics" },
+              { emoji: "⚡", label: "Physics" },
+              { emoji: "🧪", label: "Chemistry" },
+              { emoji: "🌿", label: "Biology" },
+              { emoji: "📖", label: "English" },
+              { emoji: "✍️", label: "Urdu" },
+              { emoji: "🗺️", label: "Pakistan Studies" },
+              { emoji: "☪️", label: "Islamiyat" },
+              { emoji: "💻", label: "Computer Science" },
+              { emoji: "📐", label: "Mathematics" },
+              { emoji: "⚡", label: "Physics" },
+              { emoji: "🧪", label: "Chemistry" },
+              { emoji: "🌿", label: "Biology" },
+              { emoji: "📖", label: "English" },
+              { emoji: "✍️", label: "Urdu" },
+              { emoji: "🗺️", label: "Pakistan Studies" },
+              { emoji: "☪️", label: "Islamiyat" },
+              { emoji: "💻", label: "Computer Science" },
+            ].map((s, i) => (
+              <div key={i} className="flex items-center gap-2 shrink-0 px-3 py-1.5 rounded-full bg-card border border-border shadow-sm">
+                <span className="text-lg">{s.emoji}</span>
+                <span className="text-sm font-semibold text-foreground whitespace-nowrap">{s.label}</span>
+              </div>
+            ))}
+          </div>
+          {/* Gradient fades */}
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-background to-transparent z-10" />
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-background to-transparent z-10" />
+        </div>
+        <style>{`
+          @keyframes marqueeScroll {
+            0%   { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+        `}</style>
+      </section>
+
+      {/* ════════ TOP STUDENT (TOPPER) ════════ */}
+      <TopperSection />
+
       {/* ════════ FEATURES ════════ */}
       <section className="py-20 cv-auto">
         <div className="container mx-auto px-4">
@@ -269,7 +405,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* ════════ LATEST NOTICES ════════ */}
+       {/* ════════ LATEST NOTICES ════════ */}
       <section className="py-16 bg-secondary/50 cv-auto">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
