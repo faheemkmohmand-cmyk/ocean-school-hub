@@ -1,9 +1,102 @@
+
+// ── Hook: fetch upcoming scheduled result publish times ────────────────────────
+function useScheduledPublishes() {
+  return useQuery({
+    queryKey: ["scheduled-result-publishes"],
+    queryFn: async () => {
+      const now = new Date().toISOString();
+      const { data } = await supabase
+        .from("results")
+        .select("class, exam_type, year, publish_at")
+        .eq("is_published", false)
+        .not("publish_at", "is", null)
+        .gt("publish_at", now)
+        .order("publish_at", { ascending: true });
+
+      // Deduplicate by class+exam+year — one entry per group
+      const seen = new Set<string>();
+      const groups: { class: string; exam_type: string; year: number; publish_at: string }[] = [];
+      for (const r of (data ?? [])) {
+        const key = `${r.class}-${r.exam_type}-${r.year}`;
+        if (!seen.has(key)) { seen.add(key); groups.push(r as any); }
+      }
+      return groups;
+    },
+    refetchInterval: 30000, // refetch every 30s
+    staleTime: 0,
+  });
+}
+
+// ── Countdown timer for a single scheduled publish ─────────────────────────────
+function CountdownCard({ item }: { item: { class: string; exam_type: string; year: number; publish_at: string } }) {
+  const [timeLeft, setTimeLeft] = useState("");
+
+  useEffect(() => {
+    const calc = () => {
+      const diff = new Date(item.publish_at).getTime() - Date.now();
+      if (diff <= 0) { setTimeLeft("Publishing now..."); return; }
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      if (d > 0) setTimeLeft(`${d}d ${h}h ${m}m ${s}s`);
+      else if (h > 0) setTimeLeft(`${h}h ${m}m ${s}s`);
+      else setTimeLeft(`${m}m ${s}s`);
+    };
+    calc();
+    const t = setInterval(calc, 1000);
+    return () => clearInterval(t);
+  }, [item.publish_at]);
+
+  return (
+    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-500/40 rounded-2xl px-4 py-3">
+      <div className="flex items-center gap-2 shrink-0">
+        <div className="w-8 h-8 rounded-xl bg-amber-400 flex items-center justify-center shrink-0">
+          <Timer className="w-4 h-4 text-white" />
+        </div>
+        <div>
+          <p className="text-xs font-bold text-amber-800 dark:text-amber-200">
+            Class {item.class} — {item.exam_type} {item.year}
+          </p>
+          <p className="text-[10px] text-amber-600 dark:text-amber-400">Results coming soon</p>
+        </div>
+      </div>
+      <div className="sm:ml-auto bg-amber-100 dark:bg-amber-900/40 rounded-xl px-4 py-2 text-center min-w-[120px]">
+        <p className="text-lg font-black text-amber-700 dark:text-amber-300 font-mono tracking-wide">{timeLeft}</p>
+        <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider">Publishes in</p>
+      </div>
+    </div>
+  );
+}
+
+// ── Banner shown above results when some are pending publish ──────────────────
+function ScheduledResultsBanner() {
+  const { data: scheduled = [] } = useScheduledPublishes();
+  if (!scheduled.length) return null;
+  return (
+    <div className="mb-6 space-y-3">
+      <div className="flex items-center gap-2 mb-1">
+        <Clock className="w-4 h-4 text-amber-500" />
+        <p className="text-sm font-bold text-foreground">
+          Upcoming Result Publications
+        </p>
+      </div>
+      {scheduled.map((item, i) => (
+        <CountdownCard key={i} item={item} />
+      ))}
+    </div>
+  );
+}
+
 import { useState, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
-import { Search, GraduationCap, Trophy, Medal, Users, TrendingUp, Award, XCircle } from "lucide-react";
+import { Search, GraduationCap, Trophy, Medal, Users, TrendingUp, Award, XCircle, Timer, Clock } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import PageBanner from "@/components/shared/PageBanner";
 import { useResults, useResultYears, getGradeFromPercentage, getGradeColor } from "@/hooks/useResults";
+import { supabase } from "@/lib/supabase";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const classes = ["6", "7", "8", "9", "10"];
@@ -66,6 +159,11 @@ const Results = () => {
   return (
     <PageLayout>
       <PageBanner title="Exam Results" subtitle="Check your examination results" />
+
+      {/* Scheduled results countdown — shows when results are pending */}
+      <div className="container mx-auto px-4 mt-6">
+        <ScheduledResultsBanner />
+      </div>
 
       <section className="py-16">
         <div className="container mx-auto px-4">
@@ -299,3 +397,4 @@ const Results = () => {
 };
 
 export default Results;
+                
