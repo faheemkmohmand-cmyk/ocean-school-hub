@@ -231,18 +231,17 @@ function generateClassPDF(entries: MeritEntry[], cls: string, examType: string, 
     bodyStyles: { fontSize: 8.5, cellPadding: 3, textColor: [20, 20, 20] },
     alternateRowStyles: { fillColor: [246, 247, 250] },
     columnStyles: {
-      0: { halign: "center", cellWidth: 14, fontStyle: "bold" },
+      0: { halign: "center", cellWidth: 13, fontStyle: "bold" },
       1: { halign: "center", cellWidth: 22 },
-      2: { cellWidth: 72 },
-      3: { halign: "center", cellWidth: 28 },
-      4: { halign: "center", cellWidth: 20, fontStyle: "bold" },
-      5: { halign: "center", cellWidth: 16 },
-      6: { halign: "center", cellWidth: 16 },
+      2: { cellWidth: "auto", overflow: "linebreak" },
+      3: { halign: "center", cellWidth: 26 },
+      4: { halign: "center", cellWidth: 18, fontStyle: "bold" },
+      5: { halign: "center", cellWidth: 15 },
+      6: { halign: "center", cellWidth: 15 },
     },
     didParseCell: (data) => {
       if (data.section === "body") {
         if (data.row.index < 3) data.cell.styles.fontStyle = "bold";
-        // Color fail rows
         if (data.column.index === 6) {
           const val = String(data.cell.raw);
           data.cell.styles.textColor = val === "Pass" ? [0, 128, 0] : [200, 0, 0];
@@ -358,12 +357,12 @@ function generateAllClassesPDF(byClass: Record<string, MeritEntry[]>, year: numb
       bodyStyles: { fontSize: 8.5, cellPadding: 3, textColor: [20, 20, 20] },
       alternateRowStyles: { fillColor: [246, 247, 250] },
       columnStyles: {
-        0: { halign: "center", cellWidth: 14, fontStyle: "bold" },
+        0: { halign: "center", cellWidth: 13, fontStyle: "bold" },
         1: { halign: "center", cellWidth: 22 },
-        2: { cellWidth: 72 },
-        3: { halign: "center", cellWidth: 28 },
-        4: { halign: "center", cellWidth: 20, fontStyle: "bold" },
-        5: { halign: "center", cellWidth: 16 },
+        2: { cellWidth: "auto", overflow: "linebreak" },
+        3: { halign: "center", cellWidth: 26 },
+        4: { halign: "center", cellWidth: 18, fontStyle: "bold" },
+        5: { halign: "center", cellWidth: 15 },
         6: { halign: "center", cellWidth: 16 },
       },
       didParseCell: (data) => {
@@ -465,6 +464,7 @@ function MeritTable({ entries, showClass = false }: { entries: MeritEntry[]; sho
                 </td>
               </tr>
             ))}
+        ))}
           </tbody>
         </table>
       </div>
