@@ -17,6 +17,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import NewsTicker from "@/components/shared/NewsTicker";
 import { useLeaderboard } from "@/hooks/useNotes";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 import DailyQuoteCard from "@/components/shared/DailyQuoteCard";
 
 /* ─── Stagger helpers ─── */
@@ -61,85 +63,129 @@ const TYPING_WORDS = [
 ];
 
 /* ─── MAIN ─── */
-/* ─── TopperSection — fetches #1 student from leaderboard ─── */
+/* ─── useSchoolToppers — fetches rank #1 from each class (real exam results) ─── */
+function useSchoolToppers() {
+  return useQuery({
+    queryKey: ["school-toppers-home"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("results")
+        .select("class, exam_type, year, obtained_marks, percentage, grade, students(full_name, roll_number)")
+        .eq("is_published", true)
+        .eq("position", 1)
+        .order("year", { ascending: false })
+        .order("percentage", { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      // One topper per class — latest year
+      const seen = new Set<string>();
+      const toppers: any[] = [];
+      for (const r of (data ?? [])) {
+        if (!seen.has(r.class)) { seen.add(r.class); toppers.push(r); }
+      }
+      return toppers.sort((a, b) => Number(a.class) - Number(b.class));
+    },
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  });
+}
+
+/* ─── TopperSection — real exam #1 rank students from results ─── */
 const TopperSection = () => {
-  const { data: leaderboard = [] } = useLeaderboard();
-  const topper = leaderboard[0];
+  const { data: toppers = [] } = useSchoolToppers();
 
-  if (!topper) return null;
+  if (!toppers.length) return null;
 
-  // Generate initials avatar
-  const name = topper.full_name || "Top Student";
-  const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
-
-  // Anonymous nickname logic
-  const nicknames = ["Math Wizard", "Science Star", "Study Champion", "Knowledge King", "Quiz Master"];
-  const nickname = nicknames[Math.abs(topper.user_id?.charCodeAt(0) || 0) % nicknames.length];
-
-  const badges: Record<string, string> = {
-    first_step: "🌟", bookworm: "📚", quiz_master: "🏆",
-    on_fire: "🔥", legend: "👑", top_student: "⭐", subject_done: "💯",
-  };
+  // Show first topper as hero, rest as mini cards
+  const hero = toppers[0];
+  const heroName = (hero.students as any)?.full_name || "Top Student";
+  const heroInitials = heroName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
 
   return (
-    <section className="py-16 cv-auto">
+    <section className="py-16">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-8">
-          <span className="text-sm font-semibold uppercase tracking-widest text-primary">Hall of Fame</span>
-          <h2 className="mt-2 text-3xl md:text-4xl font-heading font-bold text-foreground">Top Student This Week</h2>
+        <div className="text-center mb-10">
+          <span className="text-sm font-semibold uppercase tracking-widest text-primary">Merit List</span>
+          <h2 className="mt-2 text-3xl md:text-4xl font-heading font-bold text-foreground">
+            🏆 School Rank #1 Students
+          </h2>
+          <p className="text-muted-foreground mt-2 text-sm">Top-position students from the latest published results</p>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="max-w-sm mx-auto"
-        >
-          <div className="relative bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 dark:from-amber-900/20 dark:via-yellow-900/20 dark:to-orange-900/20 border-2 border-amber-300 dark:border-amber-600 rounded-3xl p-8 text-center shadow-elevated overflow-hidden">
-            {/* Background glow */}
-            <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/10 to-orange-400/10 pointer-events-none" />
-
-            {/* Rank badge */}
-            <div className="absolute top-4 left-4 w-10 h-10 rounded-full bg-amber-400 flex items-center justify-center">
-              <span className="text-white font-black text-base">#1</span>
-            </div>
-
-            {/* Crown */}
-            <div className="text-4xl mb-1">👑</div>
-
-            {/* Avatar */}
-            <div className="w-24 h-24 rounded-full mx-auto mb-4 bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-3xl font-heading font-black shadow-lg ring-4 ring-amber-300 ring-offset-2">
-              {initials}
-            </div>
-
-            {/* Name */}
-            <h3 className="text-xl font-heading font-black text-foreground">{name}</h3>
-            <p className="text-sm text-muted-foreground mt-0.5 italic">"{nickname}"</p>
-
-            {/* Points + streak */}
-            <div className="flex items-center justify-center gap-4 mt-4">
-              <div className="bg-amber-100 dark:bg-amber-900/30 rounded-2xl px-4 py-2">
-                <p className="text-2xl font-black text-amber-600">⭐ {topper.total_points}</p>
-                <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold">Points</p>
+        <div className="flex flex-col lg:flex-row gap-6 items-start justify-center max-w-4xl mx-auto">
+          {/* Hero card — first/highest topper */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="w-full lg:w-72 shrink-0"
+          >
+            <div className="relative bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 dark:from-amber-900/20 dark:via-yellow-900/20 dark:to-orange-900/20 border-2 border-amber-300 dark:border-amber-600 rounded-3xl p-8 text-center shadow-elevated overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/10 to-orange-400/10 pointer-events-none" />
+              <div className="absolute top-4 left-4 w-10 h-10 rounded-full bg-amber-400 flex items-center justify-center">
+                <span className="text-white font-black text-base">#1</span>
               </div>
-              <div className="bg-orange-100 dark:bg-orange-900/30 rounded-2xl px-4 py-2">
-                <p className="text-2xl font-black text-orange-500">🔥 {topper.streak_days}</p>
-                <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold">Day Streak</p>
+              <div className="text-4xl mb-2">👑</div>
+              <div className="w-20 h-20 rounded-full mx-auto mb-3 bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-2xl font-heading font-black shadow-lg ring-4 ring-amber-300 ring-offset-2">
+                {heroInitials}
               </div>
+              <h3 className="text-lg font-heading font-black text-foreground">{heroName}</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Class {hero.class} · {hero.exam_type} {hero.year}
+              </p>
+              <div className="flex items-center justify-center gap-3 mt-4">
+                <div className="bg-amber-100 dark:bg-amber-900/30 rounded-2xl px-4 py-2">
+                  <p className="text-xl font-black text-amber-600">{hero.percentage?.toFixed(0)}%</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold">Score</p>
+                </div>
+                <div className="bg-green-100 dark:bg-green-900/30 rounded-2xl px-4 py-2">
+                  <p className="text-xl font-black text-green-600">{hero.grade || "A+"}</p>
+                  <p className="text-xs text-green-700 dark:text-green-400 font-semibold">Grade</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-4">🎯 Position 1 in class</p>
             </div>
+          </motion.div>
 
-            {/* Badges */}
-            {topper.badges?.length > 0 && (
-              <div className="flex items-center justify-center gap-1.5 mt-4 flex-wrap">
-                {topper.badges.slice(0, 5).map((b: string, i: number) => (
-                  <span key={i} title={b} className="text-xl">{badges[b] || "🏅"}</span>
-                ))}
-              </div>
-            )}
+          {/* Other toppers — compact grid */}
+          {toppers.length > 1 && (
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+              {toppers.slice(1).map((t, i) => {
+                const tName = (t.students as any)?.full_name || "Top Student";
+                const tInit = tName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.08 }}
+                    className="flex items-center gap-3 bg-card border border-border rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary/70 to-primary/40 flex items-center justify-center text-white text-sm font-black shrink-0 ring-2 ring-amber-300">
+                      {tInit}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-foreground truncate">{tName}</p>
+                      <p className="text-xs text-muted-foreground">Class {t.class} · Rank #1</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-black text-primary">{t.percentage?.toFixed(0)}%</p>
+                      <p className="text-xs text-muted-foreground">{t.grade || "A+"}</p>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
-            <p className="text-xs text-muted-foreground mt-4">Based on study points earned this week</p>
-          </div>
-        </motion.div>
+        <div className="text-center mt-8">
+          <Link to="/results"
+            className="inline-flex items-center gap-2 text-primary font-semibold text-sm hover:underline">
+            View Full Merit List <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -277,6 +323,19 @@ const Home = () => {
               </Link>
             </motion.div>
           </motion.div>
+        </div>
+
+        {/* ── Scroll indicator — animated mouse + SCROLL text ── */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-20">
+          <span className="text-white/50 text-[10px] font-bold uppercase tracking-[0.25em]">Scroll</span>
+          {/* Mouse shape */}
+          <div className="w-6 h-9 rounded-full border-2 border-white/40 flex items-start justify-center pt-1.5">
+            <motion.div
+              animate={{ y: [0, 10, 0] }}
+              transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+              className="w-1 h-2.5 rounded-full bg-white/70"
+            />
+          </div>
         </div>
       </section>
 
