@@ -232,66 +232,84 @@ function generateSchoolPDF(entries: MeritEntry[], examType: string, year: number
   const w = doc.internal.pageSize.getWidth();
   const h = doc.internal.pageSize.getHeight();
 
-  // Group by class
-  const byClass: Record<string, MeritEntry[]> = {};
-  ALL_CLASSES.forEach(c => { byClass[c] = entries.filter(e => e.class === c); });
+  // Sort ALL students together by percentage (unified school ranking)
+  const sorted = [...entries].sort((a, b) => b.percentage - a.percentage);
 
-  let isFirstPage = true;
+  const totalStudents = sorted.length;
+  const passing = sorted.filter(e => e.percentage >= 33);
+  const highest = totalStudents ? Math.max(...sorted.map(e => e.percentage)) : 0;
+  const avg = totalStudents ? Math.round(sorted.reduce((s, e) => s + e.percentage, 0) / totalStudents) : 0;
 
-  ALL_CLASSES.forEach((cls) => {
-    const clsEntries = byClass[cls];
-    if (!clsEntries?.length) return;
+  drawPDFHeader(
+    doc,
+    "WHOLE SCHOOL MERIT LIST",
+    `${examType}  |  Year ${year}  |  All Classes  |  ${totalStudents} Students`,
+    w
+  );
 
-    if (!isFirstPage) doc.addPage();
-    isFirstPage = false;
+  // Stats row
+  doc.setFillColor(240, 247, 255);
+  doc.roundedRect(12, 49, w - 24, 14, 2, 2, "F");
+  doc.setTextColor(4, 44, 83);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.text(`Total: ${totalStudents}`, 20, 58);
+  doc.text(`Passed: ${passing.length}`, 55, 58);
+  doc.text(`Highest: ${highest}%`, 95, 58);
+  doc.text(`Avg: ${avg}%`, 135, 58);
+  doc.text(`Pass Rate: ${totalStudents ? Math.round((passing.length / totalStudents) * 100) : 0}%`, 163, 58);
 
-    drawPDFHeader(doc, `MERIT LIST — CLASS ${cls}`, `${examType}  |  Year ${year}  |  ${clsEntries.length} students`, w);
-
-    const passing = clsEntries.filter(e => e.percentage >= 33);
-    const highest = Math.max(...clsEntries.map(e => e.percentage));
-    const avg = Math.round(clsEntries.reduce((s, e) => s + e.percentage, 0) / clsEntries.length);
-
-    doc.setFillColor(240, 247, 255);
-    doc.roundedRect(12, 49, w - 24, 14, 2, 2, "F");
-    doc.setTextColor(4, 44, 83);
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "bold");
-    doc.text(`Passed: ${passing.length}/${clsEntries.length}`, 20, 58);
-    doc.text(`Highest: ${highest}%`, 65, 58);
-    doc.text(`Avg: ${avg}%`, 105, 58);
-    doc.text(`Pass Rate: ${Math.round((passing.length / clsEntries.length) * 100)}%`, 148, 58);
-
-    autoTable(doc, {
-      startY: 67,
-      head: [["Rank", "Roll No", "Student Name", "Marks", "%", "Grade"]],
-      body: clsEntries.map((e, i) => [
-        medalLabel(i + 1),
-        e.roll_number,
-        e.full_name,
-        `${e.obtained_marks}/${e.total_marks}`,
-        `${e.percentage}%`,
-        e.grade,
-      ]),
-      headStyles: { fillColor: [4, 44, 83], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9, halign: "center" },
-      bodyStyles: { fontSize: 8.5, cellPadding: 3 },
-      alternateRowStyles: { fillColor: [248, 252, 255] },
-      columnStyles: {
-        0: { halign: "center", cellWidth: 16, fontStyle: "bold" },
-        1: { cellWidth: 22 },
-        2: { cellWidth: 68 },
-        3: { halign: "center", cellWidth: 26 },
-        4: { halign: "center", cellWidth: 22, fontStyle: "bold" },
-        5: { halign: "center", cellWidth: 18 },
-      },
-      didParseCell: (data) => {
-        if (data.section === "body") {
-          if (data.row.index === 0) { data.cell.styles.fillColor = [255, 243, 128]; data.cell.styles.fontStyle = "bold"; }
-          else if (data.row.index === 1) { data.cell.styles.fillColor = [235, 235, 235]; data.cell.styles.fontStyle = "bold"; }
-          else if (data.row.index === 2) { data.cell.styles.fillColor = [255, 228, 196]; data.cell.styles.fontStyle = "bold"; }
+  // ONE table — all students ranked together, Class column included
+  autoTable(doc, {
+    startY: 67,
+    head: [["School Rank", "Class", "Roll No", "Student Name", "Marks", "%", "Grade"]],
+    body: sorted.map((e, i) => [
+      i < 3 ? ["🥇 1st", "🥈 2nd", "🥉 3rd"][i] : `#${i + 1}`,
+      `Class ${e.class}`,
+      e.roll_number,
+      e.full_name,
+      `${e.obtained_marks}/${e.total_marks}`,
+      `${e.percentage}%`,
+      e.grade,
+    ]),
+    headStyles: {
+      fillColor: [4, 44, 83],
+      textColor: [255, 255, 255],
+      fontStyle: "bold",
+      fontSize: 9,
+      halign: "center",
+    },
+    bodyStyles: { fontSize: 8, cellPadding: 2.5 },
+    alternateRowStyles: { fillColor: [248, 252, 255] },
+    columnStyles: {
+      0: { halign: "center", cellWidth: 20, fontStyle: "bold" },
+      1: { halign: "center", cellWidth: 18 },
+      2: { cellWidth: 20 },
+      3: { cellWidth: 62 },
+      4: { halign: "center", cellWidth: 24 },
+      5: { halign: "center", cellWidth: 18, fontStyle: "bold" },
+      6: { halign: "center", cellWidth: 16 },
+    },
+    didParseCell: (data) => {
+      if (data.section === "body") {
+        if (data.row.index === 0) {
+          data.cell.styles.fillColor = [255, 243, 128];
+          data.cell.styles.fontStyle = "bold";
+          data.cell.styles.fontSize = 9;
+        } else if (data.row.index === 1) {
+          data.cell.styles.fillColor = [235, 235, 235];
+          data.cell.styles.fontStyle = "bold";
+        } else if (data.row.index === 2) {
+          data.cell.styles.fillColor = [255, 228, 196];
+          data.cell.styles.fontStyle = "bold";
         }
-      },
-      margin: { left: 12, right: 12, bottom: 20 },
-    });
+      }
+    },
+    margin: { left: 10, right: 10, bottom: 20 },
+    didDrawPage: (data) => {
+      const pageCount = (doc as any).internal.getNumberOfPages();
+      drawPDFFooter(doc, w, h, data.pageNumber, pageCount);
+    },
   });
 
   const totalPages = (doc as any).internal.getNumberOfPages();
@@ -435,7 +453,7 @@ function ClassMeritTab() {
         </div>
       )}
 
-      {/* Stats */}
+     {/* Stats */}
       {!isLoading && entries.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
@@ -476,8 +494,6 @@ function SchoolMeritTab() {
   // Group by class for display
   const byClass: Record<string, MeritEntry[]> = {};
   ALL_CLASSES.forEach(c => { byClass[c] = entries.filter(e => e.class === c); });
-  const [activeClass, setActiveClass] = useState("6");
-
   return (
     <div className="space-y-4">
       <Card><CardContent className="p-4">
@@ -507,14 +523,19 @@ function SchoolMeritTab() {
         </div>
       )}
 
-      {/* Class filter */}
-      {entries.length > 0 && (
-        <div className="flex gap-2 flex-wrap">
-          {ALL_CLASSES.filter(c => byClass[c]?.length > 0).map(c => (
-            <button key={c} onClick={() => setActiveClass(c)}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors ${activeClass === c ? "bg-[#042C53] text-white" : "bg-secondary text-muted-foreground hover:bg-secondary/80"}`}>
-              Class {c} <span className="opacity-70">({byClass[c]?.length ?? 0})</span>
-            </button>
+      {/* Stats across all classes */}
+      {!isLoading && entries.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: "Total Students", value: entries.length, color: "bg-blue-50 text-blue-700 dark:bg-blue-900/20" },
+            { label: "Passed", value: entries.filter(e => e.percentage >= 33).length, color: "bg-green-50 text-green-700 dark:bg-green-900/20" },
+            { label: "Highest %", value: `${Math.max(...entries.map(e => e.percentage))}%`, color: "bg-amber-50 text-amber-700 dark:bg-amber-900/20" },
+            { label: "School Avg", value: `${Math.round(entries.reduce((s, e) => s + e.percentage, 0) / entries.length)}%`, color: "bg-purple-50 text-purple-700 dark:bg-purple-900/20" },
+          ].map(s => (
+            <div key={s.label} className={`rounded-xl p-3 text-center ${s.color}`}>
+              <p className="text-xl font-bold">{s.value}</p>
+              <p className="text-xs font-medium">{s.label}</p>
+            </div>
           ))}
         </div>
       )}
@@ -529,7 +550,8 @@ function SchoolMeritTab() {
           <p className="text-muted-foreground text-sm">No published results found for {examType} · {year}.</p>
         </CardContent></Card>
       ) : (
-        <MeritTable entries={byClass[activeClass] ?? []} />
+        /* Show ALL students together, sorted by percentage — unified school ranking */
+        <MeritTable entries={[...entries].sort((a, b) => b.percentage - a.percentage)} showClass={true} />
       )}
     </div>
   );
@@ -557,3 +579,4 @@ const AdminMeritList = () => (
 );
 
 export default AdminMeritList;
+      
