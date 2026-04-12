@@ -55,18 +55,28 @@ function useMeritData(cls: string, examType: string, year: number) {
         .eq("is_published", true)
         .order("percentage", { ascending: false });
       if (error) throw error;
-      return (data ?? []).map((r: any, i: number) => ({
-        student_id: r.student_id,
-        full_name: r.students?.full_name || "Unknown",
-        roll_number: r.students?.roll_number || "-",
-        class: r.class,
-        photo_url: r.students?.photo_url || null,
-        obtained_marks: r.obtained_marks,
-        total_marks: r.total_marks,
-        percentage: r.percentage,
-        grade: r.grade || getGradeFromPercentage(r.percentage),
-        position: r.position || i + 1,
-      }));
+      const rows = data ?? [];
+      // Deduplicate by student_id — keep highest percentage
+      const best = new Map<string, any>();
+      for (const r of rows) {
+        if (!best.has(r.student_id) || r.percentage > best.get(r.student_id).percentage) {
+          best.set(r.student_id, r);
+        }
+      }
+      return Array.from(best.values())
+        .sort((a, b) => b.percentage - a.percentage)
+        .map((r: any, i: number) => ({
+          student_id: r.student_id,
+          full_name: r.students?.full_name || "Unknown",
+          roll_number: r.students?.roll_number || "-",
+          class: r.class,
+          photo_url: r.students?.photo_url || null,
+          obtained_marks: r.obtained_marks,
+          total_marks: r.total_marks,
+          percentage: Number(r.percentage) || 0,
+          grade: r.grade || getGradeFromPercentage(r.percentage),
+          position: i + 1,
+        }));
     },
     enabled: !!cls && !!examType && year >= 2000,
   });
@@ -89,18 +99,32 @@ function useWholeSchoolMerit(examType: string, year: number) {
       if (examType) q = q.eq("exam_type", examType);
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []).map((r: any, i: number) => ({
-        student_id: r.student_id,
-        full_name: r.students?.full_name || "Unknown",
-        roll_number: r.students?.roll_number || "-",
-        class: r.class,
-        photo_url: r.students?.photo_url || null,
-        obtained_marks: r.obtained_marks,
-        total_marks: r.total_marks,
-        percentage: r.percentage,
-        grade: r.grade || getGradeFromPercentage(r.percentage),
-        position: r.position || i + 1,
-      }));
+      const rows = data ?? [];
+
+      // Deduplicate: if a student appears multiple times (duplicate entry or
+      // multiple exam types), keep only the row with the highest percentage
+      const best = new Map<string, any>();
+      for (const r of rows) {
+        const key = r.student_id;
+        if (!best.has(key) || r.percentage > best.get(key).percentage) {
+          best.set(key, r);
+        }
+      }
+
+      return Array.from(best.values())
+        .sort((a, b) => b.percentage - a.percentage)
+        .map((r: any, i: number) => ({
+          student_id: r.student_id,
+          full_name: r.students?.full_name || "Unknown",
+          roll_number: r.students?.roll_number || "-",
+          class: r.class,
+          photo_url: r.students?.photo_url || null,
+          obtained_marks: r.obtained_marks,
+          total_marks: r.total_marks,
+          percentage: Number(r.percentage) || 0,
+          grade: r.grade || getGradeFromPercentage(r.percentage),
+          position: i + 1,
+        }));
     },
     enabled: year >= 2000,
   });
@@ -244,8 +268,14 @@ function generateSchoolPDF(entries: MeritEntry[], examType: string, year: number
   const w = doc.internal.pageSize.getWidth();
   const h = doc.internal.pageSize.getHeight();
 
-  // Sort ALL students together by percentage (unified school ranking)
-  const sorted = [...entries].sort((a, b) => b.percentage - a.percentage);
+  // Deduplicate by student_id (keep highest %), then sort by percentage
+  const dedupMap = new Map<string, MeritEntry>();
+  for (const e of entries) {
+    if (!dedupMap.has(e.student_id) || e.percentage > dedupMap.get(e.student_id)!.percentage) {
+      dedupMap.set(e.student_id, e);
+    }
+  }
+  const sorted = Array.from(dedupMap.values()).sort((a, b) => b.percentage - a.percentage);
 
   const totalStudents = sorted.length;
   const passing = sorted.filter(e => e.percentage >= 33);
@@ -373,7 +403,7 @@ function MeritTable({ entries, showClass = false }: { entries: MeritEntry[]; sho
                   <div className="flex items-center gap-2">
                     {e.photo_url
                       ? <img src={e.photo_url} alt="" className="w-7 h-7 rounded-full object-cover shrink-0" />
-                      : <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold shrink-0">{e.full_name[0]}</div>
+                      : <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold shrink-0">{(e.full_name || "?")[0]}</div>
                     }
                     {e.full_name}
                   </div>
@@ -438,7 +468,7 @@ function ClassMeritTab() {
         </div>
       </CardContent></Card>
 
-      {/* Actions */}
+    {/* Actions */}
       {!isLoading && entries.length > 0 && (
         <div className="flex gap-2 flex-wrap">
           <Button onClick={() => generateClassPDF(entries, cls, examType, year)} variant="outline">
@@ -583,4 +613,3 @@ const AdminMeritList = () => (
 );
 
 export default AdminMeritList;
-      
