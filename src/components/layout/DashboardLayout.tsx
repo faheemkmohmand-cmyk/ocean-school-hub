@@ -3,8 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Home, Calendar, BarChart3, Bell, Newspaper, BookOpen, Image, Trophy,
   Users, User, LogOut, GraduationCap, Menu, X, Shield, ExternalLink, Moon, Sun,
-  Video, Hash, FileText, MessageSquare, BookMarked, ClipboardCheck,
-  TrendingUp, Star, ClipboardList
+  Video, Hash, FileText, BookMarked, ClipboardCheck,
+  TrendingUp, Star
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
@@ -13,7 +13,6 @@ import { useDarkMode } from "@/hooks/useDarkMode";
 const navItems = [
   { id: "overview",       label: "Overview",        icon: Home           },
   { id: "notes",          label: "Study Notes",     icon: BookMarked     },
-  { id: "homework",       label: "Homework",        icon: ClipboardList  },
   { id: "timetable",      label: "Timetable",       icon: Calendar       },
   { id: "exam-schedule",  label: "Exam Schedule",   icon: Calendar       },
   { id: "results",        label: "Results",         icon: BarChart3      },
@@ -30,8 +29,6 @@ const navItems = [
   { id: "achievements",   label: "Achievements",    icon: Trophy         },
   { id: "tests",          label: "MCQ Tests",       icon: ClipboardCheck },
   { id: "teachers",       label: "Teachers",        icon: Users          },
-  { id: "messages",       label: "Message Admin",   icon: MessageSquare  },
-  { id: "discussion",     label: "Discussion",      icon: Users          },
   { id: "profile",        label: "My Profile",      icon: User           },
 ];
 
@@ -272,4 +269,5 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
 export default DashboardLayout;
 
 
-          
+
+              
