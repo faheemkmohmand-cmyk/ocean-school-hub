@@ -21,7 +21,6 @@ const AdminExamRollNumbers   = lazy(() => import("./tabs/AdminExamRollNumbers"))
 const AdminTests             = lazy(() => import("./tabs/AdminTests"));
 const AdminNotes             = lazy(() => import("../notes/AdminNotes"));
 // ── New feature admin tabs ──
-const AdminHomework          = lazy(() => import("./tabs/AdminHomework"));
 const AdminMeritList         = lazy(() => import("./tabs/AdminMeritList"));
 const AdminExtras            = lazy(() => import("./tabs/AdminExtras"));
 
@@ -44,7 +43,6 @@ const tabMap: Record<string, React.LazyExoticComponent<() => JSX.Element>> = {
   videos:             AdminVideos,
   notes:              AdminNotes,
   users:              AdminUsers,  // ── New features ──
-  homework:           AdminHomework,
   "merit-list":       AdminMeritList,
   extras:             AdminExtras,
 };
@@ -75,4 +73,4 @@ const AdminDashboard = () => {
 export default AdminDashboard;
       
 
-  
+
