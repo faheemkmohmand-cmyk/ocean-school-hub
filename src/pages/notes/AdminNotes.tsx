@@ -18,7 +18,7 @@ import {
   Loader2, Save, Zap, HelpCircle, RotateCcw, Play, Eye, EyeOff
 } from "lucide-react";
 import toast from "react-hot-toast";
-
+ 
 type View = "subjects" | "chapters" | "chapter-edit" | "quiz" | "flashcards";
 
 const BOXES = [
