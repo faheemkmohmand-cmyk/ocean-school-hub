@@ -229,15 +229,15 @@ const SchoolAnalyticsTab = () => {
         </div>
         <div className="flex items-center gap-2">
           <label className="text-xs text-muted-foreground">Year:</label>
-          <select
+          <input
+            type="number"
             value={year}
-            onChange={e => setYear(Number(e.target.value))}
-            className="text-sm bg-secondary border border-border rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-primary"
-          >
-            {[currentYear, currentYear - 1, currentYear - 2].map(y => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
+            onChange={e => { const v = parseInt(e.target.value, 10); if (v >= 2000 && v <= 2099) setYear(v); }}
+            min={2000}
+            max={2099}
+            className="text-sm bg-secondary border border-border rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-primary w-24 font-mono"
+            placeholder="Year"
+          />
         </div>
       </div>
 
@@ -397,8 +397,7 @@ const SchoolAnalyticsTab = () => {
               </ResponsiveContainer>
             </div>
           )}
-
-          {/* ── Attendance (if data available) ── */}
+  {/* ── Attendance (if data available) ── */}
           {attendanceByClass.length > 0 && (
             <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
               <h3 className="font-bold text-sm text-foreground mb-4 flex items-center gap-2">
