@@ -18,7 +18,7 @@ const navItems = [
   { id: "results",        label: "Results",         icon: BarChart3      },
   { id: "exam-rolls",     label: "Exam Roll No",    icon: Hash           },
   { id: "result-card",    label: "Result Card",     icon: FileText       },
-  { id: "analytics",      label: "My Analytics",    icon: TrendingUp     },
+  { id: "analytics",      label: "Analytics",        icon: TrendingUp     },
   { id: "honor-roll",     label: "Honor Roll",      icon: Star           },
   { id: "merit-list",     label: "Merit List",      icon: Trophy         },
   { id: "notices",        label: "Notices",         icon: Bell           },
@@ -270,4 +270,5 @@ export default DashboardLayout;
 
 
 
-              
+
+            
