@@ -66,8 +66,8 @@ const Navbar = () => {
           {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
 
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-2.5 shrink-0">
+        {/* Logo — RIGHT on mobile (ml-auto pushes it right), LEFT on desktop */}
+        <Link to="/" className="flex items-center gap-2.5 shrink-0 lg:order-first order-last ml-auto lg:ml-0">
           {settings?.logo_url ? (
             <img src={settings.logo_url} alt="Logo" className="w-10 h-10 rounded-xl object-cover" />
           ) : (
@@ -273,4 +273,5 @@ const Navbar = () => {
 };
 
 export default Navbar;
-          
+
+                        
