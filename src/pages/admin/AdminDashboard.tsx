@@ -23,9 +23,11 @@ const AdminNotes             = lazy(() => import("../notes/AdminNotes"));
 // ── New feature admin tabs ──
 const AdminMeritList         = lazy(() => import("./tabs/AdminMeritList"));
 const AdminExtras            = lazy(() => import("./tabs/AdminExtras"));
+const AdminAnalytics         = lazy(() => import("../dashboard/tabs/SchoolAnalyticsTab") as any);
 
 const tabMap: Record<string, React.LazyExoticComponent<() => JSX.Element>> = {
   overview:           AdminOverview,
+  analytics:          AdminAnalytics,
   "pending-requests": AdminPendingRequests,
   settings:           AdminSchoolSettings,
   teachers:           AdminTeachers,
