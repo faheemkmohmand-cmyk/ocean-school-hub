@@ -58,6 +58,14 @@ const Navbar = () => {
       }`}
     >
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
+        {/* Hamburger — LEFT side on mobile */}
+        <button
+          onClick={() => setOpen(!open)}
+          className="lg:hidden p-2 rounded-lg text-foreground hover:bg-secondary transition-colors shrink-0 mr-2"
+        >
+          {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2.5 shrink-0">
           {settings?.logo_url ? (
@@ -171,12 +179,6 @@ const Navbar = () => {
               )}
             </>
           )}
-          <button
-            onClick={() => setOpen(!open)}
-            className="lg:hidden p-2 rounded-lg text-foreground hover:bg-secondary transition-colors"
-          >
-            {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
         </div>
       </div>
 
@@ -271,3 +273,4 @@ const Navbar = () => {
 };
 
 export default Navbar;
+          
