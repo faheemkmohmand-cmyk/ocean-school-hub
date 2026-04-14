@@ -5,7 +5,7 @@
 //   - Subject-wise performance bar chart (Feature 7)
 //   - Performance trend over exams (Feature 9)
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useResults, useResultYears } from "@/hooks/useResults";
 import { useStudentAttendanceStats } from "@/hooks/useNewFeatures";
@@ -234,8 +234,18 @@ function TrendChart({ cls, rollNumber }: { cls: string; rollNumber: string }) {
 // ── Main Analytics Tab ────────────────────────────────────────────────────────
 const AnalyticsTab = () => {
   const { user, profile } = useAuth();
-  const [cls, setCls] = useState(profile?.class || "6");
-  const [examType, setExamType] = useState(examTypes[profile?.class || "6"][0]);
+  const profileClass = profile?.class || "6";
+  const safeClass = examTypes[profileClass] ? profileClass : "6";
+  const [cls, setCls] = useState(safeClass);
+  const [examType, setExamType] = useState(examTypes[safeClass][0]);
+
+  // Sync class/examType when profile loads asynchronously
+  useEffect(() => {
+    if (profile?.class && examTypes[profile.class]) {
+      setCls(profile.class);
+      setExamType(examTypes[profile.class][0]);
+    }
+  }, [profile?.class]);
   const { data: years = [] } = useResultYears();
   const [year, setYear] = useState<number | undefined>(undefined);
 
@@ -293,7 +303,7 @@ const AnalyticsTab = () => {
 
       {/* Attendance (for logged-in student) */}
       {isStudent && user && profile?.class && (
-        <AttendanceCard userId={user.id} cls={profile.class} />
+        <AttendanceCard userId={user.id} cls={profile?.class || cls} />
       )}
 
       {isLoading ? (
@@ -347,4 +357,5 @@ const AnalyticsTab = () => {
 };
 
 export default AnalyticsTab;
-            
+
+      
