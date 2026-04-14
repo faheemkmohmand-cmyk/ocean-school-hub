@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { useNotices } from "@/hooks/useNotices";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
+import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
@@ -11,8 +13,40 @@ const NotificationBell = () => {
   const { user } = useAuth();
   const { data: notices = [] } = useNotices();
   const [open, setOpen] = useState(false);
+  const [pulse, setPulse] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const qc = useQueryClient();
+
+  // ── Supabase Realtime — live updates when admin adds notices/news/results ──
+  useEffect(() => {
+    const channel = supabase
+      .channel("live-notifications")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notices" }, () => {
+        qc.invalidateQueries({ queryKey: ["notices"] });
+        setPulse(true);
+        setTimeout(() => setPulse(false), 3000);
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "news" }, () => {
+        qc.invalidateQueries({ queryKey: ["news"] });
+        qc.invalidateQueries({ queryKey: ["news-list"] });
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "results",
+        filter: "is_published=eq.true" }, () => {
+        qc.invalidateQueries({ queryKey: ["results"] });
+        qc.invalidateQueries({ queryKey: ["home-school-toppers"] });
+        setPulse(true);
+        setTimeout(() => setPulse(false), 3000);
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "homework" }, () => {
+        qc.invalidateQueries({ queryKey: ["homework"] });
+        setPulse(true);
+        setTimeout(() => setPulse(false), 3000);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [qc]);
 
   const storageKey = user ? `last_read_at_${user.id}` : "last_read_at_guest";
   const lastReadAt = localStorage.getItem(storageKey);
@@ -48,9 +82,14 @@ const NotificationBell = () => {
         onClick={() => setOpen(!open)}
         className="p-2 rounded-lg hover:bg-secondary text-muted-foreground relative transition-colors"
       >
-        <Bell className="w-5 h-5" />
+        <Bell className={`w-5 h-5 ${pulse ? "animate-bounce text-primary" : ""} transition-colors`} />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 min-w-[18px] text-[10px] font-bold bg-destructive text-destructive-foreground rounded-full flex items-center justify-center">
+          <span className={`absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] text-[10px] font-bold bg-destructive text-destructive-foreground rounded-full flex items-center justify-center px-1 ${pulse ? "animate-ping" : ""}`}>
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
+        )}
+        {unreadCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] text-[10px] font-bold bg-destructive text-destructive-foreground rounded-full flex items-center justify-center px-1">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -105,3 +144,4 @@ const NotificationBell = () => {
 };
 
 export default NotificationBell;
+      
