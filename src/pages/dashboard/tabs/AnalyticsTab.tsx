@@ -153,28 +153,26 @@ function SubjectChart({ results, selectedExam }: { results: any[]; selectedExam:
   );
 }
 
-// ── Comparison Chart (Feature 5) ──────────────────────────────────────────────
+// ── Comparison Chart (Feature 5) — safe: two fixed hook calls, no dynamic loops ─
 function ComparisonChart({ cls, rollNumber }: { cls: string; rollNumber: string }) {
   const examTypeList = examTypes[cls] || [];
+  const et0 = examTypeList[0] || "";
+  const et1 = examTypeList[1] || examTypeList[0] || "";
   const { data: years = [] } = useResultYears();
   const year = years[0] || currentYear;
 
-  const queries = examTypeList.map((et) => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    return useResults({ classFilter: cls, examType: et, year });
-  });
+  // Two fixed hook calls — never inside a loop (that breaks Rules of Hooks)
+  const { data: res0 = [] } = useResults({ classFilter: cls, examType: et0, year });
+  const { data: res1 = [] } = useResults({ classFilter: cls, examType: et1, year });
 
   const chartData = useMemo(() => {
-    return examTypeList.map((et, i) => {
-      const results = queries[i].data ?? [];
-      const myResult = results.find((r) => r.students?.roll_number === rollNumber);
-      return {
-        exam: et,
-        percentage: myResult?.percentage ?? 0,
-        marks: myResult ? `${myResult.obtained_marks}/${myResult.total_marks}` : "N/A",
-      };
-    });
-  }, [queries.map(q => q.data)]);
+    const r0 = res0.find((r) => r.students?.roll_number === rollNumber);
+    const r1 = res1.find((r) => r.students?.roll_number === rollNumber);
+    return [
+      { exam: et0, percentage: r0?.percentage ?? 0, marks: r0 ? `${r0.obtained_marks}/${r0.total_marks}` : "N/A" },
+      ...(et1 && et1 !== et0 ? [{ exam: et1, percentage: r1?.percentage ?? 0, marks: r1 ? `${r1.obtained_marks}/${r1.total_marks}` : "N/A" }] : []),
+    ];
+  }, [res0, res1, rollNumber, et0, et1]);
 
   if (chartData.every((d) => d.percentage === 0)) return null;
 
@@ -277,16 +275,9 @@ const AnalyticsTab = () => {
         <p className="text-xs text-muted-foreground">Attendance, results & performance insights</p>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-2 flex-wrap">
-        {classes.map((c) => (
-          <button key={c} onClick={() => { setCls(c); setExamType(examTypes[c][0]); }}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${cls === c ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
-            Class {c}
-          </button>
-        ))}
-      </div>
+      {/* Filters — class is auto-set from profile, student picks exam type & year */}
       <div className="flex gap-2 flex-wrap items-center">
+        <span className="text-xs font-bold bg-primary/10 text-primary px-3 py-1 rounded-lg">Class {cls}</span>
         {examTypes[cls].map((et) => (
           <button key={et} onClick={() => setExamType(et)}
             className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${examType === et ? "bg-primary/20 text-primary border border-primary/30" : "bg-secondary text-muted-foreground"}`}>
@@ -347,29 +338,13 @@ const AnalyticsTab = () => {
         </div>
       )}
 
-      {/* Exam Comparison (Feature 5) */}
-      {isStudent && profile?.roll_number && trendData.length >= 2 && (
-        <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
-          <h3 className="font-semibold text-foreground text-sm flex items-center gap-2 mb-4">
-            <BarChart3 className="w-4 h-4 text-primary" /> Exam Comparison
-          </h3>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={trendData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="exam" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 10 }} domain={[0, 100]} />
-              <Tooltip formatter={(v: any, _name, props) => [`${v}% (${props.payload.marks})`, "Your Score"]} />
-              <Bar dataKey="pct" radius={[6, 6, 0, 0]}>
-                {trendData.map((entry, i) => (
-                  <Cell key={i} fill={i === 0 ? "#6366f1" : "#10b981"} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+      {/* Exam Comparison (Feature 5) — uses safe ComparisonChart with fixed hook calls */}
+      {isStudent && profile?.roll_number && (
+        <ComparisonChart cls={cls} rollNumber={profile.roll_number} />
       )}
     </div>
   );
 };
 
 export default AnalyticsTab;
+            
