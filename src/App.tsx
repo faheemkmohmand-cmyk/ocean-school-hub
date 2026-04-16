@@ -3,6 +3,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import ErrorBoundary from "./components/shared/ErrorBoundary";
+import { usePageTracking } from "./hooks/usePageTracking";
+
+// Tracker: must be inside BrowserRouter to use useLocation
+function PageTracker() {
+  usePageTracking();
+  return null;
+}
 import OfflineBanner from "./components/shared/OfflineBanner";
 
 // ✅ All pages lazy-loaded — only the current page's code is downloaded
@@ -69,6 +76,7 @@ const App = () => (
       />
       <OfflineBanner />
       <BrowserRouter>
+        <PageTracker />
         <Suspense fallback={<PageSkeleton />}>
           <Routes>
             <Route path="/"                      element={<Home />} />
