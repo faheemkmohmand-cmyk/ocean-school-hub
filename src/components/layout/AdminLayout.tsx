@@ -11,8 +11,6 @@ import { useDarkMode } from "@/hooks/useDarkMode";
 
 const navItems = [
   { id: "overview",          label: "Overview",           icon: BarChart3      },
-  { id: "analytics",         label: "📊 Analytics",       icon: TrendingUp     },
-  { id: "pending-requests",  label: "Pending Requests",   icon: Clock          },
   { id: "settings",          label: "School Settings",    icon: Settings       },
   { id: "teachers",          label: "Manage Teachers",    icon: Users          },
   { id: "students",          label: "Manage Students",    icon: GraduationCap  },
@@ -27,9 +25,12 @@ const navItems = [
   { id: "achievements",      label: "Achievements",       icon: Trophy         },
   { id: "exam-rolls",        label: "Exam Roll Numbers",  icon: Hash           },
   { id: "notes",             label: "📚 Notes Manager",  icon: BookMarked     },
-  { id: "tests",             label: "MCQ Tests",          icon: ClipboardCheck },  { id: "videos",            label: "Videos",             icon: Video          },
+  { id: "tests",             label: "MCQ Tests",          icon: ClipboardCheck },
+  { id: "videos",            label: "Videos",             icon: Video          },
   { id: "users",             label: "Users",              icon: UserCog        },
   { id: "extras",            label: "✨ Extras",          icon: Star           },
+  { id: "analytics",         label: "📊 Analytics",       icon: TrendingUp     },
+  { id: "pending-requests",  label: "Pending Requests",   icon: Clock          },
 ];
 
 interface AdminLayoutProps {
@@ -253,4 +254,5 @@ export default AdminLayout;
 
 
 
-            
+
+              
