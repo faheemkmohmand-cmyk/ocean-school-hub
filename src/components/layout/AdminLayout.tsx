@@ -4,7 +4,7 @@ import {
   BarChart3, Settings, Users, GraduationCap, ClipboardList, CheckSquare, Activity,
   Calendar, Bell, Newspaper, Image, BookOpen, Trophy, UserCog, LogOut,
   Menu, X, ExternalLink, Shield, Moon, Sun, Video, Clock, Hash,
-  ClipboardCheck, MessageSquare, BookMarked, TrendingUp, Star
+  ClipboardCheck, MessageSquare, BookMarked, TrendingUp, Star, Globe
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/hooks/useDarkMode";
@@ -31,6 +31,7 @@ const navItems = [
   { id: "extras",            label: "✨ Extras",          icon: Star           },
   { id: "analytics",         label: "📊 Analytics",       icon: TrendingUp     },
   { id: "pending-requests",  label: "Pending Requests",   icon: Clock          },
+  { id: "site-analytics",    label: "🌐 Site Analytics",  icon: Globe          },
 ];
 
 interface AdminLayoutProps {
