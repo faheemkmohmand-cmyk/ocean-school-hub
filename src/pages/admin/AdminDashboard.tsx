@@ -46,10 +46,9 @@ const tabMap: Record<string, React.LazyExoticComponent<() => JSX.Element>> = {
   tests:              AdminTests,
   videos:             AdminVideos,
   notes:              AdminNotes,
-  users:              AdminUsers,  // ── New features ──
+  users:              AdminUsers,
   "merit-list":       AdminMeritList,
   extras:             AdminExtras,
-  "site-analytics":   AdminSiteAnalytics,
 };
 
 const Fallback = () => (
