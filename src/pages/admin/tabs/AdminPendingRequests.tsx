@@ -20,6 +20,7 @@ interface PendingUser {
   phone: string | null;
   status: string;
   created_at: string;
+  email?: string | null;
 }
 
 const AdminPendingRequests = () => {
@@ -49,37 +50,75 @@ const AdminPendingRequests = () => {
 
   const approveUser = useMutation({
     mutationFn: async (userId: string) => {
-      // Update profile status to approved
+      const user = users.find((u) => u.id === userId);
+
+      // ── Student: check for duplicate roll_number in same class BEFORE approving ──
+      if (user?.role === "student" && user.class && user.roll_number) {
+        const { data: existing } = await supabase
+          .from("students")
+          .select("id, full_name")
+          .eq("roll_number", user.roll_number)
+          .eq("class", user.class)
+          .maybeSingle();
+
+        if (existing) {
+          throw new Error(
+            `Roll number ${user.roll_number} already exists in Class ${user.class} (${existing.full_name}). ` +
+            `Ask the student to use a different roll number, or edit their profile first.`
+          );
+        }
+      }
+
+      // ── Approve the profile ───────────────────────────────────────────────
       const { error } = await supabase
         .from("profiles")
         .update({ status: "approved" })
         .eq("id", userId);
       if (error) throw error;
 
-      // If the user is a student, auto-add to students table
-      const user = users.find((u) => u.id === userId);
+      // ── Auto-add student to students table with correct composite conflict ──
       if (user?.role === "student" && user.class) {
-        const { error: studentError } = await supabase
+        // Get the internal student row id to link user_id
+        const { data: newStudent, error: studentError } = await supabase
           .from("students")
           .upsert(
             {
+              user_id: userId,
               full_name: user.full_name || "Unknown",
               roll_number: user.roll_number || "",
               class: user.class,
               is_active: true,
             },
-            { onConflict: "roll_number" }
-          );
+            { onConflict: "roll_number,class" }  // correct composite key
+          )
+          .select("id")
+          .single();
         if (studentError) {
           console.warn("Auto-add to students failed:", studentError.message);
         }
       }
+
+      // ── Auto-add teacher to teachers table ───────────────────────────────
+      if (user?.role === "teacher") {
+        await supabase
+          .from("teachers")
+          .upsert(
+            {
+              user_id: userId,
+              full_name: user.full_name || "Unknown",
+              phone: user.phone || null,
+              is_active: true,
+            },
+            { onConflict: "user_id" }
+          );
+      }
     },
     onSuccess: () => {
-      toast.success("✅ User approved successfully!");
+      toast.success("✅ User approved and added to the correct table!");
       qc.invalidateQueries({ queryKey: ["admin-pending-users"] });
       qc.invalidateQueries({ queryKey: ["admin-users"] });
       qc.invalidateQueries({ queryKey: ["admin-students"] });
+      qc.invalidateQueries({ queryKey: ["admin-teachers"] });
     },
     onError: (err: any) => toast.error(`Approval failed: ${err.message}`),
   });
@@ -265,3 +304,4 @@ const AdminPendingRequests = () => {
 };
 
 export default AdminPendingRequests;
+               
