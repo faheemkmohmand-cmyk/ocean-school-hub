@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,9 +54,7 @@ const AdminAchievements = () => {
     setSaving(true);
     let image_url = editing?.image_url || null;
     if (imageFile) {
-      const path = `achievements/${Date.now()}-${imageFile.name}`;
-      const { error } = await supabase.storage.from("achievement-images").upload(path, imageFile);
-      if (!error) image_url = supabase.storage.from("achievement-images").getPublicUrl(path).data.publicUrl;
+      image_url = await uploadToCloudinary(imageFile, "photos");
     }
     const payload = {
       title: form.title, description: form.description || null, student_name: form.student_name || null,
@@ -163,3 +162,4 @@ const AdminAchievements = () => {
 };
 
 export default AdminAchievements;
+      
