@@ -4,6 +4,10 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import ErrorBoundary from "./components/shared/ErrorBoundary";
 import OfflineBanner from "./components/shared/OfflineBanner";
+import { usePageTracker } from "./hooks/usePageTracker";
+
+// Invisible component — just runs the tracker hook inside BrowserRouter
+const PageTracker = () => { usePageTracker(); return null; };
 
 // ✅ All pages lazy-loaded
 const Home             = lazy(() => import("./pages/Home"));
@@ -62,6 +66,7 @@ const App = () => (
       />
       <OfflineBanner />
       <BrowserRouter>
+        <PageTracker />
         <Suspense fallback={<PageSkeleton />}>
           <Routes>
             <Route path="/"                     element={<Home />} />
@@ -113,4 +118,5 @@ const App = () => (
 );
 
 export default App;
+
             
