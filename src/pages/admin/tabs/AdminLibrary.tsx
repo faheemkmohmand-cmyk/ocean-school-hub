@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,13 +70,15 @@ const AdminLibrary = () => {
     let file_size = editing?.file_size || null;
 
     if (file) {
-      const ext = file.name.split(".").pop();
-      const path = `files/${Date.now()}.${ext}`;
       setUploadProgress(30);
-      const { error } = await supabase.storage.from("library-files").upload(path, file);
-      if (error) { toast.error("Upload failed"); setSaving(false); return; }
+      try {
+        file_url = await uploadToCloudinary(file, "library");
+      } catch {
+        toast.error("Upload failed");
+        setSaving(false);
+        return;
+      }
       setUploadProgress(80);
-      file_url = supabase.storage.from("library-files").getPublicUrl(path).data.publicUrl;
       file_type = ext?.toUpperCase() || null;
       file_size = formatFileSize(file.size);
     }
@@ -95,8 +98,7 @@ const AdminLibrary = () => {
 
   const deleteMut = useMutation({
     mutationFn: async (f: LibraryFile) => {
-      const path = f.file_url.split("/library-files/")[1];
-      if (path) await supabase.storage.from("library-files").remove([path]);
+      // Note: Cloudinary file not deleted here — manage via Cloudinary dashboard if needed
       const { error } = await supabase.from("library_files").delete().eq("id", f.id);
       if (error) throw error;
     },
@@ -213,3 +215,4 @@ const AdminLibrary = () => {
 };
 
 export default AdminLibrary;
+                          
