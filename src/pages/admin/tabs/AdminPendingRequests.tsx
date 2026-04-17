@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
@@ -139,6 +139,22 @@ const AdminPendingRequests = () => {
     onError: (err: any) => toast.error(`Rejection failed: ${err.message}`),
   });
 
+  // ── Realtime: auto-refresh when new signup comes in ────────────────────────
+  useEffect(() => {
+    const channel = supabase
+      .channel("pending-requests-watch")
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "profiles",
+        filter: "status=eq.pending",
+      }, () => {
+        qc.invalidateQueries({ queryKey: ["admin-pending-users"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [qc]);
+
   const filtered = search
     ? users.filter(
         (u) =>
@@ -210,8 +226,10 @@ const AdminPendingRequests = () => {
             <p className="text-muted-foreground font-medium">No {filter} requests</p>
             <p className="text-sm text-muted-foreground/70 mt-1">
               {filter === "pending"
-                ? "All signup requests have been processed."
-                : "No rejected users found."}
+                ? "No pending signups. New requests appear here automatically when someone signs up."
+                : filter === "rejected"
+                ? "No rejected users found."
+                : "No pending or rejected requests found."}
             </p>
           </CardContent>
         </Card>
@@ -304,4 +322,5 @@ const AdminPendingRequests = () => {
 };
 
 export default AdminPendingRequests;
-               
+
+                
