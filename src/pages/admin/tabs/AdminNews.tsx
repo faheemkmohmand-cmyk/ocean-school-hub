@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,10 +60,7 @@ const AdminNews = () => {
     setSaving(true);
     let image_url = form.image_url;
     if (imageFile) {
-      const ext = imageFile.name.split(".").pop();
-      const path = `news/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("news-images").upload(path, imageFile, { upsert: true });
-      if (!error) { const { data: { publicUrl } } = supabase.storage.from("news-images").getPublicUrl(path); image_url = publicUrl; }
+      image_url = await uploadToCloudinary(imageFile, "photos");
     }
     const payload = { ...form, image_url };
     const { error } = editing
@@ -144,3 +142,4 @@ const AdminNews = () => {
 };
 
 export default AdminNews;
+                                                                                                                 
