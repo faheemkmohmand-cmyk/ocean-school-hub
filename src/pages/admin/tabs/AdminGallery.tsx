@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,9 +60,7 @@ const AdminGallery = () => {
     setSaving(true);
     let cover_url: string | null = null;
     if (coverFile) {
-      const path = `covers/${Date.now()}-${coverFile.name}`;
-      const { error } = await supabase.storage.from("gallery").upload(path, coverFile);
-      if (!error) { cover_url = supabase.storage.from("gallery").getPublicUrl(path).data.publicUrl; }
+      cover_url = await uploadToCloudinary(coverFile, "gallery");
     }
     const { error } = await supabase.from("gallery_albums").insert({ title: form.title, description: form.description || null, cover_url });
     if (error) toast.error("Failed to create album");
@@ -72,10 +71,7 @@ const AdminGallery = () => {
   const deleteAlbum = useMutation({
     mutationFn: async (id: string) => {
       const { data: albumPhotos } = await supabase.from("gallery_photos").select("photo_url").eq("album_id", id);
-      if (albumPhotos) {
-        const paths = albumPhotos.map(p => p.photo_url.split("/gallery/")[1]).filter(Boolean);
-        if (paths.length) await supabase.storage.from("gallery").remove(paths);
-      }
+      // Note: Cloudinary files are not deleted here — manage via Cloudinary dashboard if needed
       await supabase.from("gallery_photos").delete().eq("album_id", id);
       const { error } = await supabase.from("gallery_albums").delete().eq("id", id);
       if (error) throw error;
@@ -90,13 +86,13 @@ const AdminGallery = () => {
     let uploaded = 0;
     for (const file of acceptedFiles) {
       const isVideo = file.type.startsWith("video/");
-      const folder = isVideo ? "videos" : "photos";
-      const path = `${folder}/${selectedAlbum.id}/${Date.now()}-${file.name}`;
-      const { error } = await supabase.storage.from("gallery").upload(path, file);
-      if (!error) {
-        const url = supabase.storage.from("gallery").getPublicUrl(path).data.publicUrl;
+      const cloudFolder = isVideo ? "gallery" : "gallery";
+      try {
+        const url = await uploadToCloudinary(file, cloudFolder);
         const media_type = isVideo ? "video" : "image";
         await supabase.from("gallery_photos").insert({ album_id: selectedAlbum.id, photo_url: url, media_type });
+      } catch {
+        // skip failed file, continue with others
       }
       uploaded++;
       setUploadProgress(Math.round((uploaded / acceptedFiles.length) * 100));
@@ -116,8 +112,7 @@ const AdminGallery = () => {
 
   const deletePhoto = useMutation({
     mutationFn: async (photo: GalleryPhoto) => {
-      const path = photo.photo_url.split("/gallery/")[1];
-      if (path) await supabase.storage.from("gallery").remove([path]);
+      // Note: Cloudinary file not deleted here — manage via Cloudinary dashboard if needed
       const { error } = await supabase.from("gallery_photos").delete().eq("id", photo.id);
       if (error) throw error;
     },
@@ -267,3 +262,4 @@ const AdminGallery = () => {
 };
 
 export default AdminGallery;
+    
