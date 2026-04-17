@@ -12,7 +12,6 @@ import { useDarkMode } from "@/hooks/useDarkMode";
 const navItems = [
   { id: "overview",          label: "Overview",           icon: BarChart3      },
   { id: "analytics",         label: "📊 Analytics",       icon: TrendingUp     },
-  { id: "site-analytics",    label: "🌐 Site Analytics",  icon: Activity       },
   { id: "pending-requests",  label: "Pending Requests",   icon: Clock          },
   { id: "settings",          label: "School Settings",    icon: Settings       },
   { id: "teachers",          label: "Manage Teachers",    icon: Users          },
@@ -249,6 +248,7 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
 
 export default AdminLayout;
         
+
 
 
 
