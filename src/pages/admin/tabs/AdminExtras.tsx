@@ -17,6 +17,7 @@ import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
 import { supabase } from "@/lib/supabase";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 import {
   useAllQuotes, useUpsertQuote, useDeleteQuote, type DailyQuote,
   useAllHonorRoll, useUpsertHonorRoll, useDeleteHonorRoll, type HonorRollEntry,
@@ -127,9 +128,7 @@ function HonorRollManager() {
     try {
       let photo_url = form.photo_url;
       if (photoFile) {
-        const path = `honor-roll/${Date.now()}-${photoFile.name}`;
-        const { error } = await supabase.storage.from("achievement-images").upload(path, photoFile);
-        if (!error) photo_url = supabase.storage.from("achievement-images").getPublicUrl(path).data.publicUrl;
+        photo_url = await uploadToCloudinary(photoFile, "photos");
       }
       const yr = parseInt(yearInput, 10);
       await upsert.mutateAsync({ ...(editing ? { id: editing.id } : {}), ...form, year: isNaN(yr) ? new Date().getFullYear() : yr, photo_url: photo_url || null, is_published: true });
@@ -277,7 +276,7 @@ function ExamScheduleManager() {
           <span>Subject *</span><span className="col-span-2">Paper Name</span><span>Paper Code</span><span>Date *</span><span>Start</span><span>End</span><span>Hall / Notes</span>
         </div>
 
-        {/* Rows */}
+          {/* Rows */}
         <div className="space-y-2">
           {rows.map((row, i) => (
             <div key={i} className="grid grid-cols-2 sm:grid-cols-8 gap-1.5 items-center bg-secondary/30 rounded-xl p-2">
