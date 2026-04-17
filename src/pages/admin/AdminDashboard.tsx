@@ -24,11 +24,13 @@ const AdminNotes             = lazy(() => import("../notes/AdminNotes"));
 const AdminMeritList         = lazy(() => import("./tabs/AdminMeritList"));
 const AdminExtras            = lazy(() => import("./tabs/AdminExtras"));
 const AdminAnalytics         = lazy(() => import("../dashboard/tabs/SchoolAnalyticsTab") as any);
+const AdminSiteAnalytics     = lazy(() => import("./tabs/AdminSiteAnalytics"));
 
 const tabMap: Record<string, React.LazyExoticComponent<() => JSX.Element>> = {
   overview:           AdminOverview,
   analytics:          AdminAnalytics,
   "pending-requests": AdminPendingRequests,
+  "site-analytics":   AdminSiteAnalytics,
   settings:           AdminSchoolSettings,
   teachers:           AdminTeachers,
   students:           AdminStudents,
@@ -47,6 +49,7 @@ const tabMap: Record<string, React.LazyExoticComponent<() => JSX.Element>> = {
   users:              AdminUsers,  // ── New features ──
   "merit-list":       AdminMeritList,
   extras:             AdminExtras,
+  "site-analytics":   AdminSiteAnalytics,
 };
 
 const Fallback = () => (
@@ -77,4 +80,4 @@ export default AdminDashboard;
 
 
 
-    
+
