@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -116,25 +117,24 @@ const AdminVideos = () => {
     let video_url = form.video_url;
     let thumbnail_url = form.thumbnail_url || null;
 
-    // ── Upload video file to Supabase Storage ──
+    // ── Upload video file to Cloudinary ──
     if (uploadMode === "upload" && videoFile) {
-      const safeName = videoFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const path = `videos/${Date.now()}-${safeName}`;
       setUploadProgress(20);
-      const { error } = await supabase.storage.from("videos").upload(path, videoFile);
-      if (error) { toast.error(`Upload failed: ${error.message}`); setSaving(false); return; }
-      video_url = supabase.storage.from("videos").getPublicUrl(path).data.publicUrl;
+      try {
+        video_url = await uploadToCloudinary(videoFile, "gallery");
+      } catch (e: any) {
+        toast.error(`Upload failed: ${e.message}`);
+        setSaving(false);
+        return;
+      }
       setUploadProgress(70);
     }
 
-    // ── Upload custom thumbnail ──
+    // ── Upload custom thumbnail to Cloudinary ──
     if (thumbFile) {
-      const safeName = thumbFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const path = `thumbnails/${Date.now()}-${safeName}`;
-      const { error } = await supabase.storage.from("videos").upload(path, thumbFile);
-      if (!error) {
-        thumbnail_url = supabase.storage.from("videos").getPublicUrl(path).data.publicUrl;
-      }
+      try {
+        thumbnail_url = await uploadToCloudinary(thumbFile, "photos");
+      } catch { /* thumbnail optional, skip on fail */ }
       setUploadProgress(90);
     }
 
@@ -168,11 +168,7 @@ const AdminVideos = () => {
   // ── Delete ─────────────────────────────────────────────────
   const deleteMut = useMutation({
     mutationFn: async (v: VideoItem) => {
-      // If it's a stored file, remove from storage
-      if (!isYouTubeUrl(v.video_url)) {
-        const path = v.video_url.split("/videos/")[1];
-        if (path) await supabase.storage.from("videos").remove([path]);
-      }
+      // Note: Cloudinary video not deleted here — manage via Cloudinary dashboard if needed
       const { error } = await supabase.from("videos").delete().eq("id", v.id);
       if (error) throw error;
     },
@@ -476,8 +472,7 @@ INSERT INTO storage.buckets (id, name, public) VALUES ('videos', 'videos', true)
                 </label>
               </div>
             </div>
-
-            {/* Publish toggle */}
+{/* Publish toggle */}
             <div className="flex items-center justify-between rounded-lg border border-border p-3">
               <div>
                 <p className="text-sm font-medium text-foreground">Published</p>
