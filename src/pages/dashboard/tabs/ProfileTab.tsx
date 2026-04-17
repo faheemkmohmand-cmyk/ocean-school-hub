@@ -2,6 +2,7 @@ import { useState } from "react";
 import { User, Lock, Loader2, Camera } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 import toast from "react-hot-toast";
 
 const classOptions = ["", "6", "7", "8", "9", "10"];
@@ -58,15 +59,14 @@ const ProfileTab = () => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
     setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `${user.id}/avatar.${ext}`;
-    const { error: uploadError } = await supabase.storage.from("student-photos").upload(path, file, { upsert: true });
-    if (uploadError) {
+    let publicUrl: string;
+    try {
+      publicUrl = await uploadToCloudinary(file, "photos");
+    } catch {
       toast.error("Upload failed");
       setUploading(false);
       return;
     }
-    const { data: { publicUrl } } = supabase.storage.from("student-photos").getPublicUrl(path);
     await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", user.id);
     toast.success("Photo updated!");
     refreshProfile();
@@ -148,3 +148,4 @@ const ProfileTab = () => {
 };
 
 export default ProfileTab;
+      
