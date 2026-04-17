@@ -128,11 +128,34 @@ const AdminUsers = () => {
       toast.error("Password must be at least 6 characters");
       return;
     }
+    if (addForm.role === "student" && !addForm.class) {
+      toast.error("Please select a class for the student");
+      return;
+    }
+    if (addForm.role === "student" && !addForm.roll_number.trim()) {
+      toast.error("Roll number is required for students");
+      return;
+    }
+
+    // ── Check duplicate roll_number in same class BEFORE creating auth user ──
+    if (addForm.role === "student" && addForm.class && addForm.roll_number.trim()) {
+      const { data: dupCheck } = await supabase
+        .from("students")
+        .select("id, full_name")
+        .eq("roll_number", addForm.roll_number.trim())
+        .eq("class", addForm.class)
+        .maybeSingle();
+
+      if (dupCheck) {
+        toast.error(
+          `Roll number ${addForm.roll_number} already exists in Class ${addForm.class} (${dupCheck.full_name}). Please use a different roll number.`
+        );
+        return;
+      }
+    }
 
     setAdding(true);
     try {
-      // Create auth user via Supabase Admin API (anon key doesn't support admin createUser)
-      // So we use signUp which creates both auth user and triggers profile creation
       const { data, error } = await supabase.auth.signUp({
         email: addForm.email.trim(),
         password: addForm.password,
@@ -148,10 +171,10 @@ const AdminUsers = () => {
       }
 
       if (data.user) {
-        // Update the profile with role, class, phone, roll_number
-        // Wait a moment for trigger to create profile
-        await new Promise(r => setTimeout(r, 800));
+        // Wait for trigger to create profile row
+        await new Promise(r => setTimeout(r, 900));
 
+        // Update profile: role, class, phone, roll_number, status=approved (admin-added = auto-approved)
         const { error: updateError } = await supabase
           .from("profiles")
           .update({
@@ -160,38 +183,52 @@ const AdminUsers = () => {
             class: addForm.class || null,
             phone: addForm.phone || null,
             roll_number: addForm.roll_number || null,
+            status: "approved",  // admin-added users are auto-approved
           })
           .eq("id", data.user.id);
 
-        if (updateError) {
-          console.warn("Profile update error:", updateError.message);
-        }
+        if (updateError) console.warn("Profile update:", updateError.message);
 
-        // ── Auto-add to students table if role is student ─────────────────────
+        // ── Auto-add to STUDENTS table ──────────────────────────────────────
         if (addForm.role === "student" && addForm.class && addForm.roll_number.trim()) {
-          const { error: studentError } = await supabase
+          const { error: stErr } = await supabase
             .from("students")
-            .upsert({
+            .insert({
+              user_id: data.user.id,
               full_name: addForm.full_name.trim(),
               roll_number: addForm.roll_number.trim(),
               class: addForm.class,
-              father_name: null,
               is_active: true,
-            }, { onConflict: "roll_number,class" });
-          if (studentError) {
-            console.warn("Auto-add to students failed:", studentError.message);
+            });
+          if (stErr) {
+            toast.error(`Student saved but error adding to class list: ${stErr.message}`);
           } else {
-            toast.success(`Also added to Manage Students (Class ${addForm.class})`);
+            toast.success(`✅ "${addForm.full_name}" added to Class ${addForm.class}`);
           }
-        } else if (addForm.role === "student" && (!addForm.class || !addForm.roll_number.trim())) {
-          toast(`⚠️ Student not added to Manage Students — please provide Class and Roll Number`, { icon: "⚠️" });
         }
 
-        toast.success(`User "${addForm.full_name}" added successfully!`);
+        // ── Auto-add to TEACHERS table ──────────────────────────────────────
+        if (addForm.role === "teacher") {
+          await supabase
+            .from("teachers")
+            .upsert({
+              user_id: data.user.id,
+              full_name: addForm.full_name.trim(),
+              phone: addForm.phone || null,
+              is_active: true,
+            }, { onConflict: "user_id" });
+          toast.success(`✅ "${addForm.full_name}" added as Teacher`);
+        }
+
+        if (addForm.role !== "student" && addForm.role !== "teacher") {
+          toast.success(`✅ User "${addForm.full_name}" added successfully`);
+        }
+
         setAddOpen(false);
         setAddForm({ full_name: "", email: "", password: "", role: "student", class: "", phone: "", roll_number: "" });
         qc.invalidateQueries({ queryKey: ["admin-users"] });
         qc.invalidateQueries({ queryKey: ["admin-students"] });
+        qc.invalidateQueries({ queryKey: ["admin-teachers"] });
       }
     } catch (err: any) {
       toast.error(err?.message || "Something went wrong");
