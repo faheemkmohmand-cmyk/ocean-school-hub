@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,10 +93,7 @@ const AdminStudents = () => {
 
     let photo_url = form.photo_url;
     if (photoFile) {
-      const ext = photoFile.name.split(".").pop();
-      const path = `students/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("student-photos").upload(path, photoFile, { upsert: true });
-      if (!error) { const { data: { publicUrl } } = supabase.storage.from("student-photos").getPublicUrl(path); photo_url = publicUrl; }
+      photo_url = await uploadToCloudinary(photoFile, "photos");
     }
     const payload = { ...form, photo_url };
     const { error } = editing
