@@ -1,36 +1,29 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
+import { Loader2 } from "lucide-react";
 
 const AdminProtectedRoute = ({ children }: { children: ReactNode }) => {
-  const [status, setStatus] = useState<"loading" | "admin" | "not-admin" | "not-logged-in">("loading");
+  const { user, profile, loading } = useAuth();
 
-  useEffect(() => {
-    const check = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+  // Show spinner while auth loads — same as ProtectedRoute
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-      if (!session?.user) {
-        setStatus("not-logged-in");
-        return;
-      }
+  // Not logged in → sign in page
+  if (!user) {
+    return <Navigate to="/auth/signin" replace />;
+  }
 
-      const { data } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", session.user.id)
-        .single();
-
-      setStatus(data?.role === "admin" ? "admin" : "not-admin");
-    };
-
-    check();
-  }, []);
-
-  // Blank screen while checking — no spinner delay
-  if (status === "loading") return null;
-
-  if (status === "not-logged-in") return <Navigate to="/auth/signin" replace />;
-  if (status === "not-admin") return <Navigate to="/dashboard" replace />;
+  // Not admin → back to user dashboard
+  if (profile?.role !== "admin") {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return <>{children}</>;
 };
