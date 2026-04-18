@@ -38,7 +38,7 @@ const SignUp = () => {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data: authData, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -53,6 +53,20 @@ const SignUp = () => {
         },
       },
     });
+
+    // ── Manually insert profile row so admin can see pending request ──
+    if (!error && authData.user) {
+      await supabase.from("profiles").upsert({
+        id: authData.user.id,
+        full_name: fullName,
+        role,
+        class: role === "student" ? studentClass : null,
+        roll_number: role === "student" ? rollNumber : null,
+        phone: phone || null,
+        status: "pending",
+      }, { onConflict: "id" });
+    }
+
     setLoading(false);
 
     if (error) {
@@ -279,3 +293,4 @@ const SignUp = () => {
 };
 
 export default SignUp;
+              
