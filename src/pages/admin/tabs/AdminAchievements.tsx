@@ -54,7 +54,7 @@ const AdminAchievements = () => {
     setSaving(true);
     let image_url = editing?.image_url || null;
     if (imageFile) {
-      image_url = await uploadToCloudinary(imageFile, "photos");
+      image_url = await uploadToCloudinary(imageFile, "branding");
     }
     const payload = {
       title: form.title, description: form.description || null, student_name: form.student_name || null,
@@ -162,4 +162,5 @@ const AdminAchievements = () => {
 };
 
 export default AdminAchievements;
-      
+
+                
