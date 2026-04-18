@@ -61,7 +61,7 @@ const ProfileTab = () => {
     setUploading(true);
     let publicUrl: string;
     try {
-      publicUrl = await uploadToCloudinary(file, "photos");
+      publicUrl = await uploadToCloudinary(file, "students");
     } catch {
       toast.error("Upload failed");
       setUploading(false);
@@ -148,4 +148,4 @@ const ProfileTab = () => {
 };
 
 export default ProfileTab;
-      
+
