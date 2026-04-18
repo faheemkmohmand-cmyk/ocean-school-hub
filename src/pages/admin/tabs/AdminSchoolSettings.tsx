@@ -170,14 +170,13 @@ const AdminSchoolSettings = () => {
     setSaved(false);
 
     try {
-      // Simple update — RLS is disabled, row id=1 exists
+      // Upsert: creates row if missing, updates if exists
       const savePromise = supabase
         .from("school_settings")
-        .update(form)
-        .eq("id", 1);
+        .upsert({ ...form, id: 1 }, { onConflict: "id" })
 
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Save timed out. Check your internet connection.")), 30000)
+        setTimeout(() => reject(new Error("Save timed out. Check your internet connection.")), 8000)
       );
 
       const { error } = await Promise.race([savePromise, timeoutPromise]) as { error: any };
@@ -329,4 +328,5 @@ const AdminSchoolSettings = () => {
 export default AdminSchoolSettings;
 
 
-  
+
+        
