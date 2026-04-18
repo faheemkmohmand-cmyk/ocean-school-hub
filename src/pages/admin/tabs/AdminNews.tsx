@@ -58,16 +58,20 @@ const AdminNews = () => {
   const handleSave = async () => {
     if (!form.title) { toast.error("Title required"); return; }
     setSaving(true);
-    let image_url = form.image_url;
-    if (imageFile) {
-      image_url = await uploadToCloudinary(imageFile, "branding");
+    try {
+      let image_url = form.image_url;
+      if (imageFile) {
+        image_url = await uploadToCloudinary(imageFile, "branding");
+      }
+      const payload = { ...form, image_url };
+      const { error } = editing
+        ? await supabase.from("news").update(payload).eq("id", editing.id)
+        : await supabase.from("news").insert(payload);
+      if (error) toast.error("Save failed: " + error.message);
+      else { toast.success(editing ? "Updated" : "Added"); qc.invalidateQueries({ queryKey: ["admin-news"] }); setModalOpen(false); }
+    } catch (err: any) {
+      toast.error(err?.message || "Upload failed. Check Cloudinary env vars.");
     }
-    const payload = { ...form, image_url };
-    const { error } = editing
-      ? await supabase.from("news").update(payload).eq("id", editing.id)
-      : await supabase.from("news").insert(payload);
-    if (error) toast.error("Save failed");
-    else { toast.success(editing ? "Updated" : "Added"); qc.invalidateQueries({ queryKey: ["admin-news"] }); setModalOpen(false); }
     setSaving(false);
   };
 
@@ -143,4 +147,5 @@ const AdminNews = () => {
 
 export default AdminNews;
                                                                                                                  
-                
+
+    
