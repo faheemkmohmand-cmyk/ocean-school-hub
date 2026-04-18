@@ -60,7 +60,7 @@ const AdminNews = () => {
     setSaving(true);
     let image_url = form.image_url;
     if (imageFile) {
-      image_url = await uploadToCloudinary(imageFile, "photos");
+      image_url = await uploadToCloudinary(imageFile, "branding");
     }
     const payload = { ...form, image_url };
     const { error } = editing
@@ -143,3 +143,4 @@ const AdminNews = () => {
 
 export default AdminNews;
                                                                                                                  
+                
