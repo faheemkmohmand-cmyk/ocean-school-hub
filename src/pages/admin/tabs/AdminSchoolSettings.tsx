@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 import { supabase } from "@/lib/supabase";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,14 +13,13 @@ import { Save, Loader2, ImageIcon, CheckCircle } from "lucide-react";
 import toast from "react-hot-toast";
 import { useDropzone } from "react-dropzone";
 
-// ✅ FIXED ImageUploader — proper error handling + timeout + file size check
+// ✅ ImageUploader — uploads to Cloudinary (no Supabase storage)
 const ImageUploader = ({
-  label, currentUrl, bucket, path, onUploaded,
+  label, currentUrl, folder, onUploaded,
 }: {
   label: string;
   currentUrl: string | null;
-  bucket: string;
-  path: string;
+  folder: string;
   onUploaded: (url: string) => void;
 }) => {
   const [uploading, setUploading] = useState(false);
@@ -34,70 +34,30 @@ const ImageUploader = ({
     const file = files[0];
     if (!file) return;
 
-    // ✅ File size check — max 5MB
+    // File size check — max 5MB
     if (file.size > 5 * 1024 * 1024) {
       toast.error("File too large. Maximum size is 5MB.");
       return;
     }
 
-    // ✅ Show local preview immediately (don't wait for upload)
+    // Show local preview immediately (don't wait for upload)
     const localPreview = URL.createObjectURL(file);
     setPreview(localPreview);
     setUploading(true);
 
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const filePath = `${path}/${Date.now()}.${ext}`;
-
-      // ✅ Upload with timeout (30 seconds)
-      const uploadPromise = supabase.storage
-        .from(bucket)
-        .upload(filePath, file, {
-          upsert: true,
-          cacheControl: "3600",
-          contentType: file.type,
-        });
-
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Upload timed out after 30 seconds. Check your storage bucket policies.")), 30000)
-      );
-
-      const { error } = await Promise.race([uploadPromise, timeoutPromise]) as { error: Error | null };
-
-      if (error) {
-        console.error("Upload error:", error);
-        // ✅ Show specific error message
-        if (error.message?.includes("policy") || error.message?.includes("403") || error.message?.includes("Unauthorized")) {
-          toast.error("❌ Upload blocked by storage policy. Run the Storage_RLS_Fix.sql in Supabase.");
-        } else if (error.message?.includes("timed out")) {
-          toast.error("⏱ Upload timed out. Check storage bucket policies in Supabase.");
-        } else if (error.message?.includes("not found") || error.message?.includes("does not exist")) {
-          toast.error(`❌ Bucket "${bucket}" not found. Create it in Supabase Storage.`);
-        } else {
-          toast.error(`Upload failed: ${error.message}`);
-        }
-        setPreview(currentUrl); // revert preview
-        setUploading(false);
-        return;
-      }
-
-      // ✅ Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
-
-      onUploaded(publicUrl);
-      setPreview(publicUrl);
+      const url = await uploadToCloudinary(file, folder);
+      onUploaded(url);
+      setPreview(url);
       toast.success(`✅ ${label} uploaded successfully!`);
-
     } catch (err: any) {
-      console.error("Upload exception:", err);
-      toast.error(err?.message || "Upload failed. Check console for details.");
+      console.error("Cloudinary upload error:", err);
+      toast.error(err?.message || "Upload failed. Check Cloudinary env vars.");
       setPreview(currentUrl);
     }
 
     setUploading(false);
-  }, [bucket, path, label, onUploaded, currentUrl]);
+  }, [folder, label, onUploaded, currentUrl]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -144,7 +104,7 @@ const ImageUploader = ({
         {uploading ? (
           <div className="flex flex-col items-center gap-2 text-primary">
             <Loader2 className="w-6 h-6 animate-spin" />
-            <p className="text-sm font-medium">Uploading to Supabase...</p>
+            <p className="text-sm font-medium">Uploading to Cloudinary...</p>
             <p className="text-xs text-muted-foreground">Please wait, do not close this page</p>
           </div>
         ) : (
@@ -310,23 +270,18 @@ const AdminSchoolSettings = () => {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Branding</CardTitle>
-          <p className="text-xs text-muted-foreground mt-1">
-            ⚠️ If upload hangs forever, run <strong>Storage_RLS_Fix.sql</strong> in Supabase SQL Editor first.
-          </p>
         </CardHeader>
         <CardContent className="grid sm:grid-cols-2 gap-6">
           <ImageUploader
             label="School Logo"
             currentUrl={form.logo_url}
-            bucket="school-assets"
-            path="logos"
+            folder="branding"
             onUploaded={(url) => set("logo_url", url)}
           />
           <ImageUploader
             label="Hero Banner"
             currentUrl={form.banner_url}
-            bucket="school-assets"
-            path="banners"
+            folder="branding"
             onUploaded={(url) => set("banner_url", url)}
           />
         </CardContent>
@@ -360,3 +315,4 @@ const AdminSchoolSettings = () => {
 };
 
 export default AdminSchoolSettings;
+        
