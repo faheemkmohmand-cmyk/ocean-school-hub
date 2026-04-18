@@ -133,7 +133,7 @@ const AdminVideos = () => {
     // ── Upload custom thumbnail to Cloudinary ──
     if (thumbFile) {
       try {
-        thumbnail_url = await uploadToCloudinary(thumbFile, "photos");
+        thumbnail_url = await uploadToCloudinary(thumbFile, "gallery");
       } catch { /* thumbnail optional, skip on fail */ }
       setUploadProgress(90);
     }
@@ -477,7 +477,7 @@ INSERT INTO storage.buckets (id, name, public) VALUES ('videos', 'videos', true)
               <div>
                 <p className="text-sm font-medium text-foreground">Published</p>
                 <p className="text-xs text-muted-foreground">Students can see this video</p>
-              </div>
+   </div>
               <Switch
                 checked={form.is_published}
                 onCheckedChange={(v) => set("is_published", v)}
