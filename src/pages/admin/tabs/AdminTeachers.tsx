@@ -66,7 +66,7 @@ const AdminTeachers = () => {
     let photo_url = form.photo_url;
 
     if (photoFile) {
-      photo_url = await uploadToCloudinary(photoFile, "photos");
+      photo_url = await uploadToCloudinary(photoFile, "teachers");
     }
 
     const payload = { ...form, photo_url };
@@ -201,4 +201,5 @@ const AdminTeachers = () => {
 };
 
 export default AdminTeachers;
-      
+
+  
