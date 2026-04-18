@@ -170,13 +170,14 @@ const AdminSchoolSettings = () => {
     setSaved(false);
 
     try {
-      // Race against a 15-second timeout so it never hangs silently
+      // Simple update — RLS is disabled, row id=1 exists
       const savePromise = supabase
         .from("school_settings")
-        .upsert({ ...form, id: 1 }, { onConflict: "id" });
+        .update(form)
+        .eq("id", 1);
 
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Save timed out. Check Supabase RLS on school_settings.")), 15000)
+        setTimeout(() => reject(new Error("Save timed out. Check your internet connection.")), 30000)
       );
 
       const { error } = await Promise.race([savePromise, timeoutPromise]) as { error: any };
@@ -327,4 +328,5 @@ const AdminSchoolSettings = () => {
 
 export default AdminSchoolSettings;
 
-        
+
+  
