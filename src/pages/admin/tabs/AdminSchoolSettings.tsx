@@ -169,22 +169,33 @@ const AdminSchoolSettings = () => {
     setSaving(true);
     setSaved(false);
 
-    const { error } = await supabase
-      .from("school_settings")
-      .update(form)
-      .eq("id", 1);
+    try {
+      // Race against a 15-second timeout so it never hangs silently
+      const savePromise = supabase
+        .from("school_settings")
+        .upsert({ ...form, id: 1 }, { onConflict: "id" });
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Save timed out. Check Supabase RLS on school_settings.")), 15000)
+      );
+
+      const { error } = await Promise.race([savePromise, timeoutPromise]) as { error: any };
+
+      if (error) {
+        console.error("Save error:", error);
+        toast.error(`Failed to save: ${error.message}`);
+      } else {
+        setSaved(true);
+        toast.success("✅ Settings saved successfully!");
+        queryClient.invalidateQueries({ queryKey: ["school-settings"] });
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch (err: any) {
+      console.error("Save exception:", err);
+      toast.error(err?.message || "Save failed. Check console for details.");
+    }
 
     setSaving(false);
-
-    if (error) {
-      console.error("Save error:", error);
-      toast.error(`Failed to save: ${error.message}`);
-    } else {
-      setSaved(true);
-      toast.success("✅ Settings saved successfully!");
-      queryClient.invalidateQueries({ queryKey: ["school-settings"] });
-      setTimeout(() => setSaved(false), 3000);
-    }
   };
 
   const set = (key: string, val: string | number | null) =>
@@ -315,4 +326,5 @@ const AdminSchoolSettings = () => {
 };
 
 export default AdminSchoolSettings;
+
         
