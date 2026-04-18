@@ -63,22 +63,23 @@ const AdminTeachers = () => {
   const handleSave = async () => {
     if (!form.full_name || !form.subject) { toast.error("Name and Subject required"); return; }
     setSaving(true);
-    let photo_url = form.photo_url;
-
-    if (photoFile) {
-      photo_url = await uploadToCloudinary(photoFile, "teachers");
-    }
-
-    const payload = { ...form, photo_url };
-    const { error } = editing
-      ? await supabase.from("teachers").update(payload).eq("id", editing.id)
-      : await supabase.from("teachers").insert(payload);
-
-    if (error) toast.error("Save failed");
-    else {
-      toast.success(editing ? "Updated" : "Added");
-      qc.invalidateQueries({ queryKey: ["admin-teachers"] });
-      setModalOpen(false);
+    try {
+      let photo_url = form.photo_url;
+      if (photoFile) {
+        photo_url = await uploadToCloudinary(photoFile, "teachers");
+      }
+      const payload = { ...form, photo_url };
+      const { error } = editing
+        ? await supabase.from("teachers").update(payload).eq("id", editing.id)
+        : await supabase.from("teachers").insert(payload);
+      if (error) toast.error("Save failed: " + error.message);
+      else {
+        toast.success(editing ? "Updated" : "Added");
+        qc.invalidateQueries({ queryKey: ["admin-teachers"] });
+        setModalOpen(false);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Save failed. Check Cloudinary env vars.");
     }
     setSaving(false);
   };
@@ -202,4 +203,5 @@ const AdminTeachers = () => {
 
 export default AdminTeachers;
 
-  
+
+      
