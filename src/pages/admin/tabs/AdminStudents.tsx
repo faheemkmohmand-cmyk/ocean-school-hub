@@ -76,31 +76,38 @@ const AdminStudents = () => {
   const handleSave = async () => {
     if (!form.full_name || !form.roll_number) { toast.error("Name and Roll No required"); return; }
     setSaving(true);
+    try {
+      // Check duplicate roll_number in same class
+      let dupQuery = supabase
+        .from("students")
+        .select("id")
+        .eq("roll_number", form.roll_number)
+        .eq("class", form.class);
+      if (editing) dupQuery = dupQuery.neq("id", editing.id);
+      const { data: existing } = await dupQuery;
+      if (existing && existing.length > 0) {
+        toast.error(`Roll number ${form.roll_number} already exists in Class ${form.class}. Each class has its own roll numbers.`);
+        setSaving(false);
+        return;
+      }
 
-    // ✅ Check duplicate: same roll_number in same class (excluding current record when editing)
-    let dupQuery = supabase
-      .from("students")
-      .select("id")
-      .eq("roll_number", form.roll_number)
-      .eq("class", form.class);
-    if (editing) dupQuery = dupQuery.neq("id", editing.id);
-    const { data: existing } = await dupQuery;
-    if (existing && existing.length > 0) {
-      toast.error(`Roll number ${form.roll_number} already exists in Class ${form.class}. Each class has its own roll numbers.`);
-      setSaving(false);
-      return;
+      let photo_url = form.photo_url;
+      if (photoFile) {
+        photo_url = await uploadToCloudinary(photoFile, "students");
+      }
+      const payload = { ...form, photo_url };
+      const { error } = editing
+        ? await supabase.from("students").update(payload).eq("id", editing.id)
+        : await supabase.from("students").insert(payload);
+      if (error) toast.error(error.message);
+      else {
+        toast.success(editing ? "Updated" : "Added");
+        qc.invalidateQueries({ queryKey: ["admin-students"] });
+        setModalOpen(false);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Save failed. Check Cloudinary env vars.");
     }
-
-    let photo_url = form.photo_url;
-    if (photoFile) {
-      photo_url = await uploadToCloudinary(photoFile, "students");
-    }
-    const payload = { ...form, photo_url };
-    const { error } = editing
-      ? await supabase.from("students").update(payload).eq("id", editing.id)
-      : await supabase.from("students").insert(payload);
-    if (error) toast.error(error.message);
-    else { toast.success(editing ? "Updated" : "Added"); qc.invalidateQueries({ queryKey: ["admin-students"] }); setModalOpen(false); }
     setSaving(false);
   };
 
@@ -375,7 +382,7 @@ const AdminStudents = () => {
             <Button
               onClick={handlePromotion}
               disabled={promoting || promotionFrom === promotionTo}
-              className="gap-1.5 bg-amber-500 hover:bg-amber-600 text-white"
+             className="gap-1.5 bg-amber-500 hover:bg-amber-600 text-white"
             >
               {promoting && <Loader2 className="w-4 h-4 animate-spin" />}
               {promoting ? "Promoting..." : `Promote Class ${promotionFrom} → Class ${promotionTo}`}
