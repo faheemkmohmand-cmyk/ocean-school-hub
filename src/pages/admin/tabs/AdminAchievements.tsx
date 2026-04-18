@@ -52,19 +52,23 @@ const AdminAchievements = () => {
   const handleSave = async () => {
     if (!form.title) { toast.error("Title required"); return; }
     setSaving(true);
-    let image_url = editing?.image_url || null;
-    if (imageFile) {
-      image_url = await uploadToCloudinary(imageFile, "branding");
+    try {
+      let image_url = editing?.image_url || null;
+      if (imageFile) {
+        image_url = await uploadToCloudinary(imageFile, "branding");
+      }
+      const payload = {
+        title: form.title, description: form.description || null, student_name: form.student_name || null,
+        class: form.class || null, year: form.year, category: form.category, image_url,
+      };
+      const { error } = editing
+        ? await supabase.from("achievements").update(payload).eq("id", editing.id)
+        : await supabase.from("achievements").insert(payload);
+      if (error) toast.error("Save failed: " + error.message);
+      else { toast.success(editing ? "Updated" : "Added"); qc.invalidateQueries({ queryKey: ["admin-achievements"] }); setModalOpen(false); }
+    } catch (err: any) {
+      toast.error(err?.message || "Upload failed. Check Cloudinary env vars.");
     }
-    const payload = {
-      title: form.title, description: form.description || null, student_name: form.student_name || null,
-      class: form.class || null, year: form.year, category: form.category, image_url,
-    };
-    const { error } = editing
-      ? await supabase.from("achievements").update(payload).eq("id", editing.id)
-      : await supabase.from("achievements").insert(payload);
-    if (error) toast.error("Save failed");
-    else { toast.success(editing ? "Updated" : "Added"); qc.invalidateQueries({ queryKey: ["admin-achievements"] }); setModalOpen(false); }
     setSaving(false);
   };
 
@@ -163,4 +167,4 @@ const AdminAchievements = () => {
 
 export default AdminAchievements;
 
-                
+
