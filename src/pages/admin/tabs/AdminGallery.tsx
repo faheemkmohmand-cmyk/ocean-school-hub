@@ -58,13 +58,17 @@ const AdminGallery = () => {
   const handleCreateAlbum = async () => {
     if (!form.title) { toast.error("Title required"); return; }
     setSaving(true);
-    let cover_url: string | null = null;
-    if (coverFile) {
-      cover_url = await uploadToCloudinary(coverFile, "gallery");
+    try {
+      let cover_url: string | null = null;
+      if (coverFile) {
+        cover_url = await uploadToCloudinary(coverFile, "gallery");
+      }
+      const { error } = await supabase.from("gallery_albums").insert({ title: form.title, description: form.description || null, cover_url });
+      if (error) toast.error("Failed to create album: " + error.message);
+      else { toast.success("Album created!"); qc.invalidateQueries({ queryKey: ["admin-albums"] }); setModalOpen(false); }
+    } catch (err: any) {
+      toast.error(err?.message || "Upload failed. Check Cloudinary env vars.");
     }
-    const { error } = await supabase.from("gallery_albums").insert({ title: form.title, description: form.description || null, cover_url });
-    if (error) toast.error("Failed to create album");
-    else { toast.success("Album created!"); qc.invalidateQueries({ queryKey: ["admin-albums"] }); setModalOpen(false); }
     setSaving(false);
   };
 
@@ -262,4 +266,5 @@ const AdminGallery = () => {
 };
 
 export default AdminGallery;
-    
+
+        
