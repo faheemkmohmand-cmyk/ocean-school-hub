@@ -93,7 +93,7 @@ const AdminStudents = () => {
 
     let photo_url = form.photo_url;
     if (photoFile) {
-      photo_url = await uploadToCloudinary(photoFile, "photos");
+      photo_url = await uploadToCloudinary(photoFile, "students");
     }
     const payload = { ...form, photo_url };
     const { error } = editing
