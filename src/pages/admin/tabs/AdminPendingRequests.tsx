@@ -50,20 +50,34 @@ const AdminPendingRequests = () => {
 
   const approveUser = useMutation({
     mutationFn: async (userId: string) => {
-      const user = users.find((u) => u.id === userId);
+      // ── Always fetch FRESH user data from DB — never rely on stale cache ──
+      const { data: freshUser, error: fetchError } = await supabase
+        .from("profiles")
+        .select("id, full_name, role, class, roll_number, phone, status")
+        .eq("id", userId)
+        .single();
+
+      if (fetchError || !freshUser) {
+        throw new Error("Could not fetch user data. Please refresh and try again.");
+      }
+
+      // Guard: don't re-approve an already-approved user
+      if (freshUser.status === "approved") {
+        throw new Error("This user is already approved.");
+      }
 
       // ── Student: check for duplicate roll_number in same class BEFORE approving ──
-      if (user?.role === "student" && user.class && user.roll_number) {
+      if (freshUser.role === "student" && freshUser.class && freshUser.roll_number) {
         const { data: existing } = await supabase
           .from("students")
           .select("id, full_name")
-          .eq("roll_number", user.roll_number)
-          .eq("class", user.class)
+          .eq("roll_number", freshUser.roll_number)
+          .eq("class", freshUser.class)
           .maybeSingle();
 
         if (existing) {
           throw new Error(
-            `Roll number ${user.roll_number} already exists in Class ${user.class} (${existing.full_name}). ` +
+            `Roll number ${freshUser.roll_number} already exists in Class ${freshUser.class} (${existing.full_name}). ` +
             `Ask the student to use a different roll number, or edit their profile first.`
           );
         }
@@ -77,19 +91,18 @@ const AdminPendingRequests = () => {
       if (error) throw error;
 
       // ── Auto-add student to students table with correct composite conflict ──
-      if (user?.role === "student" && user.class) {
-        // Get the internal student row id to link user_id
-        const { data: newStudent, error: studentError } = await supabase
+      if (freshUser.role === "student" && freshUser.class) {
+        const { error: studentError } = await supabase
           .from("students")
           .upsert(
             {
               user_id: userId,
-              full_name: user.full_name || "Unknown",
-              roll_number: user.roll_number || "",
-              class: user.class,
+              full_name: freshUser.full_name || "Unknown",
+              roll_number: freshUser.roll_number || "",
+              class: freshUser.class,
               is_active: true,
             },
-            { onConflict: "roll_number,class" }  // correct composite key
+            { onConflict: "roll_number,class" }
           )
           .select("id")
           .single();
@@ -99,14 +112,14 @@ const AdminPendingRequests = () => {
       }
 
       // ── Auto-add teacher to teachers table ───────────────────────────────
-      if (user?.role === "teacher") {
+      if (freshUser.role === "teacher") {
         await supabase
           .from("teachers")
           .upsert(
             {
               user_id: userId,
-              full_name: user.full_name || "Unknown",
-              phone: user.phone || null,
+              full_name: freshUser.full_name || "Unknown",
+              phone: freshUser.phone || null,
               is_active: true,
             },
             { onConflict: "user_id" }
@@ -139,7 +152,7 @@ const AdminPendingRequests = () => {
     onError: (err: any) => toast.error(`Rejection failed: ${err.message}`),
   });
 
-  // ── Realtime: auto-refresh when new signup comes in ────────────────────────
+  // ── Realtime: auto-refresh when ANY profile status changes ───────────────
   useEffect(() => {
     const channel = supabase
       .channel("pending-requests-watch")
@@ -147,7 +160,8 @@ const AdminPendingRequests = () => {
         event: "*",
         schema: "public",
         table: "profiles",
-        filter: "status=eq.pending",
+        // Watch ALL profile changes — not just pending — so rejections
+        // and approvals also invalidate the cache immediately
       }, () => {
         qc.invalidateQueries({ queryKey: ["admin-pending-users"] });
       })
@@ -323,4 +337,5 @@ const AdminPendingRequests = () => {
 
 export default AdminPendingRequests;
 
-                
+
+                            
