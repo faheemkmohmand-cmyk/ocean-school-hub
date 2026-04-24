@@ -104,18 +104,19 @@ const AdminUsers = () => {
   // ── Delete user ──────────────────────────────────────────────────────────
   const deleteUser = useMutation({
     mutationFn: async (id: string) => {
-      // Delete profile first (auth user stays but profile is gone)
-      const { error } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", id);
+      // Use RPC so it runs with SECURITY DEFINER and bypasses RLS.
+      // The function deletes from profiles (and cascades to students/teachers).
+      const { error } = await supabase.rpc("admin_delete_user", { target_user_id: id });
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("User removed");
       qc.invalidateQueries({ queryKey: ["admin-users"] });
+      qc.invalidateQueries({ queryKey: ["admin-students"] });
+      qc.invalidateQueries({ queryKey: ["admin-teachers"] });
+      qc.invalidateQueries({ queryKey: ["admin-pending-users"] });
     },
-    onError: () => toast.error("Delete failed"),
+    onError: (err: any) => toast.error(`Delete failed: ${err.message}`),
   });
 
   // ── Add new user ─────────────────────────────────────────────────────────
