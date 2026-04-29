@@ -1,0 +1,293 @@
+/**
+ * ClassFormModal.tsx
+ * Premium modal for creating / editing an online class.
+ * Used by both Teacher dashboard and Admin dashboard.
+ */
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Video, Clock, Calendar, Users, BookOpen, Link2, FileText, BookMarked, Loader2 } from "lucide-react";
+import { OnlineClass, NewClass, SUBJECTS, CLASS_NAMES } from "@/hooks/useOnlineClasses";
+
+interface ClassFormModalProps {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (data: NewClass) => Promise<boolean>;
+  initial?: OnlineClass | null;
+  teacherName?: string;
+  teacherId?: string;
+  showTeacherField?: boolean;
+}
+
+const DURATIONS = [30, 45, 60, 75, 90, 120];
+
+const empty = (teacherName = "", teacherId = ""): NewClass => ({
+  title: "",
+  subject: "Mathematics",
+  class_name: "Class 10",
+  teacher_name: teacherName,
+  teacher_id: teacherId || null,
+  meet_link: "",
+  scheduled_date: new Date().toISOString().slice(0, 10),
+  start_time: "09:00",
+  duration_minutes: 60,
+  description: "",
+  homework: "",
+  notes: "",
+  recording_link: "",
+});
+
+export default function ClassFormModal({
+  open, onClose, onSubmit, initial, teacherName = "", teacherId = "", showTeacherField = false
+}: ClassFormModalProps) {
+  const [form, setForm]     = useState<NewClass>(empty(teacherName, teacherId));
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<keyof NewClass, string>>>({});
+
+  useEffect(() => {
+    if (open) {
+      setForm(initial
+        ? {
+            title: initial.title,
+            subject: initial.subject,
+            class_name: initial.class_name,
+            teacher_name: initial.teacher_name,
+            teacher_id: initial.teacher_id,
+            meet_link: initial.meet_link,
+            scheduled_date: initial.scheduled_date,
+            start_time: initial.start_time,
+            duration_minutes: initial.duration_minutes,
+            description: initial.description || "",
+            homework: initial.homework || "",
+            notes: initial.notes || "",
+            recording_link: initial.recording_link || "",
+          }
+        : empty(teacherName, teacherId)
+      );
+      setErrors({});
+    }
+  }, [open, initial, teacherName, teacherId]);
+
+  const set = (k: keyof NewClass, v: any) => {
+    setForm(f => ({ ...f, [k]: v }));
+    setErrors(e => ({ ...e, [k]: undefined }));
+  };
+
+  const validate = () => {
+    const e: Partial<Record<keyof NewClass, string>> = {};
+    if (!form.title.trim())         e.title         = "Title is required";
+    if (!form.meet_link.trim())     e.meet_link     = "Google Meet link is required";
+    if (!form.teacher_name.trim())  e.teacher_name  = "Teacher name is required";
+    if (!form.scheduled_date)       e.scheduled_date = "Date is required";
+    if (form.meet_link && !form.meet_link.startsWith("http"))
+      e.meet_link = "Must be a valid URL (start with http)";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
+    setSaving(true);
+    const ok = await onSubmit(form);
+    setSaving(false);
+    if (ok) onClose();
+  };
+
+  const Field = ({ label, icon: Icon, error, children }: {
+    label: string; icon: any; error?: string; children: React.ReactNode
+  }) => (
+    <div className="space-y-1.5">
+      <label className="flex items-center gap-1.5 text-xs font-semibold text-foreground/80 uppercase tracking-wider">
+        <Icon className="w-3.5 h-3.5 text-primary" />
+        {label}
+      </label>
+      {children}
+      {error && <p className="text-xs text-red-500">{error}</p>}
+    </div>
+  );
+
+  const inputCls = (err?: string) =>
+    `w-full px-3 py-2.5 rounded-xl bg-secondary/50 border text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all focus:ring-2 focus:ring-primary/30 focus:border-primary ${err ? "border-red-400" : "border-border"}`;
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto" style={{WebkitOverflowScrolling:"touch"}}>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          />
+
+          {/* Modal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.94, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.94, y: 16 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="relative w-full max-w-xl bg-card rounded-2xl shadow-2xl border border-border my-4 mx-4 sm:mx-auto"
+          >
+            {/* Header */}
+            <div className="sticky top-0 z-10 flex items-center justify-between p-5 bg-card border-b border-border rounded-t-2xl">
+              <div>
+                <h2 className="font-heading font-bold text-foreground text-lg">
+                  {initial ? "Edit Class" : "Create New Class"}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {initial ? "Update class details below" : "Fill in the details to schedule a new online class"}
+                </p>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto max-h-[calc(100svh-140px)] sm:max-h-[calc(90vh-80px)]">
+            <form onSubmit={handleSubmit} className="p-5 space-y-4">
+              {/* Title */}
+              <Field label="Class Title" icon={BookOpen} error={errors.title}>
+                <input
+                  className={inputCls(errors.title)}
+                  placeholder="e.g. Algebra & Equations — Chapter 3"
+                  value={form.title}
+                  onChange={e => set("title", e.target.value)}
+                />
+              </Field>
+
+              {/* Subject + Class row */}
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Subject" icon={BookOpen}>
+                  <select className={inputCls()} value={form.subject} onChange={e => set("subject", e.target.value)}>
+                    {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </Field>
+                <Field label="Class" icon={Users}>
+                  <select className={inputCls()} value={form.class_name} onChange={e => set("class_name", e.target.value)}>
+                    {CLASS_NAMES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </Field>
+              </div>
+
+              {/* Teacher name (admin only) */}
+              {showTeacherField && (
+                <Field label="Teacher Name" icon={Users} error={errors.teacher_name}>
+                  <input
+                    className={inputCls(errors.teacher_name)}
+                    placeholder="e.g. Sir Ahmad"
+                    value={form.teacher_name}
+                    onChange={e => set("teacher_name", e.target.value)}
+                  />
+                </Field>
+              )}
+
+              {/* Meet Link */}
+              <Field label="Google Meet Link" icon={Link2} error={errors.meet_link}>
+                <input
+                  className={inputCls(errors.meet_link)}
+                  placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                  value={form.meet_link}
+                  onChange={e => set("meet_link", e.target.value)}
+                />
+              </Field>
+
+              {/* Date + Time + Duration */}
+              <div className="grid grid-cols-3 gap-3">
+                <Field label="Date" icon={Calendar} error={errors.scheduled_date}>
+                  <input
+                    type="date"
+                    className={inputCls(errors.scheduled_date)}
+                    value={form.scheduled_date}
+                    onChange={e => set("scheduled_date", e.target.value)}
+                  />
+                </Field>
+                <Field label="Start Time" icon={Clock}>
+                  <input
+                    type="time"
+                    className={inputCls()}
+                    value={form.start_time}
+                    onChange={e => set("start_time", e.target.value)}
+                  />
+                </Field>
+                <Field label="Duration" icon={Clock}>
+                  <select className={inputCls()} value={form.duration_minutes} onChange={e => set("duration_minutes", Number(e.target.value))}>
+                    {DURATIONS.map(d => <option key={d} value={d}>{d} min</option>)}
+                  </select>
+                </Field>
+              </div>
+
+              {/* Description */}
+              <Field label="Description (optional)" icon={FileText}>
+                <textarea
+                  className={`${inputCls()} resize-none`}
+                  rows={2}
+                  placeholder="What will be covered in this class?"
+                  value={form.description || ""}
+                  onChange={e => set("description", e.target.value)}
+                />
+              </Field>
+
+              {/* Notes & Homework (post-class) */}
+              <div className="border-t border-border pt-4 space-y-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Post-Class Content (fill after class)
+                </p>
+                <Field label="Class Notes" icon={FileText}>
+                  <textarea
+                    className={`${inputCls()} resize-none`}
+                    rows={2}
+                    placeholder="Key points covered in the class…"
+                    value={form.notes || ""}
+                    onChange={e => set("notes", e.target.value)}
+                  />
+                </Field>
+                <Field label="Homework" icon={BookMarked}>
+                  <textarea
+                    className={`${inputCls()} resize-none`}
+                    rows={2}
+                    placeholder="Homework assigned after class…"
+                    value={form.homework || ""}
+                    onChange={e => set("homework", e.target.value)}
+                  />
+                </Field>
+                <Field label="Recording Link (optional)" icon={Video}>
+                  <input
+                    className={inputCls()}
+                    placeholder="https://drive.google.com/…"
+                    value={form.recording_link || ""}
+                    onChange={e => set("recording_link", e.target.value)}
+                  />
+                </Field>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 text-sm font-semibold text-foreground transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {saving
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
+                    : initial ? "Update Class" : "Create Class 🚀"
+                  }
+                </button>
+              </div>
+            </form>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
