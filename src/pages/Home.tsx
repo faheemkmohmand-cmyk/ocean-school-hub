@@ -451,26 +451,26 @@ const Home = () => {
               className="hidden lg:grid grid-cols-2 gap-4"
             >
               {[
-                { icon: Users, label: "Total Students", value: settings?.total_students || 500, suffix: "+", from: "from-blue-400", to: "to-blue-600" },
-                { icon: GraduationCap, label: "Qualified Teachers", value: settings?.total_teachers || 25, suffix: "+", from: "from-primary", to: "to-primary/70" },
-                { icon: Trophy, label: "Pass Rate", value: settings?.pass_percentage || 98, suffix: "%", from: "from-amber-400", to: "to-orange-500" },
-                { icon: BookOpen, label: "Years of Excellence", value: new Date().getFullYear() - (settings?.established_year || 2018), suffix: "", from: "from-purple-400", to: "to-purple-600" },
+                { icon: Users, label: "Total Students", value: settings?.total_students || 500, suffix: "+" },
+                { icon: GraduationCap, label: "Qualified Teachers", value: settings?.total_teachers || 25, suffix: "+" },
+                { icon: Trophy, label: "Pass Rate", value: settings?.pass_percentage || 98, suffix: "%" },
+                { icon: BookOpen, label: "Years of Excellence", value: new Date().getFullYear() - (settings?.established_year || 2018), suffix: "" },
               ].map((stat, i) => (
                 <motion.div
                   key={stat.label}
                   initial={{ opacity: 0, y: 40 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.9 + i * 0.15, duration: 0.5 }}
-                  whileHover={{ scale: 1.05, y: -5 }}
-                  className="bg-white/15 backdrop-blur-xl rounded-3xl p-6 border border-white/20 hover:bg-white/25 transition-all shadow-2xl cursor-default"
+                  whileHover={{ scale: 1.04, y: -4 }}
+                  className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all shadow-2xl cursor-default"
                 >
-                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${stat.from} ${stat.to} flex items-center justify-center mb-4 shadow-lg`}>
+                  <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center mb-4 shadow-lg border border-white/20">
                     <stat.icon className="w-7 h-7 text-white" />
                   </div>
                   <p className="text-3xl sm:text-4xl font-bold text-white">
                     <AnimCounter value={stat.value} suffix={stat.suffix} isInView={statsInView} />
                   </p>
-                  <p className="text-sm text-white/60 mt-2 font-medium">{stat.label}</p>
+                  <p className="text-sm text-white/70 mt-2 font-medium">{stat.label}</p>
                 </motion.div>
               ))}
             </motion.div>
