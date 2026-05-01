@@ -30,10 +30,11 @@ const FlashcardMode = ({ chapterId, onClose }: FlashcardModeProps) => {
   const handleMarkKnown = async () => {
     if (!user || !currentCard) return;
 
+    const prog = progress[currentCardId] as any;
     const nextReviewDate = new Date();
-    if (progress[currentCardId]?.correct_count ?? 0 === 0) {
+    if ((prog?.correct_count ?? 0) === 0) {
       nextReviewDate.setDate(nextReviewDate.getDate() + 1);
-    } else if ((progress[currentCardId]?.correct_count ?? 0) === 1) {
+    } else if ((prog?.correct_count ?? 0) === 1) {
       nextReviewDate.setDate(nextReviewDate.getDate() + 3);
     } else {
       nextReviewDate.setDate(nextReviewDate.getDate() + 7);
@@ -43,7 +44,7 @@ const FlashcardMode = ({ chapterId, onClose }: FlashcardModeProps) => {
       user_id: user.id,
       flashcard_id: currentCardId,
       known: true,
-      correct_count: (progress[currentCardId]?.correct_count ?? 0) + 1,
+      correct_count: (prog?.correct_count ?? 0) + 1,
       next_review: nextReviewDate.toISOString(),
     }, { onConflict: "user_id,flashcard_id" });
 
@@ -51,7 +52,7 @@ const FlashcardMode = ({ chapterId, onClose }: FlashcardModeProps) => {
   };
 
   const handleReviewAgain = () => {
-    setProgress(p => ({ ...p, [currentCardId]: { ...(p[currentCardId] || {}), marked: true } }));
+    setProgress(p => ({ ...p, [currentCardId]: { ...(p[currentCardId] || { known: false, marked: false }), marked: true } as any }));
     const remainingCards = sessionCards.filter((_, i) => i > currentIdx);
     if (remainingCards.length >= 2) {
       const reviewIdx = currentIdx + 2;

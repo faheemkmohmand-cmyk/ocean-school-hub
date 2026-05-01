@@ -88,7 +88,7 @@ function ScheduledResultsBanner() {
   );
 }
 
-import { useState, useMemo, useRef } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Search, GraduationCap, Trophy, Medal, Users, TrendingUp, Award, XCircle, Timer, Clock } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
@@ -96,7 +96,6 @@ import PageBanner from "@/components/shared/PageBanner";
 import { useResults, useResultYears, getGradeFromPercentage, getGradeColor } from "@/hooks/useResults";
 import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const classes = ["6", "7", "8", "9", "10"];
@@ -165,15 +164,15 @@ const Results = () => {
         <ScheduledResultsBanner />
       </div>
 
-      <section className="py-16">
-        <div className="container mx-auto px-4">
+      <section className="py-8 sm:py-16">
+        <div className="container mx-auto px-3 sm:px-4">
           {/* Class Tabs */}
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4">
             {classes.map((cls) => (
               <button
                 key={cls}
                 onClick={() => handleClassChange(cls)}
-                className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                className={`px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
                   selectedClass === cls
                     ? "gradient-hero text-primary-foreground shadow-card"
                     : "bg-card text-muted-foreground hover:bg-secondary shadow-card"
@@ -185,12 +184,12 @@ const Results = () => {
           </div>
 
           {/* Sub-tabs: exam type */}
-          <div className="flex flex-wrap items-center gap-2 mb-6">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-4 sm:mb-6">
             {examTypes[selectedClass].map((exam) => (
               <button
                 key={exam}
                 onClick={() => setSelectedExam(exam)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                   selectedExam === exam
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary text-secondary-foreground hover:bg-muted"
@@ -198,14 +197,25 @@ const Results = () => {
               >
                 {exam}
                 {(selectedClass === "9" || selectedClass === "10") && (
-                  <span className="text-xs opacity-75 ml-1">(BISE Peshawar)</span>
+                  <span className="hidden sm:inline text-xs opacity-75 ml-1">(BISE Peshawar)</span>
                 )}
               </button>
             ))}
+          </div>
 
-            {/* Year filter */}
-            <div className="ml-auto flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Year:</span>
+          {/* Filters row: search + year — stacks on mobile */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 sm:mb-8">
+            <div className="relative flex-1 sm:max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                value={search}
+                onChange={(e) => handleSearch(e.target.value)}
+                placeholder="Search by name or roll number..."
+                className="w-full rounded-xl border border-input bg-card pl-10 pr-4 py-2.5 text-sm shadow-card focus:ring-2 focus:ring-ring outline-none"
+              />
+            </div>
+            <div className="flex items-center gap-2 sm:ml-auto">
+              <span className="text-sm font-medium text-muted-foreground shrink-0">Year:</span>
               <input
                 type="number"
                 value={selectedYear || ""}
@@ -213,23 +223,10 @@ const Results = () => {
                   const val = e.target.value ? parseInt(e.target.value) : undefined;
                   if (val === undefined || (!isNaN(val) && val >= 1900 && val <= 2200)) setSelectedYear(val);
                 }}
-                className="w-28 rounded-lg border border-input bg-card px-3 py-2 text-sm shadow-card focus:ring-2 focus:ring-ring outline-none"
+                className="flex-1 sm:flex-none sm:w-28 rounded-lg border border-input bg-card px-3 py-2 text-sm shadow-card focus:ring-2 focus:ring-ring outline-none"
                 min="1900"
                 max="2200"
                 placeholder="All Years"
-              />
-            </div>
-          </div>
-
-          {/* Search */}
-          <div className="max-w-sm mb-8">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                value={search}
-                onChange={(e) => handleSearch(e.target.value)}
-                placeholder="Search by name or roll number..."
-                className="w-full rounded-xl border border-input bg-card pl-10 pr-4 py-2.5 text-sm shadow-card focus:ring-2 focus:ring-ring outline-none"
               />
             </div>
           </div>
@@ -325,68 +322,101 @@ const Results = () => {
 
               {/* Results Table */}
               {(tableResults.length > 0 || top3.length === 0) && (
-                <div className="bg-card rounded-2xl shadow-card overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="gradient-hero text-primary-foreground">
-                          <th className="px-4 py-3 text-left font-medium">Rank</th>
-                          <th className="px-4 py-3 text-left font-medium">Photo</th>
-                          <th className="px-4 py-3 text-left font-medium">Name</th>
-                          <th className="px-4 py-3 text-left font-medium">Roll #</th>
-                          <th className="px-4 py-3 text-left font-medium">Marks</th>
-                          <th className="px-4 py-3 text-left font-medium">%</th>
-                          <th className="px-4 py-3 text-left font-medium">Grade</th>
-                          <th className="px-4 py-3 text-left font-medium">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(top3.length === 0 ? results : tableResults).map((r, i) => {
-                          const grade = r.grade || getGradeFromPercentage(r.percentage || 0);
-                          return (
-                            <tr
-                              key={r.id}
-                              className={`border-t border-border hover:bg-secondary/50 transition-colors ${
-                                i % 2 === 1 ? "bg-secondary/20" : ""
-                              }`}
-                            >
-                              <td className="px-4 py-3 font-medium text-foreground">{r.position || i + (top3.length > 0 ? 4 : 1)}</td>
-                              <td className="px-4 py-3">
-                                {r.students?.photo_url ? (
-                                  <img src={r.students.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
-                                ) : (
-                                  <div className="w-8 h-8 rounded-full gradient-accent flex items-center justify-center text-primary-foreground text-xs font-bold">
-                                    {r.students?.full_name?.charAt(0) || "?"}
-                                  </div>
-                                )}
-                              </td>
-                              <td className="px-4 py-3 font-medium text-foreground">{r.students?.full_name || "Unknown"}</td>
-                              <td className="px-4 py-3 text-muted-foreground">{r.students?.roll_number}</td>
-                              <td className="px-4 py-3 text-muted-foreground">{r.obtained_marks}/{r.total_marks}</td>
-                              <td className="px-4 py-3 font-medium text-foreground">{(r.percentage || 0).toFixed(1)}%</td>
-                              <td className="px-4 py-3">
-                                <span className={`inline-block text-xs font-bold px-2.5 py-0.5 rounded-full ${getGradeColor(grade)}`}>
-                                  {grade}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3">
-                                {r.is_pass ? (
-                                  <span className="inline-block text-xs font-bold px-2.5 py-0.5 rounded-full bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]">
-                                    Pass
-                                  </span>
-                                ) : (
-                                  <span className="inline-block text-xs font-bold px-2.5 py-0.5 rounded-full bg-destructive/15 text-destructive">
-                                    Fail
-                                  </span>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                <>
+                  {/* Mobile card list (sm and below) */}
+                  <div className="md:hidden space-y-2.5">
+                    {(top3.length === 0 ? results : tableResults).map((r, i) => {
+                      const grade = r.grade || getGradeFromPercentage(r.percentage || 0);
+                      const rank = r.position || i + (top3.length > 0 ? 4 : 1);
+                      return (
+                        <div key={r.id} className="bg-card rounded-xl shadow-card p-3 flex items-center gap-3">
+                          <div className="shrink-0 w-7 text-center text-sm font-bold text-muted-foreground">#{rank}</div>
+                          {r.students?.photo_url ? (
+                            <img src={r.students.photo_url} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full gradient-accent flex items-center justify-center text-primary-foreground text-sm font-bold shrink-0">
+                              {r.students?.full_name?.charAt(0) || "?"}
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-foreground text-sm truncate">{r.students?.full_name || "Unknown"}</p>
+                            <p className="text-[11px] text-muted-foreground">Roll #{r.students?.roll_number} · {r.obtained_marks}/{r.total_marks} · {(r.percentage || 0).toFixed(1)}%</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${getGradeColor(grade)}`}>{grade}</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.is_pass ? "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]" : "bg-destructive/15 text-destructive"}`}>
+                              {r.is_pass ? "Pass" : "Fail"}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
+
+                  {/* Desktop table (md+) */}
+                  <div className="hidden md:block bg-card rounded-2xl shadow-card overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="gradient-hero text-primary-foreground">
+                            <th className="px-4 py-3 text-left font-medium">Rank</th>
+                            <th className="px-4 py-3 text-left font-medium">Photo</th>
+                            <th className="px-4 py-3 text-left font-medium">Name</th>
+                            <th className="px-4 py-3 text-left font-medium">Roll #</th>
+                            <th className="px-4 py-3 text-left font-medium">Marks</th>
+                            <th className="px-4 py-3 text-left font-medium">%</th>
+                            <th className="px-4 py-3 text-left font-medium">Grade</th>
+                            <th className="px-4 py-3 text-left font-medium">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(top3.length === 0 ? results : tableResults).map((r, i) => {
+                            const grade = r.grade || getGradeFromPercentage(r.percentage || 0);
+                            return (
+                              <tr
+                                key={r.id}
+                                className={`border-t border-border hover:bg-secondary/50 transition-colors ${
+                                  i % 2 === 1 ? "bg-secondary/20" : ""
+                                }`}
+                              >
+                                <td className="px-4 py-3 font-medium text-foreground">{r.position || i + (top3.length > 0 ? 4 : 1)}</td>
+                                <td className="px-4 py-3">
+                                  {r.students?.photo_url ? (
+                                    <img src={r.students.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-full gradient-accent flex items-center justify-center text-primary-foreground text-xs font-bold">
+                                      {r.students?.full_name?.charAt(0) || "?"}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 font-medium text-foreground">{r.students?.full_name || "Unknown"}</td>
+                                <td className="px-4 py-3 text-muted-foreground">{r.students?.roll_number}</td>
+                                <td className="px-4 py-3 text-muted-foreground">{r.obtained_marks}/{r.total_marks}</td>
+                                <td className="px-4 py-3 font-medium text-foreground">{(r.percentage || 0).toFixed(1)}%</td>
+                                <td className="px-4 py-3">
+                                  <span className={`inline-block text-xs font-bold px-2.5 py-0.5 rounded-full ${getGradeColor(grade)}`}>
+                                    {grade}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3">
+                                  {r.is_pass ? (
+                                    <span className="inline-block text-xs font-bold px-2.5 py-0.5 rounded-full bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]">
+                                      Pass
+                                    </span>
+                                  ) : (
+                                    <span className="inline-block text-xs font-bold px-2.5 py-0.5 rounded-full bg-destructive/15 text-destructive">
+                                      Fail
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
               )}
             </>
           )}

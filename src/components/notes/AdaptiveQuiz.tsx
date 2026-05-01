@@ -231,7 +231,7 @@ const AdaptiveQuiz = ({ quizId, chapterId, userId }: AdaptiveQuizProps) => {
 
         <h4 className="text-lg font-bold text-foreground mb-4">{currentQuestion.question}</h4>
 
-        {currentQuestion.question_type === "mcq" && (
+        {(currentQuestion as any).question_type === "mcq" && (
           <div className="space-y-2 mb-6">
             {[
               { key: "a", text: currentQuestion.option_a },
@@ -261,7 +261,7 @@ const AdaptiveQuiz = ({ quizId, chapterId, userId }: AdaptiveQuizProps) => {
           </div>
         )}
 
-        {currentQuestion.question_type === "fill" && (
+        {(currentQuestion as any).question_type === "fill" && (
           <div className="mb-6">
             <input
               type="text"

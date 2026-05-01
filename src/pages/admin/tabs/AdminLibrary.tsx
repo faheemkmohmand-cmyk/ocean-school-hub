@@ -79,7 +79,7 @@ const AdminLibrary = () => {
         return;
       }
       setUploadProgress(80);
-      file_type = ext?.toUpperCase() || null;
+      file_type = file.name.split(".").pop()?.toUpperCase() || null;
       file_size = formatFileSize(file.size);
     }
 
