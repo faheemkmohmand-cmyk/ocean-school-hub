@@ -180,12 +180,13 @@ const TopperSection = () => {
               const name = (t.students as any)?.full_name || "Top Student";
               const photoUrl = (t.students as any)?.photo_url || null;
               const initials = (name || "?").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+              // Unified premium tonal-blue palette — consistent, not rainbow
               const gradients = [
-                "from-[#1565c0] via-[#1976d2] to-[#42a5f5]",
-                "from-[#6a1b9a] via-[#8e24aa] to-[#ce93d8]",
-                "from-[#2e7d32] via-[#388e3c] to-[#81c784]",
-                "from-[#e65100] via-[#f57c00] to-[#ffb74d]",
-                "from-[#1a237e] via-[#283593] to-[#7986cb]",
+                "from-[#0c4a6e] via-[#0369a1] to-[#0ea5e9]",
+                "from-[#075985] via-[#0284c7] to-[#38bdf8]",
+                "from-[#0c4a6e] via-[#0e7490] to-[#22d3ee]",
+                "from-[#1e3a8a] via-[#1d4ed8] to-[#3b82f6]",
+                "from-[#0f172a] via-[#1e40af] to-[#0ea5e9]",
               ];
               const grad = gradients[i % gradients.length];
               return (
