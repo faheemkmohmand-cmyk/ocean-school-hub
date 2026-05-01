@@ -27,7 +27,7 @@ const AdminOnlineClasses     = lazy(() => import("./tabs/AdminOnlineClasses") as
 const AdminAnalytics         = lazy(() => import("../dashboard/tabs/SchoolAnalyticsTab") as any);
 const AdminSiteAnalytics     = lazy(() => import("./tabs/AdminSiteAnalytics"));
 
-const tabMap: Record<string, React.LazyExoticComponent<() => JSX.Element>> = {
+const tabMap: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
   overview:           AdminOverview,
   analytics:          AdminAnalytics,
   "pending-requests": AdminPendingRequests,

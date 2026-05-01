@@ -662,7 +662,7 @@ const P5Playground = ({
           <Label className="block text-sm font-semibold">Three.js Templates (3D)</Label>
           <div className="flex flex-wrap gap-2">
             {Object.entries(THREE_TEMPLATES).map(([key, t]) => (
-              <button key={"3-"+key} onClick={() => applyTemplate(key, "three")}
+              <button key={"3-"+key} onClick={() => (applyTemplate as any)(key, "three")}
                 className="px-3 py-1.5 bg-violet-100 dark:bg-violet-900/30 hover:bg-primary hover:text-primary-foreground border border-violet-300 dark:border-violet-700 rounded-xl text-xs font-semibold transition-all text-violet-700 dark:text-violet-300">
                 {t.emoji} {t.label}
               </button>

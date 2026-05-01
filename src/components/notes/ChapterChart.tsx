@@ -72,7 +72,7 @@ const ChapterChart = ({ config }: ChapterChartProps) => {
     <div className="mt-8">
       {title && <h3 className="text-lg font-bold text-foreground mb-3">{title}</h3>}
       <div className="bg-white dark:bg-zinc-900 border border-border rounded-2xl p-4 overflow-x-auto">
-        <ResponsiveContainer {...commonProps}>
+        <ResponsiveContainer {...commonProps as any}><>
           {type === "line" && (
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
