@@ -160,14 +160,12 @@ const TopperSection = () => {
   if (!isLoading && toppers.length === 0) return null;
 
   return (
-    <section className="py-16">
+    <section className="section-y">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-10">
-          <span className="text-sm font-semibold uppercase tracking-widest text-primary">Hall of Fame</span>
-          <h2 className="mt-2 text-3xl md:text-4xl font-heading font-bold text-foreground">
-            🏆 School Rank #1 Students
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">Position 1 holders from latest published exam results — per class</p>
+        <div className="text-center mb-12">
+          <span className="eyebrow">Hall of Fame</span>
+          <h2 className="section-title">School Rank #1 Students</h2>
+          <p className="section-subtitle">Position 1 holders from latest published exam results — per class</p>
         </div>
 
         {isLoading ? (
