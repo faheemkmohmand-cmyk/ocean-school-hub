@@ -539,24 +539,24 @@ const Home = () => {
       </motion.section>
 
       {/* ════════ QUICK LINKS — from reference ════════ */}
-      <section className="py-8 bg-background relative z-10">
+      <section className="section-y-sm bg-background relative z-10">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
             {[
-              { icon: FileText, title: "Notices", desc: "Latest announcements", to: "/notices", from: "from-amber-400", to2: "to-orange-500" },
-              { icon: Bell, title: "News", desc: "School events", to: "/news", from: "from-emerald-400", to2: "to-teal-500" },
-              { icon: Image, title: "Gallery", desc: "Photo gallery", to: "/gallery", from: "from-pink-400", to2: "to-rose-500" },
-              { icon: BookOpen, title: "Library", desc: "Study resources", to: "/library", from: "from-violet-400", to2: "to-purple-500" },
+              { icon: FileText, title: "Notices", desc: "Latest announcements", to: "/notices" },
+              { icon: Bell, title: "News", desc: "School events", to: "/news" },
+              { icon: Image, title: "Gallery", desc: "Photo gallery", to: "/gallery" },
+              { icon: BookOpen, title: "Library", desc: "Study resources", to: "/library" },
             ].map((link, i) => (
               <ScrollReveal key={link.title} delay={i * 0.1}>
                 <Link to={link.to}>
                   <motion.div
-                    whileHover={{ scale: 1.05, y: -5 }}
+                    whileHover={{ y: -5 }}
                     whileTap={{ scale: 0.97 }}
-                    className="group bg-card rounded-2xl p-5 sm:p-6 h-full text-center shadow-card hover:shadow-elevated transition-all border border-border hover:border-primary/20"
+                    className="group card-premium p-6 h-full text-center"
                   >
-                    <div className={`w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br ${link.from} ${link.to2} flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all`}>
-                      <link.icon className="w-7 h-7 text-white" />
+                    <div className="icon-tile w-14 h-14 mx-auto mb-4">
+                      <link.icon className="w-7 h-7" />
                     </div>
                     <h3 className="font-heading font-semibold text-foreground text-lg">{link.title}</h3>
                     <p className="text-sm text-muted-foreground mt-1">{link.desc}</p>
