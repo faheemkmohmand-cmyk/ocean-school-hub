@@ -72,8 +72,8 @@ const ChapterChart = ({ config }: ChapterChartProps) => {
     <div className="mt-8">
       {title && <h3 className="text-lg font-bold text-foreground mb-3">{title}</h3>}
       <div className="bg-white dark:bg-zinc-900 border border-border rounded-2xl p-4 overflow-x-auto">
-        <ResponsiveContainer {...commonProps as any}><>
-          {type === "line" && (
+        <ResponsiveContainer {...commonProps as any}>
+          {(type === "line" ? (
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey={xKey} />
@@ -82,8 +82,7 @@ const ChapterChart = ({ config }: ChapterChartProps) => {
               <Legend />
               <Line type="monotone" dataKey={yKey} stroke={colors[0]} dot={false} isAnimationActive={false} />
             </LineChart>
-          )}
-          {type === "bar" && (
+          ) : type === "bar" ? (
             <BarChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey={xKey} />
@@ -92,8 +91,7 @@ const ChapterChart = ({ config }: ChapterChartProps) => {
               <Legend />
               <Bar dataKey={yKey} fill={colors[0]} isAnimationActive={false} />
             </BarChart>
-          )}
-          {type === "area" && (
+          ) : type === "area" ? (
             <AreaChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey={xKey} />
@@ -102,8 +100,7 @@ const ChapterChart = ({ config }: ChapterChartProps) => {
               <Legend />
               <Area type="monotone" dataKey={yKey} fill={colors[0]} stroke={colors[0]} isAnimationActive={false} />
             </AreaChart>
-          )}
-          {type === "pie" && (
+          ) : (
             <PieChart>
               <Pie data={data} dataKey={yKey} nameKey={xKey} cx="50%" cy="50%" outerRadius={100} label>
                 {data.map((_, idx) => <Cell key={`cell-${idx}`} fill={colors[idx % colors.length]} />)}
@@ -111,7 +108,7 @@ const ChapterChart = ({ config }: ChapterChartProps) => {
               <Tooltip />
               <Legend />
             </PieChart>
-          )}
+          )) as any}
         </ResponsiveContainer>
       </div>
     </div>
