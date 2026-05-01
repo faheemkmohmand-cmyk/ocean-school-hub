@@ -164,15 +164,15 @@ const Results = () => {
         <ScheduledResultsBanner />
       </div>
 
-      <section className="py-16">
-        <div className="container mx-auto px-4">
+      <section className="py-8 sm:py-16">
+        <div className="container mx-auto px-3 sm:px-4">
           {/* Class Tabs */}
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4">
             {classes.map((cls) => (
               <button
                 key={cls}
                 onClick={() => handleClassChange(cls)}
-                className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                className={`px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
                   selectedClass === cls
                     ? "gradient-hero text-primary-foreground shadow-card"
                     : "bg-card text-muted-foreground hover:bg-secondary shadow-card"
@@ -184,12 +184,12 @@ const Results = () => {
           </div>
 
           {/* Sub-tabs: exam type */}
-          <div className="flex flex-wrap items-center gap-2 mb-6">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-4 sm:mb-6">
             {examTypes[selectedClass].map((exam) => (
               <button
                 key={exam}
                 onClick={() => setSelectedExam(exam)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                   selectedExam === exam
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary text-secondary-foreground hover:bg-muted"
@@ -197,14 +197,25 @@ const Results = () => {
               >
                 {exam}
                 {(selectedClass === "9" || selectedClass === "10") && (
-                  <span className="text-xs opacity-75 ml-1">(BISE Peshawar)</span>
+                  <span className="hidden sm:inline text-xs opacity-75 ml-1">(BISE Peshawar)</span>
                 )}
               </button>
             ))}
+          </div>
 
-            {/* Year filter */}
-            <div className="ml-auto flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Year:</span>
+          {/* Filters row: search + year — stacks on mobile */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 sm:mb-8">
+            <div className="relative flex-1 sm:max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                value={search}
+                onChange={(e) => handleSearch(e.target.value)}
+                placeholder="Search by name or roll number..."
+                className="w-full rounded-xl border border-input bg-card pl-10 pr-4 py-2.5 text-sm shadow-card focus:ring-2 focus:ring-ring outline-none"
+              />
+            </div>
+            <div className="flex items-center gap-2 sm:ml-auto">
+              <span className="text-sm font-medium text-muted-foreground shrink-0">Year:</span>
               <input
                 type="number"
                 value={selectedYear || ""}
@@ -212,23 +223,10 @@ const Results = () => {
                   const val = e.target.value ? parseInt(e.target.value) : undefined;
                   if (val === undefined || (!isNaN(val) && val >= 1900 && val <= 2200)) setSelectedYear(val);
                 }}
-                className="w-28 rounded-lg border border-input bg-card px-3 py-2 text-sm shadow-card focus:ring-2 focus:ring-ring outline-none"
+                className="flex-1 sm:flex-none sm:w-28 rounded-lg border border-input bg-card px-3 py-2 text-sm shadow-card focus:ring-2 focus:ring-ring outline-none"
                 min="1900"
                 max="2200"
                 placeholder="All Years"
-              />
-            </div>
-          </div>
-
-          {/* Search */}
-          <div className="max-w-sm mb-8">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                value={search}
-                onChange={(e) => handleSearch(e.target.value)}
-                placeholder="Search by name or roll number..."
-                className="w-full rounded-xl border border-input bg-card pl-10 pr-4 py-2.5 text-sm shadow-card focus:ring-2 focus:ring-ring outline-none"
               />
             </div>
           </div>
