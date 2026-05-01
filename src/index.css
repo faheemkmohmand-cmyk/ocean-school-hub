@@ -201,6 +201,48 @@
     from { opacity: 0; }
     to { opacity: 1; }
   }
+
+  /* ─── Unified section rhythm — premium consistent spacing ─── */
+  .section-y {
+    padding-top: clamp(4rem, 8vw, 6rem);
+    padding-bottom: clamp(4rem, 8vw, 6rem);
+  }
+  .section-y-sm {
+    padding-top: clamp(3rem, 6vw, 4.5rem);
+    padding-bottom: clamp(3rem, 6vw, 4.5rem);
+  }
+
+  /* ─── Unified premium card style ─── */
+  .card-premium {
+    @apply bg-card rounded-2xl border border-border/60 shadow-card transition-all duration-300;
+  }
+  .card-premium:hover {
+    @apply shadow-elevated border-primary/30;
+    transform: translateY(-4px);
+  }
+
+  /* ─── Unified premium icon tile (replaces rainbow gradients) ─── */
+  .icon-tile {
+    @apply rounded-2xl flex items-center justify-center shadow-md transition-transform duration-300;
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    color: hsl(var(--primary-foreground));
+  }
+  .group:hover .icon-tile {
+    transform: scale(1.08);
+  }
+
+  /* ─── Section eyebrow label (unified) ─── */
+  .eyebrow {
+    @apply text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-primary;
+  }
+
+  /* ─── Section heading (unified hierarchy) ─── */
+  .section-title {
+    @apply mt-3 text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-foreground tracking-tight;
+  }
+  .section-subtitle {
+    @apply mt-3 text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed;
+  }
 }
 
 /* Custom scrollbar */

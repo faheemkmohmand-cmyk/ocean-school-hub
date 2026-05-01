@@ -160,14 +160,12 @@ const TopperSection = () => {
   if (!isLoading && toppers.length === 0) return null;
 
   return (
-    <section className="py-16">
+    <section className="section-y">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-10">
-          <span className="text-sm font-semibold uppercase tracking-widest text-primary">Hall of Fame</span>
-          <h2 className="mt-2 text-3xl md:text-4xl font-heading font-bold text-foreground">
-            🏆 School Rank #1 Students
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">Position 1 holders from latest published exam results — per class</p>
+        <div className="text-center mb-12">
+          <span className="eyebrow">Hall of Fame</span>
+          <h2 className="section-title">School Rank #1 Students</h2>
+          <p className="section-subtitle">Position 1 holders from latest published exam results — per class</p>
         </div>
 
         {isLoading ? (
@@ -182,12 +180,13 @@ const TopperSection = () => {
               const name = (t.students as any)?.full_name || "Top Student";
               const photoUrl = (t.students as any)?.photo_url || null;
               const initials = (name || "?").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+              // Unified premium tonal-blue palette — consistent, not rainbow
               const gradients = [
-                "from-[#1565c0] via-[#1976d2] to-[#42a5f5]",
-                "from-[#6a1b9a] via-[#8e24aa] to-[#ce93d8]",
-                "from-[#2e7d32] via-[#388e3c] to-[#81c784]",
-                "from-[#e65100] via-[#f57c00] to-[#ffb74d]",
-                "from-[#1a237e] via-[#283593] to-[#7986cb]",
+                "from-[#0c4a6e] via-[#0369a1] to-[#0ea5e9]",
+                "from-[#075985] via-[#0284c7] to-[#38bdf8]",
+                "from-[#0c4a6e] via-[#0e7490] to-[#22d3ee]",
+                "from-[#1e3a8a] via-[#1d4ed8] to-[#3b82f6]",
+                "from-[#0f172a] via-[#1e40af] to-[#0ea5e9]",
               ];
               const grad = gradients[i % gradients.length];
               return (
@@ -452,26 +451,26 @@ const Home = () => {
               className="hidden lg:grid grid-cols-2 gap-4"
             >
               {[
-                { icon: Users, label: "Total Students", value: settings?.total_students || 500, suffix: "+", from: "from-blue-400", to: "to-blue-600" },
-                { icon: GraduationCap, label: "Qualified Teachers", value: settings?.total_teachers || 25, suffix: "+", from: "from-primary", to: "to-primary/70" },
-                { icon: Trophy, label: "Pass Rate", value: settings?.pass_percentage || 98, suffix: "%", from: "from-amber-400", to: "to-orange-500" },
-                { icon: BookOpen, label: "Years of Excellence", value: new Date().getFullYear() - (settings?.established_year || 2018), suffix: "", from: "from-purple-400", to: "to-purple-600" },
+                { icon: Users, label: "Total Students", value: settings?.total_students || 500, suffix: "+" },
+                { icon: GraduationCap, label: "Qualified Teachers", value: settings?.total_teachers || 25, suffix: "+" },
+                { icon: Trophy, label: "Pass Rate", value: settings?.pass_percentage || 98, suffix: "%" },
+                { icon: BookOpen, label: "Years of Excellence", value: new Date().getFullYear() - (settings?.established_year || 2018), suffix: "" },
               ].map((stat, i) => (
                 <motion.div
                   key={stat.label}
                   initial={{ opacity: 0, y: 40 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.9 + i * 0.15, duration: 0.5 }}
-                  whileHover={{ scale: 1.05, y: -5 }}
-                  className="bg-white/15 backdrop-blur-xl rounded-3xl p-6 border border-white/20 hover:bg-white/25 transition-all shadow-2xl cursor-default"
+                  whileHover={{ scale: 1.04, y: -4 }}
+                  className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all shadow-2xl cursor-default"
                 >
-                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${stat.from} ${stat.to} flex items-center justify-center mb-4 shadow-lg`}>
+                  <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center mb-4 shadow-lg border border-white/20">
                     <stat.icon className="w-7 h-7 text-white" />
                   </div>
                   <p className="text-3xl sm:text-4xl font-bold text-white">
                     <AnimCounter value={stat.value} suffix={stat.suffix} isInView={statsInView} />
                   </p>
-                  <p className="text-sm text-white/60 mt-2 font-medium">{stat.label}</p>
+                  <p className="text-sm text-white/70 mt-2 font-medium">{stat.label}</p>
                 </motion.div>
               ))}
             </motion.div>
@@ -540,24 +539,24 @@ const Home = () => {
       </motion.section>
 
       {/* ════════ QUICK LINKS — from reference ════════ */}
-      <section className="py-8 bg-background relative z-10">
+      <section className="section-y-sm bg-background relative z-10">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
             {[
-              { icon: FileText, title: "Notices", desc: "Latest announcements", to: "/notices", from: "from-amber-400", to2: "to-orange-500" },
-              { icon: Bell, title: "News", desc: "School events", to: "/news", from: "from-emerald-400", to2: "to-teal-500" },
-              { icon: Image, title: "Gallery", desc: "Photo gallery", to: "/gallery", from: "from-pink-400", to2: "to-rose-500" },
-              { icon: BookOpen, title: "Library", desc: "Study resources", to: "/library", from: "from-violet-400", to2: "to-purple-500" },
+              { icon: FileText, title: "Notices", desc: "Latest announcements", to: "/notices" },
+              { icon: Bell, title: "News", desc: "School events", to: "/news" },
+              { icon: Image, title: "Gallery", desc: "Photo gallery", to: "/gallery" },
+              { icon: BookOpen, title: "Library", desc: "Study resources", to: "/library" },
             ].map((link, i) => (
               <ScrollReveal key={link.title} delay={i * 0.1}>
                 <Link to={link.to}>
                   <motion.div
-                    whileHover={{ scale: 1.05, y: -5 }}
+                    whileHover={{ y: -5 }}
                     whileTap={{ scale: 0.97 }}
-                    className="group bg-card rounded-2xl p-5 sm:p-6 h-full text-center shadow-card hover:shadow-elevated transition-all border border-border hover:border-primary/20"
+                    className="group card-premium p-6 h-full text-center"
                   >
-                    <div className={`w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br ${link.from} ${link.to2} flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all`}>
-                      <link.icon className="w-7 h-7 text-white" />
+                    <div className="icon-tile w-14 h-14 mx-auto mb-4">
+                      <link.icon className="w-7 h-7" />
                     </div>
                     <h3 className="font-heading font-semibold text-foreground text-lg">{link.title}</h3>
                     <p className="text-sm text-muted-foreground mt-1">{link.desc}</p>
@@ -621,7 +620,7 @@ const Home = () => {
       <TopperSection />
 
       {/* ════════ FEATURES ════════ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="py-20 cv-auto">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="section-y cv-auto">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -666,7 +665,7 @@ const Home = () => {
       </motion.section>
 
       {/* ════════ DAILY QUOTE / HADITH ════════ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="py-10 cv-auto">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="section-y-sm cv-auto">
         <div className="container mx-auto px-4 max-w-3xl">
           <div className="mb-4 text-center">
             <span className="text-sm font-semibold uppercase tracking-widest text-primary">Thought of the Day</span>
@@ -679,7 +678,7 @@ const Home = () => {
       </motion.section>
 
       {/* ════════ ABOUT PREVIEW — dark gradient, 2-col, floating cards ════════ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} variants={sectionFadeUp} className="py-20 cv-auto relative overflow-hidden">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} variants={sectionFadeUp} className="section-y cv-auto relative overflow-hidden">
         <div className="absolute inset-0 gradient-hero" />
         {/* Rotating rings from reference */}
         <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden">
@@ -781,7 +780,7 @@ const Home = () => {
       </motion.section>
 
        {/* ════════ LATEST NOTICES ════════ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="py-16 bg-secondary/50 cv-auto">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="section-y bg-secondary/40 cv-auto">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <ScrollReveal direction="left">
@@ -846,7 +845,7 @@ const Home = () => {
       </motion.section>
 
       {/* ════════ LATEST NEWS ════════ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="py-20 cv-auto">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="section-y cv-auto">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -915,7 +914,7 @@ const Home = () => {
       </motion.section>
 
       {/* ════════ TEACHERS PREVIEW ════════ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="py-16 bg-secondary/50 cv-auto">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="section-y bg-secondary/40 cv-auto">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -972,7 +971,7 @@ const Home = () => {
       </motion.section>
 
       {/* ════════ ACHIEVEMENTS ════════ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="py-20 cv-auto">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="section-y cv-auto">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -1020,7 +1019,7 @@ const Home = () => {
       </motion.section>
 
       {/* ════════ QUICK ACCESS ════════ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="py-16 bg-secondary/50 cv-auto">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="section-y bg-secondary/40 cv-auto">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -1066,7 +1065,7 @@ const Home = () => {
       </motion.section>
 
       {/* ════════ CTA ════════ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="py-20">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="section-y">
         <div className="container mx-auto px-4">
           <div className="gradient-hero rounded-3xl p-12 md:p-20 text-center relative overflow-hidden">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
@@ -1096,7 +1095,7 @@ const Home = () => {
       </motion.section>
 
       {/* ════════ CTA — from reference ════════ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="py-20 cv-auto relative overflow-hidden">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="section-y cv-auto relative overflow-hidden">
         {/* Background decorations */}
         <div className="absolute inset-0 pointer-events-none">
           <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
