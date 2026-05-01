@@ -322,68 +322,101 @@ const Results = () => {
 
               {/* Results Table */}
               {(tableResults.length > 0 || top3.length === 0) && (
-                <div className="bg-card rounded-2xl shadow-card overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="gradient-hero text-primary-foreground">
-                          <th className="px-4 py-3 text-left font-medium">Rank</th>
-                          <th className="px-4 py-3 text-left font-medium">Photo</th>
-                          <th className="px-4 py-3 text-left font-medium">Name</th>
-                          <th className="px-4 py-3 text-left font-medium">Roll #</th>
-                          <th className="px-4 py-3 text-left font-medium">Marks</th>
-                          <th className="px-4 py-3 text-left font-medium">%</th>
-                          <th className="px-4 py-3 text-left font-medium">Grade</th>
-                          <th className="px-4 py-3 text-left font-medium">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(top3.length === 0 ? results : tableResults).map((r, i) => {
-                          const grade = r.grade || getGradeFromPercentage(r.percentage || 0);
-                          return (
-                            <tr
-                              key={r.id}
-                              className={`border-t border-border hover:bg-secondary/50 transition-colors ${
-                                i % 2 === 1 ? "bg-secondary/20" : ""
-                              }`}
-                            >
-                              <td className="px-4 py-3 font-medium text-foreground">{r.position || i + (top3.length > 0 ? 4 : 1)}</td>
-                              <td className="px-4 py-3">
-                                {r.students?.photo_url ? (
-                                  <img src={r.students.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
-                                ) : (
-                                  <div className="w-8 h-8 rounded-full gradient-accent flex items-center justify-center text-primary-foreground text-xs font-bold">
-                                    {r.students?.full_name?.charAt(0) || "?"}
-                                  </div>
-                                )}
-                              </td>
-                              <td className="px-4 py-3 font-medium text-foreground">{r.students?.full_name || "Unknown"}</td>
-                              <td className="px-4 py-3 text-muted-foreground">{r.students?.roll_number}</td>
-                              <td className="px-4 py-3 text-muted-foreground">{r.obtained_marks}/{r.total_marks}</td>
-                              <td className="px-4 py-3 font-medium text-foreground">{(r.percentage || 0).toFixed(1)}%</td>
-                              <td className="px-4 py-3">
-                                <span className={`inline-block text-xs font-bold px-2.5 py-0.5 rounded-full ${getGradeColor(grade)}`}>
-                                  {grade}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3">
-                                {r.is_pass ? (
-                                  <span className="inline-block text-xs font-bold px-2.5 py-0.5 rounded-full bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]">
-                                    Pass
-                                  </span>
-                                ) : (
-                                  <span className="inline-block text-xs font-bold px-2.5 py-0.5 rounded-full bg-destructive/15 text-destructive">
-                                    Fail
-                                  </span>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                <>
+                  {/* Mobile card list (sm and below) */}
+                  <div className="md:hidden space-y-2.5">
+                    {(top3.length === 0 ? results : tableResults).map((r, i) => {
+                      const grade = r.grade || getGradeFromPercentage(r.percentage || 0);
+                      const rank = r.position || i + (top3.length > 0 ? 4 : 1);
+                      return (
+                        <div key={r.id} className="bg-card rounded-xl shadow-card p-3 flex items-center gap-3">
+                          <div className="shrink-0 w-7 text-center text-sm font-bold text-muted-foreground">#{rank}</div>
+                          {r.students?.photo_url ? (
+                            <img src={r.students.photo_url} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full gradient-accent flex items-center justify-center text-primary-foreground text-sm font-bold shrink-0">
+                              {r.students?.full_name?.charAt(0) || "?"}
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-foreground text-sm truncate">{r.students?.full_name || "Unknown"}</p>
+                            <p className="text-[11px] text-muted-foreground">Roll #{r.students?.roll_number} · {r.obtained_marks}/{r.total_marks} · {(r.percentage || 0).toFixed(1)}%</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${getGradeColor(grade)}`}>{grade}</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.is_pass ? "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]" : "bg-destructive/15 text-destructive"}`}>
+                              {r.is_pass ? "Pass" : "Fail"}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
+
+                  {/* Desktop table (md+) */}
+                  <div className="hidden md:block bg-card rounded-2xl shadow-card overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="gradient-hero text-primary-foreground">
+                            <th className="px-4 py-3 text-left font-medium">Rank</th>
+                            <th className="px-4 py-3 text-left font-medium">Photo</th>
+                            <th className="px-4 py-3 text-left font-medium">Name</th>
+                            <th className="px-4 py-3 text-left font-medium">Roll #</th>
+                            <th className="px-4 py-3 text-left font-medium">Marks</th>
+                            <th className="px-4 py-3 text-left font-medium">%</th>
+                            <th className="px-4 py-3 text-left font-medium">Grade</th>
+                            <th className="px-4 py-3 text-left font-medium">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(top3.length === 0 ? results : tableResults).map((r, i) => {
+                            const grade = r.grade || getGradeFromPercentage(r.percentage || 0);
+                            return (
+                              <tr
+                                key={r.id}
+                                className={`border-t border-border hover:bg-secondary/50 transition-colors ${
+                                  i % 2 === 1 ? "bg-secondary/20" : ""
+                                }`}
+                              >
+                                <td className="px-4 py-3 font-medium text-foreground">{r.position || i + (top3.length > 0 ? 4 : 1)}</td>
+                                <td className="px-4 py-3">
+                                  {r.students?.photo_url ? (
+                                    <img src={r.students.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-full gradient-accent flex items-center justify-center text-primary-foreground text-xs font-bold">
+                                      {r.students?.full_name?.charAt(0) || "?"}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 font-medium text-foreground">{r.students?.full_name || "Unknown"}</td>
+                                <td className="px-4 py-3 text-muted-foreground">{r.students?.roll_number}</td>
+                                <td className="px-4 py-3 text-muted-foreground">{r.obtained_marks}/{r.total_marks}</td>
+                                <td className="px-4 py-3 font-medium text-foreground">{(r.percentage || 0).toFixed(1)}%</td>
+                                <td className="px-4 py-3">
+                                  <span className={`inline-block text-xs font-bold px-2.5 py-0.5 rounded-full ${getGradeColor(grade)}`}>
+                                    {grade}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3">
+                                  {r.is_pass ? (
+                                    <span className="inline-block text-xs font-bold px-2.5 py-0.5 rounded-full bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]">
+                                      Pass
+                                    </span>
+                                  ) : (
+                                    <span className="inline-block text-xs font-bold px-2.5 py-0.5 rounded-full bg-destructive/15 text-destructive">
+                                      Fail
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
               )}
             </>
           )}
