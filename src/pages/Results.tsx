@@ -88,7 +88,7 @@ function ScheduledResultsBanner() {
   );
 }
 
-import { useState, useMemo, useRef } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Search, GraduationCap, Trophy, Medal, Users, TrendingUp, Award, XCircle, Timer, Clock } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
@@ -96,7 +96,6 @@ import PageBanner from "@/components/shared/PageBanner";
 import { useResults, useResultYears, getGradeFromPercentage, getGradeColor } from "@/hooks/useResults";
 import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const classes = ["6", "7", "8", "9", "10"];
