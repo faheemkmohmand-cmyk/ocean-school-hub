@@ -620,7 +620,7 @@ const Home = () => {
       <TopperSection />
 
       {/* ════════ FEATURES ════════ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="py-20 cv-auto">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="section-y cv-auto">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -665,7 +665,7 @@ const Home = () => {
       </motion.section>
 
       {/* ════════ DAILY QUOTE / HADITH ════════ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="py-10 cv-auto">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="section-y-sm cv-auto">
         <div className="container mx-auto px-4 max-w-3xl">
           <div className="mb-4 text-center">
             <span className="text-sm font-semibold uppercase tracking-widest text-primary">Thought of the Day</span>
@@ -678,7 +678,7 @@ const Home = () => {
       </motion.section>
 
       {/* ════════ ABOUT PREVIEW — dark gradient, 2-col, floating cards ════════ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} variants={sectionFadeUp} className="py-20 cv-auto relative overflow-hidden">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} variants={sectionFadeUp} className="section-y cv-auto relative overflow-hidden">
         <div className="absolute inset-0 gradient-hero" />
         {/* Rotating rings from reference */}
         <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden">
@@ -780,7 +780,7 @@ const Home = () => {
       </motion.section>
 
        {/* ════════ LATEST NOTICES ════════ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="py-16 bg-secondary/50 cv-auto">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="section-y bg-secondary/40 cv-auto">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <ScrollReveal direction="left">
@@ -845,7 +845,7 @@ const Home = () => {
       </motion.section>
 
       {/* ════════ LATEST NEWS ════════ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="py-20 cv-auto">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="section-y cv-auto">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -914,7 +914,7 @@ const Home = () => {
       </motion.section>
 
       {/* ════════ TEACHERS PREVIEW ════════ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="py-16 bg-secondary/50 cv-auto">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="section-y bg-secondary/40 cv-auto">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -971,7 +971,7 @@ const Home = () => {
       </motion.section>
 
       {/* ════════ ACHIEVEMENTS ════════ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="py-20 cv-auto">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="section-y cv-auto">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -1019,7 +1019,7 @@ const Home = () => {
       </motion.section>
 
       {/* ════════ QUICK ACCESS ════════ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="py-16 bg-secondary/50 cv-auto">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="section-y bg-secondary/40 cv-auto">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -1065,7 +1065,7 @@ const Home = () => {
       </motion.section>
 
       {/* ════════ CTA ════════ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="py-20">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="section-y">
         <div className="container mx-auto px-4">
           <div className="gradient-hero rounded-3xl p-12 md:p-20 text-center relative overflow-hidden">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
@@ -1095,7 +1095,7 @@ const Home = () => {
       </motion.section>
 
       {/* ════════ CTA — from reference ════════ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="py-20 cv-auto relative overflow-hidden">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="section-y cv-auto relative overflow-hidden">
         {/* Background decorations */}
         <div className="absolute inset-0 pointer-events-none">
           <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
