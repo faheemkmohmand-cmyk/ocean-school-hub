@@ -205,9 +205,9 @@ function ExamScheduleTab() {
     <div className="space-y-5">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div><h2 className="text-xl font-heading font-bold text-foreground flex items-center gap-2"><Calendar className="w-5 h-5 text-primary"/>Exam Date Sheet</h2><p className="text-xs text-muted-foreground">Official examination schedule</p></div>
-        {schedule.length>0&&<button onClick={()=>generateDateSheetPDF(schedule,cls,examType,year)} className="flex items-center gap-1.5 text-xs font-semibold bg-[#042C53] text-white hover:bg-[#042C53]/90 px-4 py-2 rounded-xl transition-colors"><Download className="w-3.5 h-3.5"/>Download PDF</button>}
+        {schedule.length>0&&<button onClick={()=>generateDateSheetPDF(schedule,cls,examType,year)} className="flex items-center gap-1.5 text-xs font-semibold bg-primary text-white hover:bg-primary/90 px-4 py-2 rounded-xl transition-colors"><Download className="w-3.5 h-3.5"/>Download PDF</button>}
       </div>
-      <div className="flex gap-2 flex-wrap">{["6","7","8","9","10"].map(c=><button key={c} onClick={()=>{setCls(c);setExamType(examTypes[c][0]);}} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${cls===c?"bg-[#042C53] text-white":"bg-secondary text-muted-foreground"}`}>Class {c}</button>)}</div>
+      <div className="flex gap-2 flex-wrap">{["6","7","8","9","10"].map(c=><button key={c} onClick={()=>{setCls(c);setExamType(examTypes[c][0]);}} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${cls===c?"bg-primary text-white":"bg-secondary text-muted-foreground"}`}>Class {c}</button>)}</div>
       <div className="flex gap-2 flex-wrap items-center">
         {examTypes[cls].map(e=><button key={e} onClick={()=>setExamType(e)} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${examType===e?"bg-primary/20 text-primary border border-primary/40":"bg-secondary text-muted-foreground"}`}>{e}</button>)}
         <div className="ml-auto flex items-center gap-2"><label className="text-xs text-muted-foreground">Year:</label><input type="number" value={year} onChange={e=>setYear(Number(e.target.value))} className="w-20 text-xs bg-secondary border border-border rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-primary" min={2000} max={2099}/></div>
@@ -216,7 +216,7 @@ function ExamScheduleTab() {
         :schedule.length===0?<div className="bg-card rounded-2xl p-12 text-center border border-border"><Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-3"/><p className="text-sm font-medium text-foreground">No exam schedule published yet</p><p className="text-xs text-muted-foreground mt-1">Admin will publish the schedule before exams begin.</p></div>
         :(<>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">{[{label:"Total",value:schedule.length,icon:"📋"},{label:"Upcoming",value:schedule.filter(e=>!isPast(new Date(e.exam_date))||isToday(new Date(e.exam_date))).length,icon:"⏳"},{label:"Today",value:schedule.filter(e=>isToday(new Date(e.exam_date))).length,icon:"📅"},{label:"Done",value:schedule.filter(e=>isPast(new Date(e.exam_date))&&!isToday(new Date(e.exam_date))).length,icon:"✅"}].map(s=><div key={s.label} className="bg-card border border-border rounded-xl p-3 text-center"><p className="text-2xl mb-1">{s.icon}</p><p className="text-xl font-bold text-foreground">{s.value}</p><p className="text-[11px] text-muted-foreground">{s.label}</p></div>)}</div>
-          <div className="space-y-2">{schedule.map(entry=>{ const date=new Date(entry.exam_date); const past=isPast(date)&&!isToday(date); const today=isToday(date); const diff=differenceInDays(date,new Date()); const style=schedSubjectStyle(entry.subject); return (<div key={entry.id} className={`bg-card rounded-xl border shadow-sm overflow-hidden ${today?"border-amber-400 ring-2 ring-amber-400/30":past?"opacity-55 border-border":"border-border hover:border-primary/40"}`}>{today&&<div className="bg-amber-400 text-amber-900 text-center text-[11px] font-black uppercase tracking-widest py-1">📢 EXAM TODAY</div>}<div className="p-4 flex items-center gap-4"><div className={`w-16 h-16 rounded-xl flex flex-col items-center justify-center shrink-0 font-black ${today?"bg-amber-500 text-white":past?"bg-muted text-muted-foreground":"bg-[#042C53] text-white"}`}><span className="text-2xl leading-none">{format(date,"dd")}</span><span className="text-[10px] font-semibold uppercase">{format(date,"MMM")}</span><span className="text-[9px] opacity-70">{format(date,"yyyy")}</span></div><div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap mb-1"><span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${style.bg} ${style.text}`}>{entry.subject}</span>{(entry as any).paper_code&&<span className="text-[11px] font-mono font-bold bg-[#042C53]/10 text-[#042C53] dark:text-white px-2 py-0.5 rounded">{(entry as any).paper_code}</span>}{!past&&!today&&diff<=3&&diff>=0&&<span className="text-[10px] font-bold bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full animate-pulse">{diff===0?"Tomorrow!":`${diff}d left`}</span>}{past&&<span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Done</span>}</div><p className="text-sm font-bold text-foreground">{(entry as any).paper_name||entry.subject}</p><div className="flex flex-wrap items-center gap-3 mt-1"><span className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3"/>{format(date,"EEEE, dd MMMM yyyy")}</span>{entry.start_time&&<span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3"/>{entry.start_time}{entry.end_time?` – ${entry.end_time}`:""}</span>}{entry.hall&&<span className="text-xs text-muted-foreground flex items-center gap-1"><ChevronRight className="w-3 h-3"/>Hall: {entry.hall}</span>}{entry.notes&&<span className="text-xs italic text-muted-foreground">{entry.notes}</span>}</div></div>{!past&&!today&&diff>0&&<div className={`hidden sm:flex flex-col items-center justify-center w-14 h-14 rounded-xl shrink-0 ${diff<=7?"bg-orange-100":"bg-secondary"}`}><span className={`text-lg font-black ${diff<=7?"text-orange-600":"text-foreground"}`}>{diff}</span><span className="text-[9px] font-medium text-muted-foreground">days</span></div>}</div></div>); })}</div>
+          <div className="space-y-2">{schedule.map(entry=>{ const date=new Date(entry.exam_date); const past=isPast(date)&&!isToday(date); const today=isToday(date); const diff=differenceInDays(date,new Date()); const style=schedSubjectStyle(entry.subject); return (<div key={entry.id} className={`bg-card rounded-xl border shadow-sm overflow-hidden ${today?"border-amber-400 ring-2 ring-amber-400/30":past?"opacity-55 border-border":"border-border hover:border-primary/40"}`}>{today&&<div className="bg-amber-400 text-amber-900 text-center text-[11px] font-black uppercase tracking-widest py-1">📢 EXAM TODAY</div>}<div className="p-4 flex items-center gap-4"><div className={`w-16 h-16 rounded-xl flex flex-col items-center justify-center shrink-0 font-black ${today?"bg-amber-500 text-white":past?"bg-muted text-muted-foreground":"bg-primary text-white"}`}><span className="text-2xl leading-none">{format(date,"dd")}</span><span className="text-[10px] font-semibold uppercase">{format(date,"MMM")}</span><span className="text-[9px] opacity-70">{format(date,"yyyy")}</span></div><div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap mb-1"><span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${style.bg} ${style.text}`}>{entry.subject}</span>{(entry as any).paper_code&&<span className="text-[11px] font-mono font-bold bg-primary/10 text-primary dark:text-white px-2 py-0.5 rounded">{(entry as any).paper_code}</span>}{!past&&!today&&diff<=3&&diff>=0&&<span className="text-[10px] font-bold bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full animate-pulse">{diff===0?"Tomorrow!":`${diff}d left`}</span>}{past&&<span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Done</span>}</div><p className="text-sm font-bold text-foreground">{(entry as any).paper_name||entry.subject}</p><div className="flex flex-wrap items-center gap-3 mt-1"><span className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3"/>{format(date,"EEEE, dd MMMM yyyy")}</span>{entry.start_time&&<span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3"/>{entry.start_time}{entry.end_time?` – ${entry.end_time}`:""}</span>}{entry.hall&&<span className="text-xs text-muted-foreground flex items-center gap-1"><ChevronRight className="w-3 h-3"/>Hall: {entry.hall}</span>}{entry.notes&&<span className="text-xs italic text-muted-foreground">{entry.notes}</span>}</div></div>{!past&&!today&&diff>0&&<div className={`hidden sm:flex flex-col items-center justify-center w-14 h-14 rounded-xl shrink-0 ${diff<=7?"bg-orange-100":"bg-secondary"}`}><span className={`text-lg font-black ${diff<=7?"text-orange-600":"text-foreground"}`}>{diff}</span><span className="text-[9px] font-medium text-muted-foreground">days</span></div>}</div></div>); })}</div>
         </>)}
     </div>
   );
@@ -492,7 +492,7 @@ function AnalyticsTab() {
           )}
 
           <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
-            <div className="bg-[#042C53] text-white px-4 py-3 flex items-center gap-2">
+            <div className="bg-primary text-white px-4 py-3 flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-amber-400"/>
               <span className="font-bold text-sm">Class Summary — {year}</span>
             </div>
@@ -824,7 +824,7 @@ function MeritListTab() {
   const isLoading = viewMode === "class" ? clsLoading : schoolLoading;
 
   const GBadge = ({ g }: { g: string }) => {
-    const c = g === "A+" ? "bg-[#042C53] text-white" : g === "A" ? "bg-primary text-primary-foreground" : g === "B" ? "bg-green-500 text-white" : g === "C" ? "bg-amber-500 text-white" : "bg-red-500 text-white";
+    const c = g === "A+" ? "bg-primary text-white" : g === "A" ? "bg-primary text-primary-foreground" : g === "B" ? "bg-green-500 text-white" : g === "C" ? "bg-amber-500 text-white" : "bg-red-500 text-white";
     return <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${c}`}>{g}</span>;
   };
 
@@ -845,7 +845,7 @@ function MeritListTab() {
         {displayEntries.length > 0 && (
           <button
             onClick={() => buildMeritPDF(displayEntries, examType, year, viewMode === "class" ? cls : undefined)}
-            className="flex items-center gap-1.5 text-xs font-semibold bg-[#042C53] text-white hover:bg-[#042C53]/90 px-4 py-2 rounded-xl transition-colors"
+            className="flex items-center gap-1.5 text-xs font-semibold bg-primary text-white hover:bg-primary/90 px-4 py-2 rounded-xl transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
             {viewMode === "class" ? "Download Class PDF" : "Download School PDF"}
@@ -856,11 +856,11 @@ function MeritListTab() {
       {/* View mode toggle */}
       <div className="flex gap-2">
         <button onClick={() => setViewMode("class")}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${viewMode === "class" ? "bg-[#042C53] text-white" : "bg-secondary text-muted-foreground"}`}>
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${viewMode === "class" ? "bg-primary text-white" : "bg-secondary text-muted-foreground"}`}>
           <Trophy className="w-4 h-4" /> Class Merit
         </button>
         <button onClick={() => setViewMode("school")}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${viewMode === "school" ? "bg-[#042C53] text-white" : "bg-secondary text-muted-foreground"}`}>
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${viewMode === "school" ? "bg-primary text-white" : "bg-secondary text-muted-foreground"}`}>
           <School className="w-4 h-4" /> Whole School
         </button>
       </div>
@@ -870,7 +870,7 @@ function MeritListTab() {
         <div className="flex gap-2 flex-wrap">
           {ALL_CLASSES_ML.map(c => (
             <button key={c} onClick={() => setCls(c)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${cls === c ? "bg-[#042C53] text-white" : "bg-secondary text-muted-foreground"}`}>
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${cls === c ? "bg-primary text-white" : "bg-secondary text-muted-foreground"}`}>
               Class {c}
             </button>
           ))}
@@ -927,7 +927,7 @@ function MeritListTab() {
         </div>
       ) : (
         <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
-          <div className="bg-[#042C53] text-white px-4 py-3 flex items-center justify-between">
+          <div className="bg-primary text-white px-4 py-3 flex items-center justify-between">
             <div>
               <h3 className="font-bold text-sm">{tableTitle}</h3>
               <p className="text-xs text-blue-200">{displayEntries.length} students ranked</p>

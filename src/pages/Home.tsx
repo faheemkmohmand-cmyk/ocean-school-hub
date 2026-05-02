@@ -230,7 +230,7 @@ const Home = () => {
             </svg>
           </div>
         </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-br from-[#042C53]/80 via-[#042C53]/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/80 via-primary/50 to-transparent" />
 
         <motion.div style={{ y: blobY }} className="absolute inset-0 overflow-hidden pointer-events-none">
           <motion.div animate={{ x: [0, 40, 0], y: [0, -30, 0] }} transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }} className="absolute -top-20 -left-20 w-96 h-96 rounded-full bg-primary/20 blur-3xl" />
@@ -268,7 +268,7 @@ const Home = () => {
                 </Link>
                 <Link to="/auth/signin">
                   <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.97 }}
-                    className="inline-flex items-center gap-2 bg-white text-[#042C53] font-bold px-7 py-3.5 rounded-xl shadow-xl transition-all duration-200">
+                    className="inline-flex items-center gap-2 bg-white text-primary font-bold px-7 py-3.5 rounded-xl shadow-xl transition-all duration-200">
                     Student Portal
                   </motion.button>
                 </Link>
@@ -436,7 +436,7 @@ const Home = () => {
                   ))}
                 </div>
                 <Link to="/about">
-                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} className="px-8 py-4 bg-white text-[#042C53] rounded-2xl font-bold shadow-xl flex items-center gap-2">
+                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} className="px-8 py-4 bg-white text-primary rounded-2xl font-bold shadow-xl flex items-center gap-2">
                     Learn More About Us <ArrowRight className="w-5 h-5" />
                   </motion.button>
                 </Link>
@@ -649,7 +649,7 @@ const Home = () => {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Link to="/auth/signin">
                     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
-                      className="w-full sm:w-auto px-10 py-5 bg-white text-[#042C53] rounded-2xl font-bold shadow-2xl flex items-center justify-center gap-2 text-lg">
+                      className="w-full sm:w-auto px-10 py-5 bg-white text-primary rounded-2xl font-bold shadow-2xl flex items-center justify-center gap-2 text-lg">
                       Sign In to Portal <ArrowRight className="w-5 h-5" />
                     </motion.button>
                   </Link>
