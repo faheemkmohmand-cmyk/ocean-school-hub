@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, GraduationCap, LogIn, UserPlus, LayoutDashboard, LogOut, Shield, Moon, Sun } from "lucide-react";
+import { Menu, X, GraduationCap, LogIn, UserPlus, LayoutDashboard, LogOut, Shield, Palette } from "lucide-react";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
-import { useDarkMode } from "@/hooks/useDarkMode";
+import ThemeSwitcher from "@/components/shared/ThemeSwitcher";
+import { useTheme, type ThemeMode } from "@/hooks/useTheme";
 
 const navLinks = [
   { to: "/", label: "Home" },
@@ -28,7 +29,7 @@ const Navbar = () => {
   const location = useLocation();
   const { data: settings } = useSchoolSettings();
   const { user, profile, loading: authLoading, signOut } = useAuth();
-  const { isDark, toggle } = useDarkMode();
+  const { theme, setTheme } = useTheme();
 
   const isAdmin = profile?.role === "admin";
 
