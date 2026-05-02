@@ -370,7 +370,7 @@ function MeritTable({ entries, showClass = false }: { entries: MeritEntry[]; sho
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-[#042C53] text-white">
+            <tr className="bg-primary text-white">
               <th className="p-3 text-center font-semibold w-12">Rank</th>
               {showClass && <th className="p-3 text-left font-semibold">Class</th>}
               <th className="p-3 text-left font-semibold">Roll No</th>
@@ -414,7 +414,7 @@ function MeritTable({ entries, showClass = false }: { entries: MeritEntry[]; sho
                 <td className="p-3 text-center font-bold">{Number(e.percentage).toFixed(1)}%</td>
                 <td className="p-3 text-center">
                   <Badge className={
-                    e.grade === "A+" ? "bg-[#042C53] text-white" :
+                    e.grade === "A+" ? "bg-primary text-white" :
                     e.grade === "A" ? "bg-primary text-white" :
                     e.grade === "B" ? "bg-green-500 text-white" :
                     e.grade === "C" ? "bg-amber-500 text-white" : "bg-muted text-foreground"
