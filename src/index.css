@@ -284,7 +284,7 @@
   }
   .hover-card-premium:hover {
     transform: translateY(-8px);
-    box-shadow: 0 20px 40px hsl(199 89% 48% / 0.2);
+    box-shadow: 0 20px 40px hsl(var(--primary) / 0.22);
     border-color: hsl(var(--primary));
   }
 
