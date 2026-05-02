@@ -6,7 +6,6 @@ import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
 import ThemeSwitcher from "@/components/shared/ThemeSwitcher";
-import { useTheme } from "@/hooks/useTheme";
 
 const navLinks = [
   { to: "/", label: "Home" },
