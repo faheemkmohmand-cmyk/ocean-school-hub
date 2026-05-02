@@ -299,7 +299,7 @@
   }
   .btn-glow:hover {
     transform: scale(1.05);
-    box-shadow: 0 8px 25px hsl(199 89% 48% / 0.5);
+    box-shadow: 0 8px 25px hsl(var(--primary) / 0.5);
   }
   .btn-glow:active {
     transform: scale(0.96);
