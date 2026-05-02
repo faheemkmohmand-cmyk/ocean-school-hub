@@ -28,7 +28,7 @@ const Navbar = () => {
   const location = useLocation();
   const { data: settings } = useSchoolSettings();
   const { user, profile, loading: authLoading, signOut } = useAuth();
-  const { theme, setTheme } = useTheme();
+  
 
   const isAdmin = profile?.role === "admin";
 
