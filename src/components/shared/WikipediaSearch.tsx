@@ -322,7 +322,7 @@ const WikipediaSearch = ({ compact = false }: WikipediaSearchProps) => {
   // ─── CSS ───────────────────────────────────────────────────────────────────
   const css = `
     .wsr { font-family:inherit; }
-    .wsr-hero { background:linear-gradient(135deg,#1e3a5f 0%,#042C53 55%,#0f172a 100%); border-radius:20px; padding:20px 22px 16px; margin-bottom:16px; color:#fff; display:flex; align-items:center; gap:12px; }
+    .wsr-hero { background:linear-gradient(135deg,#2a3a6a 0%,#1e2a53 55%,#0f172a 100%); border-radius:20px; padding:20px 22px 16px; margin-bottom:16px; color:#fff; display:flex; align-items:center; gap:12px; }
     .wsr-hero-icon { width:38px; height:38px; border-radius:10px; background:rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
     .wsr-hero-title { font-weight:800; font-size:15px; letter-spacing:-.3px; }
     .wsr-hero-sub { font-size:11px; opacity:.6; margin-top:2px; }

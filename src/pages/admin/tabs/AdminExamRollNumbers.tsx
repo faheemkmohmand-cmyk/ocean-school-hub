@@ -253,7 +253,7 @@ const AdminExamRollNumbers = () => {
       doc.roundedRect(x, y, w, h, 2, 2, "S");
 
       // Top accent line — dark navy (not colorful)
-      doc.setFillColor(4, 44, 83); // #042C53 school navy
+      doc.setFillColor(30, 42, 83); // Royal Slate navy primary
       doc.rect(x, y, w, 5, "F");
 
       // School name in accent bar
