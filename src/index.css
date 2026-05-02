@@ -10,38 +10,39 @@
 @tailwind utilities;
 
 @layer base {
+  /* ─── ROYAL SLATE — Light (Navy + Gold) ─── */
   :root {
-    --background: 204 100% 97%;
-    --foreground: 204 80% 10%;
+    --background: 210 40% 98%;
+    --foreground: 222 47% 14%;
 
     --card: 0 0% 100%;
-    --card-foreground: 204 80% 10%;
+    --card-foreground: 222 47% 14%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 204 80% 10%;
+    --popover-foreground: 222 47% 14%;
 
-    --primary: 199 89% 48%;
+    --primary: 222 47% 22%;
     --primary-foreground: 0 0% 100%;
 
-    --primary-dark: 201 96% 32%;
-    --primary-light: 199 92% 74%;
-    --primary-glow: 199 95% 61%;
+    --primary-dark: 222 47% 14%;
+    --primary-light: 222 35% 55%;
+    --primary-glow: 222 47% 32%;
 
-    --secondary: 204 100% 95%;
-    --secondary-foreground: 201 96% 32%;
+    --secondary: 215 30% 94%;
+    --secondary-foreground: 222 47% 22%;
 
-    --muted: 204 40% 93%;
-    --muted-foreground: 204 20% 45%;
+    --muted: 215 25% 92%;
+    --muted-foreground: 222 15% 42%;
 
-    --accent: 199 92% 74%;
-    --accent-foreground: 201 96% 22%;
+    --accent: 38 92% 50%;
+    --accent-foreground: 222 47% 14%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 204 40% 88%;
-    --input: 204 40% 88%;
-    --ring: 199 89% 48%;
+    --border: 215 25% 86%;
+    --input: 215 25% 86%;
+    --ring: 222 47% 22%;
 
     --radius: 0.75rem;
 
@@ -49,44 +50,170 @@
     --warning: 38 92% 50%;
 
     --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 199 89% 48%;
+    --sidebar-foreground: 222 30% 26%;
+    --sidebar-primary: 222 47% 22%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 204 100% 95%;
-    --sidebar-accent-foreground: 201 96% 32%;
-    --sidebar-border: 204 40% 88%;
-    --sidebar-ring: 199 89% 48%;
+    --sidebar-accent: 215 30% 94%;
+    --sidebar-accent-foreground: 222 47% 22%;
+    --sidebar-border: 215 25% 86%;
+    --sidebar-ring: 222 47% 22%;
 
     --font-heading: 'Plus Jakarta Sans', sans-serif;
     --font-body: 'Inter', sans-serif;
 
-    --gradient-hero: linear-gradient(135deg, hsl(201 96% 32%), hsl(199 89% 48%), hsl(199 92% 74%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(204 100% 97%));
-    --gradient-accent: linear-gradient(135deg, hsl(199 89% 48%), hsl(199 95% 61%));
-    --shadow-card: 0 4px 20px -4px hsl(199 89% 48% / 0.12);
-    --shadow-elevated: 0 12px 40px -8px hsl(199 89% 48% / 0.2);
+    --gradient-hero: linear-gradient(135deg, hsl(222 47% 14%), hsl(222 47% 22%), hsl(222 40% 32%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 40% 98%));
+    --gradient-accent: linear-gradient(135deg, hsl(38 92% 50%), hsl(45 95% 60%));
+    --shadow-card: 0 4px 20px -4px hsl(222 47% 22% / 0.14);
+    --shadow-elevated: 0 12px 40px -8px hsl(222 47% 22% / 0.22);
   }
 
+  /* ─── ROYAL SLATE — Dark (Gold primary, Navy base) ─── */
   .dark {
-    --background: 215 28% 10%;
-    --foreground: 210 20% 95%;
-    --card: 215 25% 14%;
-    --card-foreground: 210 20% 95%;
-    --popover: 215 25% 14%;
-    --popover-foreground: 210 20% 95%;
-    --primary: 199 89% 48%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 215 20% 18%;
-    --secondary-foreground: 210 20% 90%;
-    --muted: 215 20% 20%;
-    --muted-foreground: 215 15% 60%;
-    --accent: 199 92% 74%;
-    --accent-foreground: 201 96% 22%;
+    --background: 222 47% 8%;
+    --foreground: 210 30% 96%;
+    --card: 222 40% 12%;
+    --card-foreground: 210 30% 96%;
+    --popover: 222 40% 12%;
+    --popover-foreground: 210 30% 96%;
+    --primary: 38 92% 55%;
+    --primary-foreground: 222 47% 10%;
+    --primary-dark: 38 92% 42%;
+    --primary-light: 45 95% 70%;
+    --primary-glow: 45 95% 65%;
+    --secondary: 222 30% 18%;
+    --secondary-foreground: 210 30% 92%;
+    --muted: 222 25% 20%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 222 47% 30%;
+    --accent-foreground: 210 30% 96%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 215 20% 22%;
-    --input: 215 20% 22%;
-    --ring: 199 89% 48%;
+    --border: 222 25% 22%;
+    --input: 222 25% 22%;
+    --ring: 38 92% 55%;
+    --gradient-hero: linear-gradient(135deg, hsl(222 47% 8%), hsl(222 47% 14%), hsl(222 40% 22%));
+    --gradient-card: linear-gradient(145deg, hsl(222 40% 12%), hsl(222 47% 8%));
+    --gradient-accent: linear-gradient(135deg, hsl(38 92% 55%), hsl(45 95% 65%));
+    --shadow-card: 0 4px 20px -4px hsl(0 0% 0% / 0.4);
+    --shadow-elevated: 0 12px 40px -8px hsl(0 0% 0% / 0.55);
+  }
+
+  /* ─── MIDNIGHT PRO — Charcoal + Electric Blue ─── */
+  .theme-midnight {
+    --background: 220 15% 7%;
+    --foreground: 210 20% 96%;
+    --card: 220 15% 11%;
+    --card-foreground: 210 20% 96%;
+    --popover: 220 15% 11%;
+    --popover-foreground: 210 20% 96%;
+    --primary: 210 100% 56%;
+    --primary-foreground: 0 0% 100%;
+    --primary-dark: 210 100% 42%;
+    --primary-light: 210 100% 72%;
+    --primary-glow: 210 100% 64%;
+    --secondary: 220 12% 16%;
+    --secondary-foreground: 210 20% 92%;
+    --muted: 220 10% 18%;
+    --muted-foreground: 220 10% 62%;
+    --accent: 195 100% 55%;
+    --accent-foreground: 220 15% 7%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 12% 20%;
+    --input: 220 12% 20%;
+    --ring: 210 100% 56%;
+    --sidebar-background: 220 15% 9%;
+    --sidebar-foreground: 210 20% 90%;
+    --sidebar-primary: 210 100% 56%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 12% 16%;
+    --sidebar-accent-foreground: 210 20% 92%;
+    --sidebar-border: 220 12% 20%;
+    --sidebar-ring: 210 100% 56%;
+    --gradient-hero: linear-gradient(135deg, hsl(220 15% 7%), hsl(220 20% 14%), hsl(210 60% 22%));
+    --gradient-card: linear-gradient(145deg, hsl(220 15% 12%), hsl(220 15% 8%));
+    --gradient-accent: linear-gradient(135deg, hsl(210 100% 56%), hsl(195 100% 55%));
+    --shadow-card: 0 4px 20px -4px hsl(210 100% 56% / 0.18);
+    --shadow-elevated: 0 12px 40px -8px hsl(210 100% 56% / 0.32);
+  }
+
+  /* ─── FOREST SAGE — Forest Green + Amber ─── */
+  .theme-forest {
+    --background: 60 20% 97%;
+    --foreground: 150 30% 12%;
+    --card: 60 30% 99%;
+    --card-foreground: 150 30% 12%;
+    --popover: 60 30% 99%;
+    --popover-foreground: 150 30% 12%;
+    --primary: 150 50% 22%;
+    --primary-foreground: 60 30% 98%;
+    --primary-dark: 150 55% 14%;
+    --primary-light: 150 35% 50%;
+    --primary-glow: 150 45% 32%;
+    --secondary: 80 25% 92%;
+    --secondary-foreground: 150 50% 22%;
+    --muted: 80 20% 90%;
+    --muted-foreground: 150 12% 38%;
+    --accent: 35 90% 52%;
+    --accent-foreground: 150 30% 12%;
+    --destructive: 0 75% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 80 20% 84%;
+    --input: 80 20% 84%;
+    --ring: 150 50% 22%;
+    --sidebar-background: 60 20% 97%;
+    --sidebar-foreground: 150 30% 22%;
+    --sidebar-primary: 150 50% 22%;
+    --sidebar-primary-foreground: 60 30% 98%;
+    --sidebar-accent: 80 25% 92%;
+    --sidebar-accent-foreground: 150 50% 22%;
+    --sidebar-border: 80 20% 84%;
+    --sidebar-ring: 150 50% 22%;
+    --gradient-hero: linear-gradient(135deg, hsl(150 55% 14%), hsl(150 50% 22%), hsl(150 40% 32%));
+    --gradient-card: linear-gradient(145deg, hsl(60 30% 99%), hsl(60 20% 97%));
+    --gradient-accent: linear-gradient(135deg, hsl(35 90% 52%), hsl(40 95% 60%));
+    --shadow-card: 0 4px 20px -4px hsl(150 50% 22% / 0.14);
+    --shadow-elevated: 0 12px 40px -8px hsl(150 50% 22% / 0.22);
+  }
+
+  /* ─── DEEP VIOLET — Indigo + Lavender ─── */
+  .theme-violet {
+    --background: 270 40% 98%;
+    --foreground: 260 50% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 260 50% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 260 50% 14%;
+    --primary: 258 65% 38%;
+    --primary-foreground: 270 40% 98%;
+    --primary-dark: 258 70% 26%;
+    --primary-light: 258 60% 65%;
+    --primary-glow: 258 65% 50%;
+    --secondary: 270 40% 94%;
+    --secondary-foreground: 258 65% 38%;
+    --muted: 270 30% 92%;
+    --muted-foreground: 260 15% 42%;
+    --accent: 270 70% 78%;
+    --accent-foreground: 258 70% 22%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 270 30% 87%;
+    --input: 270 30% 87%;
+    --ring: 258 65% 38%;
+    --sidebar-background: 270 40% 98%;
+    --sidebar-foreground: 260 30% 26%;
+    --sidebar-primary: 258 65% 38%;
+    --sidebar-primary-foreground: 270 40% 98%;
+    --sidebar-accent: 270 40% 94%;
+    --sidebar-accent-foreground: 258 65% 38%;
+    --sidebar-border: 270 30% 87%;
+    --sidebar-ring: 258 65% 38%;
+    --gradient-hero: linear-gradient(135deg, hsl(258 70% 26%), hsl(258 65% 38%), hsl(270 60% 55%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(270 40% 98%));
+    --gradient-accent: linear-gradient(135deg, hsl(258 65% 50%), hsl(270 70% 78%));
+    --shadow-card: 0 4px 20px -4px hsl(258 65% 38% / 0.15);
+    --shadow-elevated: 0 12px 40px -8px hsl(258 65% 38% / 0.25);
   }
 }
 
