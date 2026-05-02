@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, GraduationCap, LogIn, UserPlus, LayoutDashboard, LogOut, Shield, Palette } from "lucide-react";
+import { Menu, X, GraduationCap, LogIn, UserPlus, LayoutDashboard, LogOut, Shield } from "lucide-react";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
 import ThemeSwitcher from "@/components/shared/ThemeSwitcher";
-import { useTheme, type ThemeMode } from "@/hooks/useTheme";
+import { useTheme } from "@/hooks/useTheme";
 
 const navLinks = [
   { to: "/", label: "Home" },
