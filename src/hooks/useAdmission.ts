@@ -27,20 +27,6 @@ export interface AdmissionDocument {
   file_path: string; file_name: string | null; uploaded_at: string;
 }
 
-// ── Timeout helper ────────────────────────────────────────────────────────
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error(`${label} is taking too long. Please try again.`)),
-      ms
-    );
-    promise.then(
-      (val) => { clearTimeout(timer); resolve(val); },
-      (err) => { clearTimeout(timer); reject(err); }
-    );
-  });
-}
-
 // ── Admission settings ────────────────────────────────────────────────────
 export function useAdmissionSettings() {
   return useQuery<AdmissionSettings | null>({
@@ -130,7 +116,9 @@ export function useUpdateAdmissionSettings() {
   });
 }
 
-// ── Submit admission — NO .select() after insert to avoid RLS block ───────
+// ── Submit admission ──────────────────────────────────────────────────────
+// KEY FIX: Use RPC function instead of direct insert+select
+// This bypasses anon RLS SELECT block completely
 export async function submitAdmission(payload: {
   full_name: string; father_name: string; date_of_birth: string | null;
   b_form_no: string; contact_number: string; whatsapp_number: string | null;
@@ -140,32 +128,17 @@ export async function submitAdmission(payload: {
   year_of_passing: string | null;
 }): Promise<{ id: string; reference_no: string }> {
 
-  // Step 1: Insert the record
-  const insertPromise = supabase
-    .from("admissions")
-    .insert({ ...payload, reference_no: "" })  // trigger replaces "" with OHS-YYYY-XXXX
-    .then(({ error }) => {
-      if (error) throw new Error(`Failed to save: ${error.message} (code: ${error.code})`);
-    });
+  const { data, error } = await supabase.rpc("submit_admission_public", payload);
 
-  await withTimeout(insertPromise, 60_000, "Saving application");
+  if (error) {
+    throw new Error(`Submission failed: ${error.message}`);
+  }
 
-  // Step 2: Fetch the record we just inserted using b_form_no
-  // (avoids the RLS SELECT block on anon insert+select)
-  const fetchPromise = supabase
-    .from("admissions")
-    .select("id, reference_no")
-    .eq("b_form_no", payload.b_form_no)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single()
-    .then(({ data, error }) => {
-      if (error) throw new Error(`Could not retrieve application: ${error.message}`);
-      if (!data) throw new Error("Application saved but could not retrieve reference number.");
-      return data as { id: string; reference_no: string };
-    });
+  if (!data || !data.id) {
+    throw new Error("Submission failed: no response from server.");
+  }
 
-  return withTimeout(fetchPromise, 30_000, "Retrieving application");
+  return data as { id: string; reference_no: string };
 }
 
 // ── Upload document to Cloudinary → save URL in Supabase ─────────────────
@@ -174,27 +147,26 @@ export async function uploadAdmissionDocument(
   docType: string,
   file: File
 ): Promise<string> {
-  // Upload to Cloudinary
+  // Upload to Cloudinary first
   const cloudinaryUrl = await uploadToCloudinary(file, `admissions/${admissionId}`);
 
-  // Save URL to Supabase
-  const dbPromise = supabase
-    .from("admission_documents")
-    .insert({
-      admission_id: admissionId,
-      doc_type:     docType,
-      file_path:    cloudinaryUrl,
-      file_name:    file.name,
-    })
-    .then(({ error }) => {
-      if (error) throw new Error(`Failed to save document: ${error.message}`);
-    });
+  // Save Cloudinary URL in Supabase (no SELECT needed — just insert)
+  const { error } = await supabase.from("admission_documents").insert({
+    admission_id: admissionId,
+    doc_type:     docType,
+    file_path:    cloudinaryUrl,
+    file_name:    file.name,
+  });
 
-  await withTimeout(dbPromise, 20_000, "Saving document record");
+  if (error) {
+    throw new Error(`Failed to record document: ${error.message}`);
+  }
+
   return cloudinaryUrl;
 }
 
-// ── Get document URL (already full Cloudinary URL) ────────────────────────
+// ── Get document URL ─────────────────────────────────────────────────────
 export function getDocUrl(path: string): string {
   return path;
-        }
+    }
+  
