@@ -23,6 +23,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import DailyQuoteCard from "@/components/shared/DailyQuoteCard";
 import WeatherWidget from "@/components/shared/WeatherWidget";
+import AdmissionTopBanner from "@/components/admissions/AdmissionTopBanner";
+import AdmissionHero from "@/components/admissions/AdmissionHero";
 
 /* ─── Animation variants ─── */
 const stagger = {
@@ -212,6 +214,9 @@ const Home = () => {
 
   return (
     <PageLayout>
+
+      {/* ══ 0. ADMISSION BANNER (top) ══ */}
+      <AdmissionTopBanner />
 
       {/* ══ 1. NEWS TICKER ══ */}
       <NewsTicker />
@@ -618,53 +623,8 @@ const Home = () => {
         </div>
       </motion.section>
 
-      {/* ══ 15. FINAL CTA (single, unified) ══ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} variants={sectionFadeUp} className="section-y cv-auto relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full -translate-x-1/2 -translate-y-1/2" />
-          <motion.div animate={{ scale: [1.2, 1, 1.2] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }} className="absolute bottom-0 right-0 w-96 h-96 bg-accent/5 rounded-full translate-x-1/2 translate-y-1/2" />
-        </div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="gradient-hero rounded-3xl p-12 md:p-20 text-center relative overflow-hidden">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/5 rounded-full blur-3xl pointer-events-none" />
-            <motion.div animate={{ rotate: 360 }} transition={{ duration: 40, repeat: Infinity, ease: "linear" }} className="absolute inset-0 opacity-5 pointer-events-none">
-              <div className="absolute top-4 right-4 w-32 h-32 rounded-full border-2 border-white" />
-              <div className="absolute bottom-4 left-4 w-20 h-20 rounded-full border-2 border-white" />
-            </motion.div>
-            <ScrollReveal>
-              <div className="relative z-10">
-                <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} className="inline-block mb-4">
-                  <Heart className="w-8 h-8 text-primary-foreground/60 mx-auto" />
-                </motion.div>
-                <div className="inline-flex items-center gap-2 bg-white/20 text-white border border-white/30 backdrop-blur-sm text-sm font-medium px-4 py-2 rounded-full mb-6">
-                  <Heart className="w-4 h-4" /> Join Our Community
-                </div>
-                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-bold text-primary-foreground mb-6 leading-tight">
-                  Ready to Begin Your{" "}
-                  <span className="bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">Educational Journey?</span>
-                </h2>
-                <p className="text-primary-foreground/75 text-lg mb-10 max-w-2xl mx-auto">
-                  Access your student portal to view results, attendance, timetables, and stay connected with your academic progress.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link to="/auth/signin">
-                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
-                      className="w-full sm:w-auto px-10 py-5 bg-white text-primary rounded-2xl font-bold shadow-2xl flex items-center justify-center gap-2 text-lg">
-                      Sign In to Portal <ArrowRight className="w-5 h-5" />
-                    </motion.button>
-                  </Link>
-                  <Link to="/results">
-                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
-                      className="w-full sm:w-auto px-10 py-5 bg-white/10 backdrop-blur-md text-white rounded-2xl font-semibold border border-white/30 hover:bg-white/20 transition-all flex items-center justify-center gap-2 text-lg">
-                      Check Results
-                    </motion.button>
-                  </Link>
-                </div>
-              </div>
-            </ScrollReveal>
-          </div>
-        </div>
-      </motion.section>
+      {/* ══ 15. ADMISSION PORTAL (replaces previous CTA) ══ */}
+      <AdmissionHero />
 
     </PageLayout>
   );
