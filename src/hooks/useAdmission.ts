@@ -163,4 +163,5 @@ export async function uploadAdmissionDocument(
 
 export function getDocUrl(path: string): string {
   return path;
-  }
+    }
+  
