@@ -27,7 +27,6 @@ export interface AdmissionDocument {
   file_path: string; file_name: string | null; uploaded_at: string;
 }
 
-// ── Admission settings ────────────────────────────────────────────────────
 export function useAdmissionSettings() {
   return useQuery<AdmissionSettings | null>({
     queryKey: ["admission-settings"],
@@ -41,7 +40,6 @@ export function useAdmissionSettings() {
   });
 }
 
-// ── Track application ─────────────────────────────────────────────────────
 export function useTrackAdmission(query: string) {
   return useQuery({
     queryKey: ["track-admission", query],
@@ -55,7 +53,6 @@ export function useTrackAdmission(query: string) {
   });
 }
 
-// ── Admin: all admissions ─────────────────────────────────────────────────
 const PAGE_SIZE = 20;
 export function useAdminAdmissions(filters: {
   status?: string; classFilter?: string; typeFilter?: string; page?: number;
@@ -77,7 +74,6 @@ export function useAdminAdmissions(filters: {
   });
 }
 
-// ── Admin: documents ──────────────────────────────────────────────────────
 export function useAdmissionDocuments(admissionId: string) {
   return useQuery<AdmissionDocument[]>({
     queryKey: ["admission-docs", admissionId],
@@ -91,7 +87,6 @@ export function useAdmissionDocuments(admissionId: string) {
   });
 }
 
-// ── Admin: update admission ───────────────────────────────────────────────
 export function useUpdateAdmission() {
   const qc = useQueryClient();
   return useMutation({
@@ -103,7 +98,6 @@ export function useUpdateAdmission() {
   });
 }
 
-// ── Admin: update settings ────────────────────────────────────────────────
 export function useUpdateAdmissionSettings() {
   const qc = useQueryClient();
   return useMutation({
@@ -116,9 +110,7 @@ export function useUpdateAdmissionSettings() {
   });
 }
 
-// ── Submit admission ──────────────────────────────────────────────────────
-// KEY FIX: Use RPC function instead of direct insert+select
-// This bypasses anon RLS SELECT block completely
+// Calls the secure server-side RPC function — bypasses RLS completely
 export async function submitAdmission(payload: {
   full_name: string; father_name: string; date_of_birth: string | null;
   b_form_no: string; contact_number: string; whatsapp_number: string | null;
@@ -128,29 +120,36 @@ export async function submitAdmission(payload: {
   year_of_passing: string | null;
 }): Promise<{ id: string; reference_no: string }> {
 
-  const { data, error } = await supabase.rpc("submit_admission_public", payload);
+  const { data, error } = await supabase.rpc("submit_admission_public", {
+    p_full_name:      payload.full_name,
+    p_father_name:    payload.father_name,
+    p_date_of_birth:  payload.date_of_birth ?? "",
+    p_b_form_no:      payload.b_form_no,
+    p_contact_number: payload.contact_number,
+    p_whatsapp_number:  payload.whatsapp_number  ?? null,
+    p_home_address:     payload.home_address     ?? null,
+    p_gender:           payload.gender           ?? null,
+    p_applying_class:   payload.applying_class,
+    p_admission_type:   payload.admission_type,
+    p_previous_school:  payload.previous_school  ?? null,
+    p_previous_class:   payload.previous_class   ?? null,
+    p_previous_marks:   payload.previous_marks   ?? null,
+    p_year_of_passing:  payload.year_of_passing  ?? null,
+  });
 
-  if (error) {
-    throw new Error(`Submission failed: ${error.message}`);
-  }
-
-  if (!data || !data.id) {
-    throw new Error("Submission failed: no response from server.");
-  }
+  if (error) throw new Error(`Submission failed: ${error.message}`);
+  if (!data?.id) throw new Error("No response from server. Please try again.");
 
   return data as { id: string; reference_no: string };
 }
 
-// ── Upload document to Cloudinary → save URL in Supabase ─────────────────
 export async function uploadAdmissionDocument(
   admissionId: string,
   docType: string,
   file: File
 ): Promise<string> {
-  // Upload to Cloudinary first
   const cloudinaryUrl = await uploadToCloudinary(file, `admissions/${admissionId}`);
 
-  // Save Cloudinary URL in Supabase (no SELECT needed — just insert)
   const { error } = await supabase.from("admission_documents").insert({
     admission_id: admissionId,
     doc_type:     docType,
@@ -158,15 +157,10 @@ export async function uploadAdmissionDocument(
     file_name:    file.name,
   });
 
-  if (error) {
-    throw new Error(`Failed to record document: ${error.message}`);
-  }
-
+  if (error) throw new Error(`Failed to record document: ${error.message}`);
   return cloudinaryUrl;
 }
 
-// ── Get document URL ─────────────────────────────────────────────────────
 export function getDocUrl(path: string): string {
   return path;
-    }
-  
+  }
