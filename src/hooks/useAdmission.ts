@@ -208,7 +208,7 @@ export async function submitAdmission(
   const reference_no = createFallbackReferenceNo();
 
   const { error: admissionError } = await withTimeout(
-    supabase.from("admissions").insert({ id, reference_no, ...payload }, { returning: "minimal" }),
+    supabase.from("admissions").insert([{ id, reference_no, ...payload }]),
     25000,
     "Admission submission"
   );
@@ -217,8 +217,7 @@ export async function submitAdmission(
   if (documents.length > 0) {
     const { error: docsError } = await withTimeout(
       supabase.from("admission_documents").insert(
-        documents.map(doc => ({ admission_id: id, ...doc })),
-        { returning: "minimal" }
+        documents.map(doc => ({ admission_id: id, ...doc }))
       ),
       25000,
       "Document save"
