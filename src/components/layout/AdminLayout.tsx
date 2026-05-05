@@ -24,13 +24,10 @@ const navItems = [
   { id: "library",           label: "Library",            icon: BookOpen       },
   { id: "exam-rolls",        label: "Exam Roll Numbers",  icon: Hash           },
   { id: "notes",             label: "Notes Manager",  icon: BookMarked     },
-  { id: "tests",             label: "MCQ Tests",          icon: ClipboardCheck },
   { id: "videos",            label: "Videos",             icon: Video          },
-  { id: "users",             label: "Users",              icon: UserCog        },
   { id: "online-classes",    label: "Online Classes",  icon: Video          },
   { id: "extras",            label: "Extras",          icon: Star           },
   { id: "analytics",         label: "Analytics",       icon: TrendingUp     },
-  { id: "pending-requests",  label: "Pending Requests",   icon: Clock          },
   { id: "site-analytics",    label: "Site Analytics",  icon: Globe          },
 ];
 
@@ -258,4 +255,4 @@ export default AdminLayout;
 
 
 
-          
+      
