@@ -1066,17 +1066,6 @@ const AdminExamRollNumbers = () => {
                       <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><ScanLine className="w-4 h-4 text-emerald-500" /> Scan QR Code for Attendance</CardTitle></CardHeader>
                       <CardContent className="space-y-3">
                         <QRScanner onScan={handleQRScan} enabled={!!attSession && !!attSubject} />
-                        {/* QR Data paste */}
-                        <div>
-                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Paste QR Data (from scanner app)</label>
-                          <div className="flex gap-2">
-                            <input className="flex-1 px-3 py-2.5 rounded-xl bg-secondary/50 border border-border text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-emerald-500/30 font-mono"
-                              placeholder="Paste QR data..." value={qrInput} onChange={e => setQrInput(e.target.value)}
-                              onKeyDown={e => { if (e.key === "Enter" && qrInput.trim()) { handleQRScan(qrInput.trim()); setQrInput(""); } }} />
-                            <Button onClick={() => { handleQRScan(qrInput.trim()); setQrInput(""); }} disabled={!qrInput.trim()}
-                              className="bg-emerald-500 hover:bg-emerald-600 text-white gap-1.5 shrink-0"><CheckCircle2 className="w-4 h-4" /> Mark</Button>
-                          </div>
-                        </div>
                         {/* Manual roll entry */}
                         <div>
                           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1"><Keyboard className="w-3 h-3" />Manual Roll Number</label>
