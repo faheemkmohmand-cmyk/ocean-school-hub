@@ -27,6 +27,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { triggerConfetti } from "@/lib/confetti";
 import QRCode from "qrcode";
+import { Html5Qrcode } from "html5-qrcode";
 import {
   encodeExamQRData, decodeExamQRData,
   useExamSessions as useAttExamSessions,
@@ -111,98 +112,61 @@ function CountdownTimer({ targetDate, label }: { targetDate: string; label: stri
   );
 }
 
-// ── Camera QR Scanner component ─────────────────────────────────────────────────
+// ── Camera QR Scanner using html5-qrcode ───────────────────────────────────
 function QRScanner({ onScan, enabled }: { onScan: (data: string) => void; enabled: boolean }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const scanningRef = useRef(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const [cameraOn, setCameraOn] = useState(false);
-  const detectorRef = useRef<any>(null);
+  const [active, setActive] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const containerIdRef = useRef(`qr-reader-${Math.random().toString(36).slice(2)}`);
 
-  const startCamera = useCallback(async () => {
-    try {
-      setCameraError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-        setCameraOn(true);
-        scanningRef.current = true;
-
-        // Try BarcodeDetector API (available in Chrome/Edge)
-        if ("BarcodeDetector" in window) {
-          try {
-            detectorRef.current = new (window as any).BarcodeDetector({ formats: ["qr_code"] });
-            const detectLoop = async () => {
-              if (!scanningRef.current || !videoRef.current || !detectorRef.current) return;
-              try {
-                const barcodes = await detectorRef.current.detect(videoRef.current);
-                if (barcodes.length > 0) {
-                  onScan(barcodes[0].rawValue);
-                  scanningRef.current = false;
-                  stopCamera();
-                  return;
-                }
-              } catch {}
-              if (scanningRef.current) requestAnimationFrame(detectLoop);
-            };
-            setTimeout(detectLoop, 1000); // wait for camera to stabilize
-          } catch (e) {
-            // BarcodeDetector not supported, fallback to manual
-          }
-        }
-      }
-    } catch (err: any) {
-      setCameraError(err.message || "Camera access denied");
-      setCameraOn(false);
+  const stop = useCallback(async () => {
+    const inst = scannerRef.current;
+    if (inst) {
+      try { if ((inst as any).isScanning) await inst.stop(); } catch {}
+      try { await inst.clear(); } catch {}
+      scannerRef.current = null;
     }
-  }, [onScan]);
-
-  const stopCamera = useCallback(() => {
-    scanningRef.current = false;
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) videoRef.current.srcObject = null;
-    setCameraOn(false);
+    setActive(false);
   }, []);
 
-  useEffect(() => {
-    return () => { stopCamera(); };
-  }, [stopCamera]);
+  const start = useCallback(async () => {
+    setError(null);
+    setActive(true);
+    await new Promise(r => setTimeout(r, 80));
+    try {
+      const qr = new Html5Qrcode(containerIdRef.current);
+      scannerRef.current = qr;
+      await qr.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 200, height: 200 } },
+        (decodedText: string) => { onScan(decodedText); stop(); },
+        () => {}
+      );
+    } catch (e: any) {
+      setError(e?.message || "Camera access failed");
+      setActive(false);
+    }
+  }, [onScan, stop]);
+
+  useEffect(() => () => { stop(); }, [stop]);
 
   return (
     <div className="space-y-3">
-      {!cameraOn ? (
-        <Button onClick={startCamera} className="gap-2 w-full bg-emerald-500 hover:bg-emerald-600 text-white" size="lg" disabled={!enabled}>
+      {!active ? (
+        <Button onClick={start} disabled={!enabled} className="gap-2 w-full bg-emerald-500 hover:bg-emerald-600 text-white" size="lg">
           <Camera className="w-5 h-5" /> Scan QR Code
         </Button>
       ) : (
         <div className="space-y-3">
-          <div className="relative rounded-xl overflow-hidden bg-black aspect-video max-w-md mx-auto border-2 border-emerald-400/50">
-            <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-44 h-44 border-3 border-emerald-400 rounded-2xl opacity-80 animate-pulse" />
-            </div>
-            <div className="absolute bottom-2 left-0 right-0 text-center">
-              <span className="text-[10px] bg-black/60 text-white px-2 py-1 rounded-md">
-                {"BarcodeDetector" in window ? "Auto-detecting QR..." : "Point camera at QR, then paste result below"}
-              </span>
-            </div>
-          </div>
-          <Button onClick={stopCamera} variant="outline" className="w-full gap-1.5">
-            <X className="w-4 h-4" /> Stop Camera
+          <div id={containerIdRef.current} className="w-full rounded-xl overflow-hidden bg-black border-2 border-emerald-400/50" style={{ minHeight: 250 }} />
+          <Button onClick={stop} variant="outline" className="w-full gap-1.5">
+            <X className="w-4 h-4" /> Close Scanner
           </Button>
         </div>
       )}
-      {cameraError && (
+      {error && (
         <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 rounded-xl p-3 text-sm text-red-600 flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" /> {cameraError}
+          <AlertCircle className="w-4 h-4 shrink-0" /> {error}
         </div>
       )}
     </div>
