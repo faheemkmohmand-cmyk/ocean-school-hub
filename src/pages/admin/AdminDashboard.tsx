@@ -23,13 +23,13 @@ const AdminMeritList         = lazy(() => import("./tabs/AdminMeritList"));
 const AdminExtras            = lazy(() => import("./tabs/AdminExtras"));
 const AdminOnlineClasses     = lazy(() => import("./tabs/AdminOnlineClasses") as any);
 const AdminAnalytics         = lazy(() => import("../dashboard/tabs/SchoolAnalyticsTab") as any);
-const AdminSiteAnalytics     = lazy(() => import("./tabs/AdminSiteAnalytics"));
+const AdminSiteAnalytics     = lazy(() => import("./tabs/AdminSiteAnalytics").then(m => ({ default: m.AdminAnalyticsHub })));
 const AdminAdmissions        = lazy(() => import("./tabs/AdminAdmissions"));
 
 const tabMap: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
   overview:           AdminOverview,
   analytics:          AdminAnalytics,
-  "pending-requests": AdminPendingRequests,
+  "pending-requests": AdminSiteAnalytics,
   "site-analytics":   AdminSiteAnalytics,
   settings:           AdminSchoolSettings,
   teachers:           AdminTeachers,
