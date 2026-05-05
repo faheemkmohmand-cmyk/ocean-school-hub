@@ -1,36 +1,29 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  Home, Calendar, BarChart3, Bell, Newspaper, BookOpen, Image, Trophy,
+  Home, Calendar, BarChart3, Bell, BookOpen, Image, Trophy,
   Users, User, LogOut, GraduationCap, Menu, X, Shield, ExternalLink, Moon, Sun,
-  Video, Hash, FileText, BookMarked, ClipboardCheck,
-  TrendingUp, Star
+  Video, FileText, BookMarked, ClipboardCheck, MessageSquare
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
 import { useDarkMode } from "@/hooks/useDarkMode";
 
 const navItems = [
-  { id: "overview",       label: "Overview",        icon: Home           },
-  { id: "notes",          label: "Study Notes",     icon: BookMarked     },
-  { id: "timetable",      label: "Timetable",       icon: Calendar       },
-  { id: "exam-schedule",  label: "Exam Schedule",   icon: Calendar       },
-  { id: "results",        label: "Results",         icon: BarChart3      },
-  { id: "exam-rolls",     label: "Exam Roll No",    icon: Hash           },
-  { id: "result-card",    label: "Result Card",     icon: FileText       },
-  { id: "analytics",      label: "Analytics",        icon: TrendingUp     },
-  { id: "honor-roll",     label: "Honor Roll",      icon: Star           },
-  { id: "merit-list",     label: "Merit List",      icon: Trophy         },
-  { id: "notices",        label: "Notices",         icon: Bell           },
-  { id: "news",           label: "News",            icon: Newspaper      },
-  { id: "library",        label: "Library",         icon: BookOpen       },
-  { id: "gallery",        label: "Gallery",         icon: Image          },
+  { id: "overview",       label: "Overview",         icon: Home           },
+  { id: "timetable",      label: "Schedule",         icon: Calendar       },
+  { id: "results",        label: "Results",          icon: BarChart3      },
+  { id: "merit-list",     label: "Merit List",       icon: Trophy         },
+  { id: "notices",        label: "Notices & News",   icon: Bell           },
+  { id: "notes",          label: "Study Notes",      icon: BookMarked     },
+  { id: "library",        label: "Library",          icon: BookOpen       },
+  { id: "gallery",        label: "Media",            icon: Image          },
   { id: "online-classes", label: "📹 Online Classes", icon: Video         },
-  { id: "videos",         label: "Videos",          icon: Video          },
-  { id: "achievements",   label: "Achievements",    icon: Trophy         },
-  { id: "tests",          label: "MCQ Tests",       icon: ClipboardCheck },
-  { id: "teachers",       label: "Teachers",        icon: Users          },
-  { id: "profile",        label: "My Profile",      icon: User           },
+  { id: "tests",          label: "MCQ Tests",        icon: ClipboardCheck },
+  { id: "homework",       label: "Homework",         icon: FileText       },
+  { id: "teachers",       label: "Teachers",         icon: Users          },
+  { id: "messages",       label: "Messages",         icon: MessageSquare  },
+  { id: "profile",        label: "My Profile",       icon: User           },
 ];
 
 interface DashboardLayoutProps {
@@ -272,4 +265,5 @@ export default DashboardLayout;
 
 
 
-            
+
+          
