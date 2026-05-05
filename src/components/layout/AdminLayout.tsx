@@ -19,11 +19,9 @@ const navItems = [
   { id: "merit-list",        label: "Merit List",      icon: TrendingUp     },
   { id: "attendance",        label: "Attendance",         icon: CheckSquare    },
   { id: "timetables",        label: "Timetables",         icon: Calendar       },
-  { id: "notices",           label: "Notices",            icon: Bell           },
-  { id: "news",              label: "News",               icon: Newspaper      },
+  { id: "notices",           label: "Announcements",      icon: Bell           },
   { id: "gallery",           label: "Gallery",            icon: Image          },
   { id: "library",           label: "Library",            icon: BookOpen       },
-  { id: "achievements",      label: "Achievements",       icon: Trophy         },
   { id: "exam-rolls",        label: "Exam Roll Numbers",  icon: Hash           },
   { id: "notes",             label: "Notes Manager",  icon: BookMarked     },
   { id: "tests",             label: "MCQ Tests",          icon: ClipboardCheck },
@@ -259,4 +257,5 @@ export default AdminLayout;
 
 
 
-              
+
+          
