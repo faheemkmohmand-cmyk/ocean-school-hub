@@ -4,7 +4,7 @@ import {
   BarChart3, Settings, Users, GraduationCap, ClipboardList, CheckSquare,
   Calendar, Bell, BookOpen, Trophy, LogOut,
   Menu, X, ExternalLink, Shield, Moon, Sun, Video, Hash,
-  BookMarked, TrendingUp, Star, Globe
+  BookMarked, TrendingUp, Star, Globe, DollarSign
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/hooks/useDarkMode";
@@ -28,6 +28,7 @@ const navItems = [
   { id: "online-classes",    label: "Online Classes",  icon: Video          },
   { id: "extras",            label: "Extras",          icon: Star           },
   { id: "site-analytics",    label: "Site Analytics",  icon: Globe          },
+  { id: "finance",           label: "Finance & Fees",  icon: DollarSign     },
 ];
 
 interface AdminLayoutProps {
@@ -253,4 +254,5 @@ export default AdminLayout;
 
 
 
-              
+
+          
