@@ -1,3 +1,4 @@
+# Robots — full crawl access for major search engines
 User-agent: Googlebot
 Allow: /
 
@@ -12,3 +13,11 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+# Disallow private dashboards
+Disallow: /admin
+Disallow: /teacher
+Disallow: /dashboard
+Disallow: /auth/
+
+Sitemap: https://ghsbabkhel.lovable.app/sitemap.xml

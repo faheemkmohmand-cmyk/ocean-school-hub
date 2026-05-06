@@ -7,6 +7,7 @@ import ErrorBoundary from "./components/shared/ErrorBoundary";
 import OfflineBanner from "./components/shared/OfflineBanner";
 import { usePageTracker } from "./hooks/usePageTracker";
 import SiteSchema from "./components/seo/SiteSchema";
+import RouteSEOInjector from "./components/seo/RouteSEOInjector";
 
 // Invisible component — just runs the tracker hook inside BrowserRouter
 const PageTracker = () => { usePageTracker(); return null; };
@@ -74,6 +75,7 @@ const App = () => (
         <OfflineBanner />
         <BrowserRouter>
           <PageTracker />
+          <RouteSEOInjector />
           <Suspense fallback={<PageSkeleton />}>
             <Routes>
               <Route path="/"                     element={<Home />} />
