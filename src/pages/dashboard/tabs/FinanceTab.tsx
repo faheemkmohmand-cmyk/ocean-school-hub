@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import {
   getMyCharges, getMyPayments, getStudentLedger, submitWalletPayment,
+  getAllStudentLedgers,
 } from "@/lib/financeService";
 import type { StudentCharge, Payment } from "@/lib/financeService";
 import { Skeleton } from "@/components/ui/skeleton";
