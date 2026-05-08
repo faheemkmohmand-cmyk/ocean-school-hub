@@ -219,105 +219,80 @@ const Home = () => {
       <NewsTicker />
 
       {/* ══ 2. HERO ══ */}
-      <section id="hero-section" className="relative min-h-[100vh] flex items-center overflow-hidden">
-        <motion.div style={{ y: heroBgY }} className="absolute inset-0 will-change-transform">
-          {settings?.banner_url
-            ? <img src={settings.banner_url} alt="School banner" className="absolute inset-0 w-full h-full object-cover" loading="eager" decoding="async" fetchPriority="high" style={{ height: "110%", top: "-5%" }} />
-            : <div className="absolute inset-0 gradient-hero" />
-          }
-          <div className="absolute inset-0 opacity-20">
-            <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" strokeWidth="0.15" opacity="0.4" /></pattern></defs>
-              <rect width="100" height="100" fill="url(#grid)" />
-            </svg>
-          </div>
-        </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/72 via-primary/45 to-transparent" />
-
-        <motion.div style={{ y: blobY }} className="absolute inset-0 overflow-hidden pointer-events-none">
-          <motion.div animate={{ x: [0, 40, 0], y: [0, -30, 0] }} transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }} className="absolute -top-20 -left-20 w-96 h-96 rounded-full bg-primary/20 blur-3xl" />
-          <motion.div animate={{ x: [0, -50, 0], y: [0, 40, 0] }} transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }} className="absolute bottom-10 right-0 w-[500px] h-[500px] rounded-full bg-accent/15 blur-3xl" />
-        </motion.div>
-
-        <motion.div style={{ y: heroContentY, opacity: heroOpacity }} className="container mx-auto px-4 relative z-10 py-24 will-change-transform">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left: text */}
+      <section id="hero-section" className="relative min-h-[88vh] flex items-center overflow-hidden bg-[#F5F1EB]">
+        <motion.div style={{ y: heroContentY, opacity: heroOpacity }} className="container mx-auto px-4 relative z-10 py-20 md:py-24 will-change-transform">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
             <motion.div initial="hidden" animate="visible" variants={stagger.parent} className="max-w-2xl">
               <motion.div variants={stagger.child}>
-                <span className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-md rounded-full px-4 py-1.5 text-sm text-white/90 border border-white/20">
-                  <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="inline-flex items-center gap-2 bg-white border border-[#E5E7EB] rounded-full px-4 py-1.5 text-sm text-[#5B5B5B] shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-[#C96B3B] animate-pulse" />
                   Est. {settings?.established_year || 2018} · EMIS {settings?.emis_code || "60673"}
                 </span>
               </motion.div>
-              <motion.h1 variants={stagger.child} className="mt-6 text-4xl md:text-6xl lg:text-7xl font-heading font-extrabold italic text-white leading-[0.95] min-h-[1em]">
-                <span className="bg-gradient-to-r from-white via-primary-light to-accent bg-clip-text text-transparent">{displayedSchoolName}</span>
-                <span className="inline-block w-1 h-[0.85em] bg-white/70 ml-1 align-middle" style={{ animation: "blink 1s step-end infinite" }} />
+              <motion.h1 variants={stagger.child} className="mt-6 text-4xl md:text-6xl lg:text-7xl font-heading font-extrabold leading-[0.95] min-h-[1em] text-[#111827]">
+                {displayedSchoolName}
+                <span className="inline-block w-1 h-[0.85em] bg-[#111827]/60 ml-1 align-middle" style={{ animation: "blink 1s step-end infinite" }} />
               </motion.h1>
-              <motion.h2 variants={stagger.child} className="mt-4 text-xl md:text-2xl font-heading font-semibold text-white/90 min-h-[2rem]">
+              <motion.h2 variants={stagger.child} className="mt-4 text-xl md:text-2xl font-heading font-semibold text-[#111827] min-h-[2rem]">
                 {displayed}
-                <span className="inline-block w-0.5 h-6 bg-white/80 ml-1 align-middle" style={{ animation: "blink 1s step-end infinite" }} />
+                <span className="inline-block w-0.5 h-6 bg-[#111827]/60 ml-1 align-middle" style={{ animation: "blink 1s step-end infinite" }} />
                 <style>{`@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }`}</style>
               </motion.h2>
-              <motion.p variants={stagger.child} className="mt-5 text-base md:text-lg text-white/80 max-w-xl leading-relaxed">
+              <motion.p variants={stagger.child} className="mt-5 text-base md:text-lg text-[#5B5B5B] max-w-xl leading-relaxed">
                 {settings?.description || "Government High School Babi Khel is committed to providing quality education and nurturing the future leaders of Pakistan."}
               </motion.p>
               <motion.div variants={stagger.child} className="mt-8 flex flex-wrap gap-4">
                 <Link to="/results">
-                  <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.97 }}
-                  className="inline-flex items-center gap-2 gradient-accent text-primary-foreground font-semibold px-7 py-3.5 rounded-xl shadow-elevated transition-all duration-200">
+                  <motion.button whileHover={{ scale: 1.03, y: -2 }} whileTap={{ scale: 0.97 }}
+                    className="inline-flex items-center gap-2 bg-[#0F172A] text-white font-semibold px-7 py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all duration-200">
                     View Results <ArrowRight className="w-4 h-4" />
                   </motion.button>
                 </Link>
                 <Link to="/auth/signin">
-                  <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.97 }}
-                    className="inline-flex items-center gap-2 bg-white text-primary font-semibold px-7 py-3.5 rounded-xl shadow-elevated transition-all duration-200">
+                  <motion.button whileHover={{ scale: 1.03, y: -2 }} whileTap={{ scale: 0.97 }}
+                    className="inline-flex items-center gap-2 bg-[#C96B3B] text-white font-semibold px-7 py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all duration-200">
                     Student Portal
                   </motion.button>
                 </Link>
                 <Link to="/about">
-                  <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.97 }}
-                    className="inline-flex items-center gap-2 bg-white/12 backdrop-blur-sm border border-white/25 text-white font-semibold px-7 py-3.5 rounded-xl hover:bg-white/22 transition-all duration-200">
+                  <motion.button whileHover={{ scale: 1.03, y: -2 }} whileTap={{ scale: 0.97 }}
+                    className="inline-flex items-center gap-2 bg-white border border-[#E5E7EB] text-[#111827] font-semibold px-7 py-3.5 rounded-xl shadow-sm hover:bg-[#FAFAFA] transition-all duration-200">
                     Learn More
                   </motion.button>
                 </Link>
               </motion.div>
             </motion.div>
 
-            {/* Right: stats cards */}
-            <motion.div ref={statsRef} initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7, duration: 0.7 }} className="hidden lg:grid grid-cols-2 gap-4">
-              {[
-                { icon: Users,         label: "Total Students",     value: settings?.total_students  || 500, suffix: "+" },
-                { icon: GraduationCap, label: "Qualified Teachers", value: settings?.total_teachers  || 25,  suffix: "+" },
-                { icon: Trophy,        label: "Pass Rate",          value: settings?.pass_percentage || 98,  suffix: "%" },
-                { icon: BookOpen,      label: "Years of Excellence",value: new Date().getFullYear() - (settings?.established_year || 2018), suffix: "" },
-              ].map((stat, i) => (
-                <motion.div key={stat.label} initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 + i * 0.15, duration: 0.5 }} whileHover={{ scale: 1.04, y: -4 }}
-                  className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all shadow-2xl cursor-default">
-                  <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center mb-4 shadow-lg border border-white/20">
-                    <stat.icon className="w-7 h-7 text-white" />
+            <motion.div ref={statsRef} initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4, duration: 0.6 }} className="space-y-4">
+              <div className="rounded-3xl bg-white border border-[#E5E7EB] p-2 shadow-lg overflow-hidden">
+                {settings?.banner_url ? (
+                  <img src={settings.banner_url} alt="School campus" className="w-full h-[250px] md:h-[320px] object-cover rounded-2xl" loading="eager" decoding="async" fetchPriority="high" />
+                ) : (
+                  <div className="w-full h-[250px] md:h-[320px] rounded-2xl bg-[#E5E7EB] flex items-center justify-center">
+                    <GraduationCap className="w-14 h-14 text-[#0F172A]/50" />
                   </div>
-                  <p className="text-3xl sm:text-4xl font-bold text-white"><AnimCounter value={stat.value} suffix={stat.suffix} isInView={statsInView} /></p>
-                  <p className="text-sm text-white/70 mt-2 font-medium">{stat.label}</p>
-                </motion.div>
-              ))}
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { icon: Users,         label: "Students", value: settings?.total_students  || 500, suffix: "+" },
+                  { icon: GraduationCap, label: "Teachers", value: settings?.total_teachers  || 25,  suffix: "+" },
+                  { icon: Trophy,        label: "Pass Rate", value: settings?.pass_percentage || 98, suffix: "%" },
+                  { icon: BookOpen,      label: "Established", value: settings?.established_year || 2018, suffix: "" },
+                ].map((stat, i) => (
+                  <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 + i * 0.1 }}
+                    className="bg-white rounded-2xl p-4 border border-[#E5E7EB] shadow-sm">
+                    <div className="w-10 h-10 rounded-xl bg-[#0F172A]/5 flex items-center justify-center mb-2">
+                      <stat.icon className="w-5 h-5 text-[#0F172A]" />
+                    </div>
+                    <p className="text-2xl font-bold text-[#111827]"><AnimCounter value={stat.value} suffix={stat.suffix} isInView={statsInView} /></p>
+                    <p className="text-xs text-[#5B5B5B] mt-1 font-medium">{stat.label}</p>
+                  </motion.div>
+                ))}
+              </div>
             </motion.div>
           </div>
         </motion.div>
-
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-3 select-none pointer-events-none">
-          <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }} className="text-[11px] font-bold uppercase tracking-[0.3em] text-white/70">Scroll</motion.span>
-          <div className="w-7 h-12 rounded-full border-2 border-white/50 flex items-start justify-center pt-2 relative overflow-hidden">
-            <motion.div animate={{ y: [0, 20, 0], opacity: [1, 0, 1] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} className="w-1.5 h-3 rounded-full bg-white/80" />
-          </div>
-          <div className="flex flex-col items-center gap-0.5">
-            {[0, 1, 2].map((i) => (
-              <motion.svg key={i} xmlns="http://www.w3.org/2000/svg" width="16" height="10" viewBox="0 0 16 10" fill="none" animate={{ opacity: [0, 1, 0], y: [0, 4, 0] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut", delay: i * 0.25 }}>
-                <path d="M1 1L8 8L15 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </motion.svg>
-            ))}
-          </div>
-        </div>
       </section>
 
       {/* ══ 3. STATS BAR ══ */}
