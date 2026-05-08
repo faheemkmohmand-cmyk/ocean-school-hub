@@ -1,33 +1,16 @@
 /**
  * OnlineClasses.tsx  (/online-classes)
- * Premium student-facing Online Classes page.
+ * Mobile-first Online Classes page — no floating overlap, clean layout.
  */
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import PageLayout from "@/components/layout/PageLayout";
 import ClassCard from "@/components/shared/ClassCard";
 import {
-  Video, Wifi, Calendar, Clock, BookOpen, Search,
-  GraduationCap, Zap, TrendingUp, Users, Star, ChevronRight,
-  MonitorPlay, Sparkles
+  Video, Wifi, Calendar, Clock, TrendingUp,
+  Search, ChevronRight, Sparkles
 } from "lucide-react";
 import { useOnlineClasses, CLASS_NAMES, SUBJECTS, SUBJECT_ICONS } from "@/hooks/useOnlineClasses";
-
-// ── Animated counter ──────────────────────────────────────────────────────────
-function CountUp({ to, suffix = "" }: { to: number; suffix?: string }) {
-  const [val, setVal] = useState(0);
-  useEffect(() => {
-    let start = 0;
-    const step = to / 40;
-    const id = setInterval(() => {
-      start += step;
-      if (start >= to) { setVal(to); clearInterval(id); }
-      else setVal(Math.floor(start));
-    }, 30);
-    return () => clearInterval(id);
-  }, [to]);
-  return <>{val}{suffix}</>;
-}
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function CardSkeleton() {
@@ -49,10 +32,10 @@ function CardSkeleton() {
 export default function OnlineClasses() {
   const { classes, liveClasses, upcomingClasses, completedClasses, todayClasses, loading } = useOnlineClasses();
 
-  const [search,      setSearch]      = useState("");
-  const [classFilter, setClassFilter] = useState("All");
+  const [search,        setSearch]        = useState("");
+  const [classFilter,   setClassFilter]   = useState("All");
   const [subjectFilter, setSubjectFilter] = useState("All");
-  const [tab,         setTab]         = useState<"today" | "upcoming" | "completed">("today");
+  const [tab,           setTab]           = useState<"today" | "upcoming" | "completed">("today");
 
   const filtered = useMemo(() => {
     const pool = tab === "today" ? todayClasses : tab === "upcoming" ? upcomingClasses : completedClasses;
@@ -64,136 +47,92 @@ export default function OnlineClasses() {
     });
   }, [tab, todayClasses, upcomingClasses, completedClasses, search, classFilter, subjectFilter]);
 
-  const stats = [
-    { icon: Wifi,       label: "Live Now",     value: liveClasses.length,      suffix: "",  color: "text-red-500",     bg: "bg-red-50 dark:bg-red-950/30"      },
-    { icon: Calendar,   label: "Today",        value: todayClasses.length,     suffix: "",  color: "text-blue-500",   bg: "bg-blue-50 dark:bg-blue-950/30"  },
-    { icon: Clock,      label: "Upcoming",     value: upcomingClasses.length,  suffix: "",  color: "text-primary",     bg: "bg-primary/5"                      },
-    { icon: TrendingUp, label: "Completed",    value: completedClasses.length, suffix: "",  color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/30"},
-  ];
-
   return (
     <PageLayout>
       <div className="min-h-screen bg-background">
 
-        {/* ── Hero ─────────────────────────────────────────────────────────── */}
-        <section className="relative overflow-hidden bg-gradient-to-br from-[hsl(var(--primary-dark))] via-primary to-[hsl(var(--primary-light))] pt-6 pb-16 px-4">
-          {/* Decorative blobs - smaller on mobile */}
-          <div className="absolute top-0 right-0 w-48 sm:w-96 h-48 sm:h-96 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-32 sm:w-64 h-32 sm:h-64 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/3 blur-3xl pointer-events-none" />
-
-          <div className="relative max-w-4xl mx-auto text-center">
-            <motion.div
-              initial={{ opacity: 0, y: -16 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-white/90 text-xs font-semibold mb-3 border border-white/20"
-            >
+        {/* ── Hero — compact, no overlap ───────────────────────────────────── */}
+        <section className="bg-gradient-to-br from-[hsl(var(--primary-dark))] via-primary to-[hsl(var(--primary-light))] px-4 pt-6 pb-6">
+          <div className="max-w-4xl mx-auto">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-white/90 text-xs font-semibold mb-3 border border-white/20">
               <Sparkles className="w-3 h-3" />
               GHS Babi Khel · Live Online Classes
-            </motion.div>
+            </div>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="font-heading font-extrabold text-white text-2xl sm:text-4xl md:text-5xl leading-tight mb-2"
-            >
-              Learn From{" "}
-              <span className="relative inline-block">
-                Anywhere
-                <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-white/50 rounded-full" />
-              </span>
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="text-white/80 text-xs sm:text-base max-w-sm sm:max-w-xl mx-auto mb-4"
-            >
+            <h1 className="font-heading font-extrabold text-white text-2xl leading-tight mb-1">
+              Learn From Anywhere
+            </h1>
+            <p className="text-white/75 text-xs mb-4 max-w-xs">
               Join live Google Meet classes. Access recordings, homework, and notes in one place.
-            </motion.p>
+            </p>
 
-            {/* Live Classes Banner */}
+            {/* Live alert inside hero */}
             {liveClasses.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3 }}
-                className="inline-flex items-center gap-2 bg-red-500 text-white px-4 py-2.5 rounded-2xl shadow-lg shadow-red-500/40 cursor-pointer hover:scale-105 transition-transform"
+              <button
                 onClick={() => setTab("today")}
+                className="flex items-center gap-2 bg-red-500 text-white px-3 py-2 rounded-xl text-xs font-bold shadow-lg"
               >
-                <span className="relative flex h-2.5 w-2.5">
+                <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
                 </span>
-                <span className="font-bold text-xs sm:text-sm">
-                  {liveClasses.length} Class{liveClasses.length > 1 ? "es" : ""} Live Now!
-                </span>
+                {liveClasses.length} Class{liveClasses.length > 1 ? "es" : ""} Live Now!
                 <ChevronRight className="w-3.5 h-3.5" />
-              </motion.div>
+              </button>
             )}
           </div>
         </section>
 
-        {/* ── Stats ────────────────────────────────────────────────────────── */}
-        <section className="max-w-4xl mx-auto px-4 -mt-10 mb-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
-            {stats.map((s, i) => (
-              <motion.div
-                key={s.label}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.07 }}
-                className={`${s.bg} rounded-2xl p-3 border border-border/50 shadow-sm text-center`}
-              >
-                <s.icon className={`w-4 h-4 mx-auto mb-1 ${s.color}`} />
-                <p className="font-heading font-extrabold text-lg sm:text-2xl text-foreground">
-                  <CountUp to={s.value} suffix={s.suffix} />
-                </p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{s.label}</p>
-              </motion.div>
+        {/* ── Stats — below hero, no overlap ───────────────────────────────── */}
+        <section className="bg-background border-b border-border px-4 py-4">
+          <div className="max-w-4xl mx-auto grid grid-cols-4 gap-2">
+            {[
+              { icon: Wifi,       label: "Live",      value: liveClasses.length,      color: "text-red-500"     },
+              { icon: Calendar,   label: "Today",     value: todayClasses.length,     color: "text-blue-500"    },
+              { icon: Clock,      label: "Upcoming",  value: upcomingClasses.length,  color: "text-primary"     },
+              { icon: TrendingUp, label: "Completed", value: completedClasses.length, color: "text-emerald-500" },
+            ].map((s) => (
+              <div key={s.label} className="text-center">
+                <s.icon className={`w-4 h-4 mx-auto mb-0.5 ${s.color}`} />
+                <p className="font-heading font-extrabold text-base text-foreground">{s.value}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">{s.label}</p>
+              </div>
             ))}
           </div>
         </section>
 
         {/* ── Main content ─────────────────────────────────────────────────── */}
-        <section className="max-w-4xl mx-auto px-3 sm:px-4 pb-10">
+        <section className="max-w-4xl mx-auto px-3 py-4 pb-10">
 
-          {/* Search & Filters */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-card rounded-2xl border border-border p-3 mb-4 space-y-2.5"
-          >
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                className="w-full pl-9 pr-4 py-2 rounded-xl bg-secondary/50 border border-border text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                placeholder="Search classes, subjects, teachers…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
-            </div>
+          {/* Search */}
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+              placeholder="Search classes, subjects, teachers…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
 
-            {/* Filters */}
-            <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
-              <select
-                className="px-2.5 py-1.5 rounded-xl bg-secondary/50 border border-border text-xs font-medium text-foreground outline-none cursor-pointer flex-shrink-0"
-                value={classFilter} onChange={e => setClassFilter(e.target.value)}
-              >
-                <option value="All">All Classes</option>
-                {CLASS_NAMES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <select
-                className="px-2.5 py-1.5 rounded-xl bg-secondary/50 border border-border text-xs font-medium text-foreground outline-none cursor-pointer flex-shrink-0"
-                value={subjectFilter} onChange={e => setSubjectFilter(e.target.value)}
-              >
-                <option value="All">All Subjects</option>
-                {SUBJECTS.map(s => <option key={s} value={s}>{SUBJECT_ICONS[s]} {s}</option>)}
-              </select>
-            </div>
-          </motion.div>
+          {/* Filters */}
+          <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hide pb-1">
+            <select
+              className="px-2.5 py-1.5 rounded-xl bg-card border border-border text-xs font-medium text-foreground outline-none cursor-pointer shrink-0"
+              value={classFilter} onChange={e => setClassFilter(e.target.value)}
+            >
+              <option value="All">All Classes</option>
+              {CLASS_NAMES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select
+              className="px-2.5 py-1.5 rounded-xl bg-card border border-border text-xs font-medium text-foreground outline-none cursor-pointer shrink-0"
+              value={subjectFilter} onChange={e => setSubjectFilter(e.target.value)}
+            >
+              <option value="All">All Subjects</option>
+              {SUBJECTS.map(s => <option key={s} value={s}>{SUBJECT_ICONS[s]} {s}</option>)}
+            </select>
+          </div>
 
           {/* Tabs */}
           <div className="flex gap-1 bg-secondary/50 rounded-xl p-1 mb-4">
@@ -205,15 +144,13 @@ export default function OnlineClasses() {
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`flex-1 py-2 px-1 sm:px-3 rounded-lg text-[11px] sm:text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-1 ${
-                  tab === t.key
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                className={`flex-1 py-2 px-1 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1 ${
+                  tab === t.key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
                 }`}
               >
                 {t.label}
                 <span className={`px-1 py-0.5 rounded-full text-[10px] font-bold ${
-                  tab === t.key ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                  tab === t.key ? "bg-primary text-white" : "bg-secondary text-muted-foreground"
                 }`}>
                   {t.count}
                 </span>
@@ -221,29 +158,23 @@ export default function OnlineClasses() {
             ))}
           </div>
 
-          {/* Classes grid */}
+          {/* Classes */}
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {[1,2,3,4].map(i => <CardSkeleton key={i} />)}
-            </div>
+            <div className="space-y-3">{[1,2,3].map(i => <CardSkeleton key={i} />)}</div>
           ) : filtered.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="bg-card rounded-2xl border border-border p-10 text-center"
-            >
+            <div className="bg-card rounded-2xl border border-border p-10 text-center">
               <div className="text-4xl mb-3">
                 {tab === "today" ? "📅" : tab === "upcoming" ? "🗓️" : "✅"}
               </div>
-              <p className="font-heading font-bold text-foreground text-base mb-1">
+              <p className="font-bold text-foreground text-sm mb-1">
                 {tab === "today" ? "No classes today" : tab === "upcoming" ? "No upcoming classes" : "No completed classes"}
               </p>
               <p className="text-xs text-muted-foreground">
                 {search ? "Try adjusting your search or filters." : "Check back later for scheduled classes."}
               </p>
-            </motion.div>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-3">
               <AnimatePresence mode="popLayout">
                 {filtered.map((cls, i) => (
                   <ClassCard key={cls.id} cls={cls} role="student" index={i} />
@@ -253,22 +184,15 @@ export default function OnlineClasses() {
           )}
         </section>
 
-        {/* ── Motivational Banner ───────────────────────────────────────────── */}
-        <section className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-t border-border py-6 px-4">
-          <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-            <div className="text-4xl">🎓</div>
-            <div className="flex-1">
-              <h3 className="font-heading font-bold text-foreground text-base mb-1">
-                Knowledge is Power — Attend Every Class
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Consistent attendance leads to better understanding and higher marks. Your future starts today.
-              </p>
-            </div>
-          </div>
+        {/* ── Footer banner ────────────────────────────────────────────────── */}
+        <section className="border-t border-border py-5 px-4 text-center">
+          <p className="text-2xl mb-1">🎓</p>
+          <p className="font-heading font-bold text-foreground text-sm">Knowledge is Power — Attend Every Class</p>
+          <p className="text-xs text-muted-foreground mt-1">Consistent attendance leads to better results. Your future starts today.</p>
         </section>
+
       </div>
     </PageLayout>
   );
-                }
-                
+          }
+               
