@@ -12,60 +12,60 @@
 @layer base {
   /* ─── ROYAL SLATE — Light (Navy Only) ─── */
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 14%;
+    --background: 33 29% 94%;
+    --foreground: 222 47% 11%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 14%;
+    --card: 30 100% 99%;
+    --card-foreground: 222 47% 11%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 14%;
+    --popover: 30 100% 99%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 222 47% 22%;
+    --primary: 222 47% 11%;
     --primary-foreground: 0 0% 100%;
 
-    --primary-dark: 222 47% 14%;
-    --primary-light: 222 35% 55%;
-    --primary-glow: 222 47% 32%;
+    --primary-dark: 222 45% 8%;
+    --primary-light: 222 27% 24%;
+    --primary-glow: 22 56% 51%;
 
-    --secondary: 215 30% 94%;
-    --secondary-foreground: 222 47% 22%;
+    --secondary: 30 33% 96%;
+    --secondary-foreground: 222 35% 16%;
 
-    --muted: 215 25% 92%;
-    --muted-foreground: 222 15% 42%;
+    --muted: 220 13% 91%;
+    --muted-foreground: 0 0% 36%;
 
-    --accent: 222 47% 50%;
-    --accent-foreground: 222 47% 14%;
+    --accent: 22 56% 51%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 215 25% 86%;
-    --input: 215 25% 86%;
-    --ring: 222 47% 22%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 22 56% 51%;
 
-    --radius: 0.75rem;
+    --radius: 0.9rem;
 
-    --success: 142 76% 36%;
-    --warning: 222 47% 50%;
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 222 30% 26%;
-    --sidebar-primary: 222 47% 22%;
+    --sidebar-background: 30 100% 99%;
+    --sidebar-foreground: 222 35% 16%;
+    --sidebar-primary: 222 47% 11%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 30% 94%;
-    --sidebar-accent-foreground: 222 47% 22%;
-    --sidebar-border: 215 25% 86%;
-    --sidebar-ring: 222 47% 22%;
+    --sidebar-accent: 30 33% 96%;
+    --sidebar-accent-foreground: 222 35% 16%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 22 56% 51%;
 
     --font-heading: 'Plus Jakarta Sans', sans-serif;
     --font-body: 'Inter', sans-serif;
 
-    --gradient-hero: linear-gradient(135deg, hsl(222 47% 14%), hsl(222 47% 22%), hsl(222 40% 32%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 40% 98%));
-    --gradient-accent: linear-gradient(135deg, hsl(222 47% 50%), hsl(222 40% 60%));
-    --shadow-card: 0 4px 20px -4px hsl(222 47% 22% / 0.14);
-    --shadow-elevated: 0 12px 40px -8px hsl(222 47% 22% / 0.22);
+    --gradient-hero: linear-gradient(135deg, hsl(222 47% 11%), hsl(222 43% 16%), hsl(222 32% 24%));
+    --gradient-card: linear-gradient(145deg, hsl(30 100% 99%), hsl(30 35% 97%));
+    --gradient-accent: linear-gradient(135deg, hsl(22 56% 51%), hsl(23 45% 70%));
+    --shadow-card: 0 8px 24px -12px hsl(222 47% 11% / 0.16);
+    --shadow-elevated: 0 20px 46px -20px hsl(222 47% 11% / 0.24);
   }
 
   /* ─── ROYAL SLATE — Dark (Navy Only) ─── */
@@ -339,17 +339,17 @@
 
   /* ─── Unified section rhythm — premium consistent spacing ─── */
   .section-y {
-    padding-top: clamp(4rem, 8vw, 6rem);
-    padding-bottom: clamp(4rem, 8vw, 6rem);
+    padding-top: clamp(4.5rem, 8vw, 7rem);
+    padding-bottom: clamp(4.5rem, 8vw, 7rem);
   }
   .section-y-sm {
-    padding-top: clamp(3rem, 6vw, 4.5rem);
-    padding-bottom: clamp(3rem, 6vw, 4.5rem);
+    padding-top: clamp(3.25rem, 6vw, 5rem);
+    padding-bottom: clamp(3.25rem, 6vw, 5rem);
   }
 
   /* ─── Unified premium card style ─── */
   .card-premium {
-    @apply bg-card rounded-2xl border border-border/60 shadow-card transition-all duration-300;
+    @apply bg-card rounded-2xl border border-border/80 shadow-card transition-all duration-300;
   }
   .card-premium:hover {
     @apply shadow-elevated border-primary/30;
@@ -373,10 +373,10 @@
 
   /* ─── Section heading (unified hierarchy) ─── */
   .section-title {
-    @apply mt-3 text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-foreground tracking-tight;
+    @apply mt-3 text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-foreground tracking-tight leading-tight;
   }
   .section-subtitle {
-    @apply mt-3 text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed;
+    @apply mt-4 text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed;
   }
 }
 

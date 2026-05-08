@@ -30,8 +30,8 @@ const Footer = () => {
   const { data: settings } = useSchoolSettings();
 
   return (
-    <footer className="bg-primary text-white">
-      <div className="container mx-auto px-4 py-14">
+    <footer className="bg-primary text-white border-t border-white/10">
+      <div className="container mx-auto px-4 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-6">
           {/* Brand */}
           <div className="lg:col-span-2">
@@ -47,29 +47,29 @@ const Footer = () => {
                 <span className="font-heading font-bold text-lg block">
                   {settings?.school_name || "GHS Babi Khel"}
                 </span>
-                <span className="text-sm text-white/60">
+                <span className="text-sm text-white/70">
                   {settings?.tagline || "Excellence in Education"}
                 </span>
               </div>
             </div>
-            <p className="text-sm text-white/60 leading-relaxed max-w-xs mb-6">
+            <p className="text-sm text-white/70 leading-relaxed max-w-xs mb-6">
               {settings?.description ||
                 "Government High School Babi Khel is committed to providing quality education and nurturing the future leaders of Pakistan."}
             </p>
             <div className="space-y-2.5 text-sm">
               <div className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-primary-light" />
-                <span className="text-white/70">{settings?.address || "Babi Khel, District Mohmand, KPK"}</span>
+                <span className="text-white/75">{settings?.address || "Babi Khel, District Mohmand, KPK"}</span>
               </div>
               {settings?.phone && (
                 <div className="flex items-center gap-2.5">
                   <Phone className="w-4 h-4 shrink-0 text-primary-light" />
-                  <span className="text-white/70">{settings.phone}</span>
+                  <span className="text-white/75">{settings.phone}</span>
                 </div>
               )}
               <div className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 shrink-0 text-primary-light" />
-                <span className="text-white/70">{settings?.email || "ghsbabkhel@edu.pk"}</span>
+                <span className="text-white/75">{settings?.email || "ghsbabkhel@edu.pk"}</span>
               </div>
             </div>
 
@@ -107,7 +107,7 @@ const Footer = () => {
                 <li key={link.to}>
                   <Link
                     to={link.to}
-                    className="text-sm text-white/60 hover:text-white transition-colors flex items-center gap-1 group"
+                    className="text-sm text-white/70 hover:text-white transition-colors flex items-center gap-1 group"
                   >
                     <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                     {link.label}
@@ -125,7 +125,7 @@ const Footer = () => {
             <ul className="space-y-2.5">
               {footerLinks.classes.map((c) => (
                 <li key={c.label}>
-                  <span className="text-sm text-white/60">{c.label}</span>
+                  <span className="text-sm text-white/70">{c.label}</span>
                 </li>
               ))}
             </ul>
@@ -141,7 +141,7 @@ const Footer = () => {
                 <li key={i}>
                   <Link
                     to={link.to}
-                    className="text-sm text-white/60 hover:text-white transition-colors flex items-center gap-1 group"
+                    className="text-sm text-white/70 hover:text-white transition-colors flex items-center gap-1 group"
                   >
                     <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                     {link.label}
