@@ -232,7 +232,7 @@ const Home = () => {
             </svg>
           </div>
         </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/80 via-primary/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/72 via-primary/45 to-transparent" />
 
         <motion.div style={{ y: blobY }} className="absolute inset-0 overflow-hidden pointer-events-none">
           <motion.div animate={{ x: [0, 40, 0], y: [0, -30, 0] }} transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }} className="absolute -top-20 -left-20 w-96 h-96 rounded-full bg-primary/20 blur-3xl" />
@@ -249,7 +249,7 @@ const Home = () => {
                   Est. {settings?.established_year || 2018} · EMIS {settings?.emis_code || "60673"}
                 </span>
               </motion.div>
-              <motion.h1 variants={stagger.child} className="mt-6 text-5xl md:text-7xl lg:text-8xl font-heading font-extrabold italic text-white leading-[0.95] min-h-[1em]">
+              <motion.h1 variants={stagger.child} className="mt-6 text-4xl md:text-6xl lg:text-7xl font-heading font-extrabold italic text-white leading-[0.95] min-h-[1em]">
                 <span className="bg-gradient-to-r from-white via-primary-light to-accent bg-clip-text text-transparent">{displayedSchoolName}</span>
                 <span className="inline-block w-1 h-[0.85em] bg-white/70 ml-1 align-middle" style={{ animation: "blink 1s step-end infinite" }} />
               </motion.h1>
@@ -258,25 +258,25 @@ const Home = () => {
                 <span className="inline-block w-0.5 h-6 bg-white/80 ml-1 align-middle" style={{ animation: "blink 1s step-end infinite" }} />
                 <style>{`@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }`}</style>
               </motion.h2>
-              <motion.p variants={stagger.child} className="mt-4 text-base md:text-lg text-white/70 max-w-lg leading-relaxed">
+              <motion.p variants={stagger.child} className="mt-5 text-base md:text-lg text-white/80 max-w-xl leading-relaxed">
                 {settings?.description || "Government High School Babi Khel is committed to providing quality education and nurturing the future leaders of Pakistan."}
               </motion.p>
               <motion.div variants={stagger.child} className="mt-8 flex flex-wrap gap-4">
                 <Link to="/results">
                   <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.97 }}
-                    className="inline-flex items-center gap-2 gradient-accent text-primary-foreground font-semibold px-7 py-3.5 rounded-xl shadow-elevated transition-all duration-200">
+                  className="inline-flex items-center gap-2 gradient-accent text-primary-foreground font-semibold px-7 py-3.5 rounded-xl shadow-elevated transition-all duration-200">
                     View Results <ArrowRight className="w-4 h-4" />
                   </motion.button>
                 </Link>
                 <Link to="/auth/signin">
                   <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.97 }}
-                    className="inline-flex items-center gap-2 bg-white text-primary font-bold px-7 py-3.5 rounded-xl shadow-xl transition-all duration-200">
+                    className="inline-flex items-center gap-2 bg-white text-primary font-semibold px-7 py-3.5 rounded-xl shadow-elevated transition-all duration-200">
                     Student Portal
                   </motion.button>
                 </Link>
                 <Link to="/about">
                   <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.97 }}
-                    className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/25 text-white font-semibold px-7 py-3.5 rounded-xl hover:bg-white/20 transition-all duration-200">
+                    className="inline-flex items-center gap-2 bg-white/12 backdrop-blur-sm border border-white/25 text-white font-semibold px-7 py-3.5 rounded-xl hover:bg-white/22 transition-all duration-200">
                     Learn More
                   </motion.button>
                 </Link>
@@ -321,9 +321,9 @@ const Home = () => {
       </section>
 
       {/* ══ 3. STATS BAR ══ */}
-      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="relative z-20 -mt-12">
+      <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={sectionFadeUp} className="relative z-20 -mt-10">
         <div className="container mx-auto px-4">
-          <div className="bg-card rounded-2xl shadow-elevated p-4 md:p-6 grid grid-cols-2 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-border">
+          <div className="bg-card rounded-2xl shadow-elevated p-4 md:p-7 grid grid-cols-2 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-border">
             {settingsLoading ? Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="flex flex-col items-center gap-2 py-3 px-4"><Skeleton className="h-9 w-20" /><Skeleton className="h-3 w-16" /></div>
             )) : (
@@ -340,7 +340,7 @@ const Home = () => {
       </motion.section>
 
       {/* ══ 4. SUBJECTS MARQUEE ══ */}
-      <section className="py-5 bg-primary/5 overflow-hidden border-y border-border mt-14">
+      <section className="py-5 bg-primary/5 overflow-hidden border-y border-border mt-16">
         <div className="relative flex overflow-hidden">
           <div className="flex gap-8 shrink-0" style={{ animation: "marqueeScroll 28s linear infinite", willChange: "transform" }}>
             {["📐 Mathematics","⚡ Physics","🧪 Chemistry","🌿 Biology","📖 English","✍️ Urdu","🗺️ Pakistan Studies","☪️ Islamiyat","💻 Computer Science",
