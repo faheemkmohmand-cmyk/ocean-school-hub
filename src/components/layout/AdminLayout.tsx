@@ -27,8 +27,8 @@ const navItems = [
   { id: "online-classes",    label: "Online Classes",     icon: Video          },
   { id: "analytics",         label: "Analytics",          icon: TrendingUp     },
   { id: "extras",            label: "Extras",             icon: Star           },
-  { id: "site-analytics",    label: "Site Analytics",     icon: Globe          },
   { id: "finance",           label: "Finance & Fees",     icon: DollarSign     },
+  { id: "site-analytics",    label: "Site Analytics",     icon: Globe          },
 ];
 
 interface AdminLayoutProps {
@@ -255,4 +255,5 @@ export default AdminLayout;
 
 
 
-          
+
+        
