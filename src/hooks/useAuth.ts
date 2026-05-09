@@ -66,13 +66,24 @@ export function useAuth() {
     init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         if (!mounted) return;
+
+        // On sign-out: clear everything immediately BEFORE any async work
+        // This prevents stale user/profile data from lingering on screen
+        if (event === "SIGNED_OUT") {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          return;
+        }
+
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
           const prof = await fetchProfile(session.user.id);
+          // Guard again after await — component may have unmounted
           if (mounted) setProfile(prof);
         } else {
           setProfile(null);
@@ -87,10 +98,11 @@ export function useAuth() {
   }, [fetchProfile]);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // Clear state immediately so UI updates at once — don't wait for signOut to resolve
     setProfile(null);
     setUser(null);
     setSession(null);
+    await supabase.auth.signOut();
   };
 
   const refreshProfile = async () => {
