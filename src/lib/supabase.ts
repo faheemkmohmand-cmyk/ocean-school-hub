@@ -12,18 +12,22 @@ export const supabase = supabaseUrl
 // Auth is completely disabled so a broken/expired refresh token cannot
 // block or hang public requests. This is the root cause of the admission
 // submit hanging: the main client gets stuck in an auth refresh loop.
+// storageKey is unique so both clients don't share the same localStorage
+// key — fixes the "Multiple GoTrueClient instances detected" warning.
 export const supabasePublic = supabaseUrl
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
-        persistSession:    false,
-        autoRefreshToken:  false,
+        persistSession:       false,
+        autoRefreshToken:     false,
         detectSessionFromUrl: false,
+        storageKey:           "ghs-public-auth",
       },
     })
   : createClient("https://placeholder.supabase.co", "placeholder", {
       auth: {
-        persistSession:    false,
-        autoRefreshToken:  false,
+        persistSession:       false,
+        autoRefreshToken:     false,
         detectSessionFromUrl: false,
+        storageKey:           "ghs-public-auth",
       },
     });
