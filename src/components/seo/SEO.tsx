@@ -2,13 +2,20 @@ import { Helmet } from "react-helmet-async";
 
 const SITE_URL = "https://ghsbabikhel.indevs.in";
 const SITE_NAME = "GHS Babi Khel";
-const DEFAULT_IMAGE = `${SITE_URL}/apple-touch-icon.png`;
+
+// ✅ FIX 3: Updated from 180×180 apple-touch-icon to proper 1200×630 OG banner image.
+// You must place /public/og-image.jpg (1200×630 px) in your repo before deploying.
+const DEFAULT_IMAGE        = `${SITE_URL}/og-image.jpg`;
+const DEFAULT_IMAGE_WIDTH  = "1200";
+const DEFAULT_IMAGE_HEIGHT = "630";
 
 export interface SEOProps {
   title: string;
   description: string;
   path?: string;
   image?: string;
+  imageWidth?: string;
+  imageHeight?: string;
   keywords?: string;
   type?: "website" | "article" | "profile";
   noIndex?: boolean;
@@ -26,6 +33,8 @@ const SEO = ({
   description,
   path = "",
   image = DEFAULT_IMAGE,
+  imageWidth = DEFAULT_IMAGE_WIDTH,
+  imageHeight = DEFAULT_IMAGE_HEIGHT,
   keywords,
   type = "website",
   noIndex = false,
@@ -35,7 +44,9 @@ const SEO = ({
   const fullTitle = title.includes(SITE_NAME)
     ? title
     : `${title} | ${SITE_NAME}`;
-  const url = `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`.replace(/\/$/, "") || SITE_URL;
+  const url =
+    `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`.replace(/\/$/, "") ||
+    SITE_URL;
 
   const schemas: Record<string, any>[] = [];
   if (jsonLd) {
@@ -78,6 +89,10 @@ const SEO = ({
       <meta property="og:type" content={type} />
       <meta property="og:url" content={url} />
       <meta property="og:image" content={image} />
+      {/* ✅ FIX 3: explicit dimensions so Facebook/WhatsApp/LinkedIn crop correctly */}
+      <meta property="og:image:width" content={imageWidth} />
+      <meta property="og:image:height" content={imageHeight} />
+      <meta property="og:image:alt" content={fullTitle} />
       <meta property="og:site_name" content={SITE_NAME} />
       <meta property="og:locale" content="en_PK" />
 
@@ -86,6 +101,8 @@ const SEO = ({
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={image} />
+      {/* ✅ FIX 3: alt text for Twitter image */}
+      <meta name="twitter:image:alt" content={fullTitle} />
 
       {schemas.map((s, i) => (
         <script key={i} type="application/ld+json">
@@ -97,4 +114,5 @@ const SEO = ({
 };
 
 export default SEO;
-export { SITE_URL, SITE_NAME };
+export { SITE_URL, SITE_NAME, DEFAULT_IMAGE };
+      
