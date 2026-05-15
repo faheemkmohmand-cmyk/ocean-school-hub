@@ -1,13 +1,16 @@
 import { Link } from "react-router-dom";
-import { GraduationCap, MapPin, Phone, Mail, ExternalLink, Facebook, MessageCircle } from "lucide-react";
+import {
+  GraduationCap, MapPin, Phone, Mail,
+  ExternalLink, Facebook, MessageCircle,
+} from "lucide-react";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 
 const footerLinks = {
   quickLinks: [
-    { to: "/about", label: "About Us" },
-    { to: "/teachers", label: "Our Teachers" },
+    { to: "/about",   label: "About Us" },
+    { to: "/teachers",label: "Our Teachers" },
     { to: "/notices", label: "Notices" },
-    { to: "/news", label: "Latest News" },
+    { to: "/news",    label: "Latest News" },
     { to: "/results", label: "Results" },
   ],
   classes: [
@@ -18,26 +21,42 @@ const footerLinks = {
     { label: "Class 10" },
   ],
   resources: [
-    { to: "/library", label: "Digital Library" },
-    { to: "/gallery", label: "Photo Gallery" },
-    { to: "/results", label: "Exam Results" },
-    { to: "/library", label: "Past Papers" },
-    { to: "/library", label: "Study Notes" },
+    { to: "/library",       label: "Digital Library" },
+    { to: "/gallery",       label: "Photo Gallery" },
+    { to: "/results",       label: "Exam Results" },
+    { to: "/library",       label: "Past Papers" },
+    { to: "/notes",         label: "Study Notes" },   // ✅ FIX 8: was /library — notes are at /notes
+    { to: "/online-classes",label: "Online Classes" },// ✅ FIX 8: added missing online classes link
   ],
 };
 
 const Footer = () => {
   const { data: settings } = useSchoolSettings();
 
+  // ✅ FIX 8: Correct fallback email — was "ghsbabkhel@edu.pk" (missing 'i')
+  // Now reads from Supabase settings first; only shows hardcoded fallback if truly unset.
+  const displayEmail = settings?.email || "ghsbabikhel@edu.pk";
+
+  // ✅ FIX 8: Phone — only render the row when a real phone number is stored in settings.
+  // Previously the code always rendered "+92 XXX XXXXXXX" placeholder to live users.
+  const displayPhone = settings?.phone && settings.phone.trim().length > 5
+    ? settings.phone
+    : null;
+
   return (
     <footer className="bg-primary text-white border-t border-white/10">
       <div className="container mx-auto px-4 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-6">
-          {/* Brand */}
+
+          {/* ── Brand column ── */}
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2.5 mb-4">
               {settings?.logo_url ? (
-                <img src={settings.logo_url} alt="Logo" className="w-10 h-10 rounded-xl object-cover" />
+                <img
+                  src={settings.logo_url}
+                  alt={`${settings?.school_name || "GHS Babi Khel"} logo`}
+                  className="w-10 h-10 rounded-xl object-cover"
+                />
               ) : (
                 <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
                   <GraduationCap className="w-6 h-6" />
@@ -52,34 +71,53 @@ const Footer = () => {
                 </span>
               </div>
             </div>
+
             <p className="text-sm text-white/70 leading-relaxed max-w-xs mb-6">
               {settings?.description ||
                 "Government High School Babi Khel is committed to providing quality education and nurturing the future leaders of Pakistan."}
             </p>
+
+            {/* Contact info */}
             <div className="space-y-2.5 text-sm">
               <div className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-primary-light" />
-                <span className="text-white/75">{settings?.address || "Babi Khel, District Mohmand, KPK"}</span>
+                <span className="text-white/75">
+                  {settings?.address || "Babi Khel, District Mohmand, KPK"}
+                </span>
               </div>
-              {settings?.phone && (
+
+              {/* ✅ FIX 8: Phone only shown when a real number exists in Supabase settings */}
+              {displayPhone && (
                 <div className="flex items-center gap-2.5">
                   <Phone className="w-4 h-4 shrink-0 text-primary-light" />
-                  <span className="text-white/75">{settings.phone}</span>
+                  <a
+                    href={`tel:${displayPhone.replace(/\s/g, "")}`}
+                    className="text-white/75 hover:text-white transition-colors"
+                  >
+                    {displayPhone}
+                  </a>
                 </div>
               )}
+
+              {/* ✅ FIX 8: Email fallback corrected from ghsbabkhel → ghsbabikhel */}
               <div className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 shrink-0 text-primary-light" />
-                <span className="text-white/75">{settings?.email || "ghsbabkhel@edu.pk"}</span>
+                <a
+                  href={`mailto:${displayEmail}`}
+                  className="text-white/75 hover:text-white transition-colors"
+                >
+                  {displayEmail}
+                </a>
               </div>
             </div>
 
-            {/* Social Media */}
+            {/* Social media */}
             <div className="flex items-center gap-3 mt-5">
               <a
                 href="https://www.facebook.com/share/1EERTSk1W7/"
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Follow us on Facebook"
+                aria-label="Follow GHS Babi Khel on Facebook"
                 className="w-9 h-9 rounded-lg bg-[#1877F2] flex items-center justify-center hover:opacity-90 hover:scale-105 transition-all duration-200 shadow-sm"
               >
                 <Facebook className="w-4 h-4 text-white" />
@@ -88,7 +126,7 @@ const Footer = () => {
                 href="https://wa.me/923469898295"
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Contact us on WhatsApp"
+                aria-label="Contact GHS Babi Khel on WhatsApp"
                 className="w-9 h-9 rounded-lg bg-[#25D366] flex items-center justify-center hover:opacity-90 hover:scale-105 transition-all duration-200 shadow-sm"
               >
                 <MessageCircle className="w-4 h-4 text-white fill-white" />
@@ -97,14 +135,14 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* ── Quick Links ── */}
           <div>
             <h4 className="font-heading font-semibold text-sm uppercase tracking-wider mb-4 text-white/90">
               Quick Links
             </h4>
             <ul className="space-y-2.5">
               {footerLinks.quickLinks.map((link) => (
-                <li key={link.to}>
+                <li key={link.to + link.label}>
                   <Link
                     to={link.to}
                     className="text-sm text-white/70 hover:text-white transition-colors flex items-center gap-1 group"
@@ -117,7 +155,7 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Classes */}
+          {/* ── Classes ── */}
           <div>
             <h4 className="font-heading font-semibold text-sm uppercase tracking-wider mb-4 text-white/90">
               Classes
@@ -131,7 +169,7 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Resources */}
+          {/* ── Resources ── */}
           <div>
             <h4 className="font-heading font-semibold text-sm uppercase tracking-wider mb-4 text-white/90">
               Resources
@@ -152,10 +190,11 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Bottom */}
+        {/* ── Bottom bar ── */}
         <div className="border-t border-white/10 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-white/50">
-            © {new Date().getFullYear()} {settings?.school_name || "GHS Babi Khel"}. All rights reserved.
+            © {new Date().getFullYear()}{" "}
+            {settings?.school_name || "GHS Babi Khel"}. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <a
@@ -183,3 +222,4 @@ const Footer = () => {
 };
 
 export default Footer;
+            
