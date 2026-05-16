@@ -1,11 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-// FIX: Use supabasePublic instead of supabase for reading school settings.
-// The authenticated supabase client can get stuck in an auth refresh loop
-// when the session token is expired or broken — this causes the query to
-// hang forever, and React Query keeps showing placeholderData (which has
-// logo_url: null, banner_url: null). supabasePublic has no auth session
-// management, so it never gets stuck. This is the same fix already used
-// for the admission form (see supabase.ts comments).
 import { supabasePublic } from "@/lib/supabase";
 
 export interface SchoolSettings {
@@ -54,14 +47,10 @@ export function useSchoolSettings() {
       if (error) throw error;
       return data;
     },
-    // Reduced from 10 min to 2 min — so updated logo/banner appear faster
-    staleTime: 2 * 60 * 1000,
+    staleTime: 30 * 1000,
     gcTime: 30 * 60 * 1000,
     retry: 2,
-    // Refresh data when user switches back to the homepage tab
-    // (e.g., after uploading logo/banner in admin panel)
     refetchOnWindowFocus: true,
-    placeholderData: fallbackSettings,
   });
 }
 
