@@ -97,10 +97,8 @@ const Navbar = () => {
               >
                 {link.label}
                 {active && (
-                  <motion.div
-                    layoutId="nav-underline"
+                  <div
                     className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-primary"
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
               </Link>
@@ -319,4 +317,5 @@ const Navbar = () => {
 };
 
 export default Navbar;
-                        
+
+          
