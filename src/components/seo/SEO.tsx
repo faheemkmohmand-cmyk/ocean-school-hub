@@ -1,13 +1,15 @@
 import { Helmet } from "react-helmet-async";
 
-const SITE_URL = "https://ghsbabikhel.indevs.in";
-const SITE_NAME = "GHS Babi Khel";
+export const SITE_URL  = "https://ghsbabikhel.indevs.in";
+export const SITE_NAME = "GHS Babi Khel";
 
-// ✅ FIX 3: Updated from 180×180 apple-touch-icon to proper 1200×630 OG banner image.
-// You must place /public/og-image.jpg (1200×630 px) in your repo before deploying.
+// ✅ OG image: actual file is 1730×909 px (public/og-image.jpg)
 const DEFAULT_IMAGE        = `${SITE_URL}/og-image.jpg`;
-const DEFAULT_IMAGE_WIDTH  = "1200";
-const DEFAULT_IMAGE_HEIGHT = "630";
+const DEFAULT_IMAGE_WIDTH  = "1730";
+const DEFAULT_IMAGE_HEIGHT = "909";
+
+// ✅ Twitter handle — update to your real @handle or set to "" to omit
+const TWITTER_SITE = "@GHSBabiKhel";
 
 export interface SEOProps {
   title: string;
@@ -21,12 +23,13 @@ export interface SEOProps {
   noIndex?: boolean;
   jsonLd?: Record<string, any> | Record<string, any>[];
   breadcrumbs?: { name: string; path: string }[];
+  /** Pass true on pages that have Urdu content — adds ur hreflang */
+  hasUrdu?: boolean;
 }
 
 /**
  * SEO component — additive only. Uses react-helmet-async to inject
- * meta tags, Open Graph, Twitter cards, canonical, and JSON-LD.
- * Does not affect rendering or layout.
+ * meta tags, Open Graph, Twitter cards, canonical, hreflang, and JSON-LD.
  */
 const SEO = ({
   title,
@@ -40,10 +43,12 @@ const SEO = ({
   noIndex = false,
   jsonLd,
   breadcrumbs,
+  hasUrdu = false,
 }: SEOProps) => {
   const fullTitle = title.includes(SITE_NAME)
     ? title
     : `${title} | ${SITE_NAME}`;
+
   const url =
     `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`.replace(/\/$/, "") ||
     SITE_URL;
@@ -81,7 +86,17 @@ const SEO = ({
             : "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
         }
       />
+
+      {/* ✅ Canonical — prevents duplicate-content issues for every page */}
       <link rel="canonical" href={url} />
+
+      {/* ✅ hreflang — per-page language signals for Google.
+          en-PK = English for Pakistan audience.
+          ur    = Urdu (same URL for now; update when Urdu pages exist).
+          x-default = fallback for unknown locales. */}
+      {!noIndex && <link rel="alternate" hreflang="en-PK"    href={url} />}
+      {!noIndex && <link rel="alternate" hreflang="ur"        href={url} />}
+      {!noIndex && <link rel="alternate" hreflang="x-default" href={url} />}
 
       {/* Open Graph */}
       <meta property="og:title" content={fullTitle} />
@@ -89,19 +104,19 @@ const SEO = ({
       <meta property="og:type" content={type} />
       <meta property="og:url" content={url} />
       <meta property="og:image" content={image} />
-      {/* ✅ FIX 3: explicit dimensions so Facebook/WhatsApp/LinkedIn crop correctly */}
       <meta property="og:image:width" content={imageWidth} />
       <meta property="og:image:height" content={imageHeight} />
       <meta property="og:image:alt" content={fullTitle} />
       <meta property="og:site_name" content={SITE_NAME} />
       <meta property="og:locale" content="en_PK" />
+      {hasUrdu && <meta property="og:locale:alternate" content="ur_PK" />}
 
-      {/* Twitter */}
+      {/* ✅ Twitter — twitter:site added so card is attributed to school handle */}
       <meta name="twitter:card" content="summary_large_image" />
+      {TWITTER_SITE && <meta name="twitter:site" content={TWITTER_SITE} />}
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={image} />
-      {/* ✅ FIX 3: alt text for Twitter image */}
       <meta name="twitter:image:alt" content={fullTitle} />
 
       {schemas.map((s, i) => (
@@ -114,5 +129,5 @@ const SEO = ({
 };
 
 export default SEO;
-export { SITE_URL, SITE_NAME, DEFAULT_IMAGE };
-      
+export { DEFAULT_IMAGE };
+        
