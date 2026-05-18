@@ -16,8 +16,6 @@ const navLinks = [
   { to: "/",               label: "Home" },
   { to: "/about",          label: "About" },
   { to: "/teachers",       label: "Teachers" },
-  { to: "/notices",        label: "Notices" },
-  { to: "/news",           label: "News" },        // ✅ ADDED
   { to: "/results",        label: "Results" },
   { to: "/notes",          label: "Notes" },
   { to: "/library",        label: "Library" },     // ✅ ADDED
@@ -97,9 +95,7 @@ const Navbar = () => {
               >
                 {link.label}
                 {active && (
-                  <div
-                    className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-primary"
-                  />
+                  <div className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-primary" />
                 )}
               </Link>
             );
@@ -318,4 +314,4 @@ const Navbar = () => {
 
 export default Navbar;
 
-          
+      
