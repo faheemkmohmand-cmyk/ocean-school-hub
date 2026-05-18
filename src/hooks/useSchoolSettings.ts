@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { supabasePublic } from "@/lib/supabase";
 
 export interface SchoolSettings {
   id: number;
@@ -39,25 +39,19 @@ export function useSchoolSettings() {
   return useQuery<SchoolSettings>({
     queryKey: ["school-settings"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await supabasePublic
         .from("school_settings")
         .select("id, school_name, tagline, description, logo_url, banner_url, emis_code, address, phone, email, established_year, total_students, total_teachers, pass_percentage")
         .eq("id", 1)
         .single();
 
-      if (error) {
-        console.error("[useSchoolSettings] Supabase error:", error);
-        throw error;
-      }
-
+      if (error) throw error;
       return data;
     },
     staleTime: 30 * 1000,
     gcTime: 30 * 60 * 1000,
     retry: 2,
     refetchOnWindowFocus: true,
-    // Use fallbackSettings as placeholder so text values show instantly,
-    // but NOTE: logo_url and banner_url in fallback are null intentionally —
-    // they will be replaced with real data once the query resolves.
+    placeholderData: fallbackSettings,
   });
 }
