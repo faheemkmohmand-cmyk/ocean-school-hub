@@ -1,4 +1,4 @@
-import { useLocation, useParams, matchPath } from "react-router-dom";
+import { useLocation, matchPath } from "react-router-dom";
 import SEO from "./SEO";
 import { SITE_URL } from "./SEO";
 
@@ -9,11 +9,125 @@ interface RouteSEO {
   keywords?: string;
   type?: "website" | "article" | "profile";
   noIndex?: boolean;
+  hasUrdu?: boolean;
   breadcrumbs?: (params: Record<string, string | undefined>) => { name: string; path: string }[];
   jsonLd?: (params: Record<string, string | undefined>, path: string) => Record<string, any> | Record<string, any>[];
 }
 
 const baseBreadcrumb = { name: "Home", path: "/" };
+
+// ─── Reusable schemas ────────────────────────────────────────────────────────
+
+/** FAQPage schema for the Admission page — boosts rich results in Google */
+const admissionFAQSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "Which classes can apply for admission at GHS Babi Khel?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Fresh admissions are available for Class 6, 7, 8 (middle school) and Class 9. Migration cases are accepted for Class 9 and Class 10 through the BISEP migration process.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What documents are required for admission?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Required documents include: B-Form (NADRA) — mandatory, passport size photo — mandatory, previous result card or marksheet, school leaving certificate (for migration), father's CNIC copy, and migration certificate if applicable.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How can I track my admission application?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "You can track your admission application online by visiting the Admission page and entering your CNIC or application reference number in the Track Application section.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What is the migration process for Class 10?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "The Class 10 migration process involves 8 steps: submit online application, write migration letter to current school principal, get principal signature, both principals sign, current school applies migration on BISEP portal, our school approves on BISEP, BISEP generates bank challan, submit fee at bank — migration confirmed.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Is there an online application form available?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes, GHS Babi Khel provides an online admission application form available at https://ghsbabikhel.indevs.in/admission. You can apply directly from your phone or computer.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What is the school address and how can I contact GHS Babi Khel?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "GHS Babi Khel is located in Babi Khel, District Mohmand, Khyber Pakhtunkhwa, Pakistan. You can email at ghsbabkhel@edu.pk or visit the school directly.",
+      },
+    },
+  ],
+};
+
+/** Course schema used for online-classes page */
+const onlineClassesCourseSchema = {
+  "@context": "https://schema.org",
+  "@type": "Course",
+  name: "GHS Babi Khel Online Classes",
+  description:
+    "Live and recorded online classes for all subjects — Mathematics, Physics, Chemistry, Biology, English, Urdu, Islamiyat, Pakistan Studies and Computer Science.",
+  provider: {
+    "@type": "HighSchool",
+    "@id": `${SITE_URL}#organization`,
+    name: "Government High School Babi Khel",
+  },
+  url: `${SITE_URL}/online-classes`,
+  inLanguage: ["ur", "en"],
+  educationalLevel: "Secondary",
+  isAccessibleForFree: true,
+  hasCourseInstance: {
+    "@type": "CourseInstance",
+    courseMode: "online",
+    inLanguage: "ur",
+    courseWorkload: "PT1H",
+  },
+};
+
+/** Course schema for the Notes section */
+const notesCourseSchema = {
+  "@context": "https://schema.org",
+  "@type": "Course",
+  name: "GHS Babi Khel Study Notes",
+  description:
+    "Subject-wise and chapter-wise study notes for all classes — Mathematics, Physics, Chemistry, Biology, English, Urdu, Islamiyat, Pakistan Studies and Computer Science.",
+  provider: {
+    "@type": "HighSchool",
+    "@id": `${SITE_URL}#organization`,
+    name: "Government High School Babi Khel",
+  },
+  url: `${SITE_URL}/notes`,
+  educationalLevel: "Secondary",
+  isAccessibleForFree: true,
+};
+
+/** Library schema */
+const librarySchema = {
+  "@context": "https://schema.org",
+  "@type": "Library",
+  name: "GHS Babi Khel Digital Library",
+  description:
+    "Digital library of Government High School Babi Khel — textbooks, past papers, notes and educational resources for all classes.",
+  url: `${SITE_URL}/library`,
+  containedInPlace: {
+    "@type": "HighSchool",
+    "@id": `${SITE_URL}#organization`,
+  },
+};
 
 const ROUTES: RouteSEO[] = [
   {
@@ -23,6 +137,7 @@ const ROUTES: RouteSEO[] = [
       "Government High School Babi Khel, District Mohmand, KPK Pakistan. Quality education, notices, news, results, online classes, library and admissions.",
     keywords:
       "GHS Babi Khel, Government High School Babi Khel, Mohmand school, KPK school, school admission, school notices, school results, online classes Pakistan",
+    hasUrdu: true,
   },
   {
     pattern: "/about",
@@ -31,6 +146,13 @@ const ROUTES: RouteSEO[] = [
       "Learn about Government High School Babi Khel — our history since 2018, mission, vision, faculty and commitment to quality education in District Mohmand.",
     keywords: "about GHS Babi Khel, school history, school mission, school vision, Mohmand education",
     breadcrumbs: () => [baseBreadcrumb, { name: "About", path: "/about" }],
+    jsonLd: () => ({
+      "@context": "https://schema.org",
+      "@type": "AboutPage",
+      name: "About GHS Babi Khel",
+      url: `${SITE_URL}/about`,
+      about: { "@id": `${SITE_URL}#organization` },
+    }),
   },
   {
     pattern: "/teachers",
@@ -63,6 +185,14 @@ const ROUTES: RouteSEO[] = [
       "View annual and term examination results for all classes at GHS Babi Khel. Check student performance, position and grade reports.",
     keywords: "school results, exam results, annual results, term results, GHS Babi Khel results",
     breadcrumbs: () => [baseBreadcrumb, { name: "Results", path: "/results" }],
+    jsonLd: () => ({
+      "@context": "https://schema.org",
+      "@type": "Dataset",
+      name: "GHS Babi Khel Exam Results",
+      description: "Annual and term examination results for all classes at Government High School Babi Khel.",
+      url: `${SITE_URL}/results`,
+      creator: { "@id": `${SITE_URL}#organization` },
+    }),
   },
   {
     pattern: "/result-card",
@@ -79,6 +209,13 @@ const ROUTES: RouteSEO[] = [
       "Explore the photo and video gallery of Government High School Babi Khel — events, sports, academic activities and celebrations.",
     keywords: "school gallery, photos, videos, school events, GHS Babi Khel gallery",
     breadcrumbs: () => [baseBreadcrumb, { name: "Gallery", path: "/gallery" }],
+    jsonLd: () => ({
+      "@context": "https://schema.org",
+      "@type": "ImageGallery",
+      name: "GHS Babi Khel Photo Gallery",
+      url: `${SITE_URL}/gallery`,
+      creator: { "@id": `${SITE_URL}#organization` },
+    }),
   },
   {
     pattern: "/library",
@@ -87,6 +224,7 @@ const ROUTES: RouteSEO[] = [
       "Access the digital library of GHS Babi Khel — books, study notes, past papers and educational resources for all classes.",
     keywords: "school library, digital library, study notes, past papers, books, GHS Babi Khel library",
     breadcrumbs: () => [baseBreadcrumb, { name: "Library", path: "/library" }],
+    jsonLd: () => librarySchema,
   },
   {
     pattern: "/weather",
@@ -103,6 +241,8 @@ const ROUTES: RouteSEO[] = [
       "Join live online classes and access recorded lectures from GHS Babi Khel — flexible learning anytime, anywhere.",
     keywords: "online classes, live lectures, e-learning, online school Pakistan, GHS Babi Khel online",
     breadcrumbs: () => [baseBreadcrumb, { name: "Online Classes", path: "/online-classes" }],
+    // ✅ Course schema — helps Google show this as an educational resource
+    jsonLd: () => onlineClassesCourseSchema,
   },
   {
     pattern: "/admission",
@@ -111,14 +251,18 @@ const ROUTES: RouteSEO[] = [
       "Apply for admission at Government High School Babi Khel — eligibility, fee structure, required documents and online application form.",
     keywords: "school admission, admissions open, apply online, GHS Babi Khel admission, school enrollment",
     breadcrumbs: () => [baseBreadcrumb, { name: "Admissions", path: "/admission" }],
+    // ✅ FAQPage schema — boosts rich results showing Q&A directly in Google SERP
+    jsonLd: () => admissionFAQSchema,
   },
   {
     pattern: "/notes",
     title: "Study Notes — Subject-wise Notes & Resources",
     description:
       "Access subject-wise study notes, summaries and chapter resources for all classes at GHS Babi Khel — interactive learning made easy.",
-    keywords: "study notes, subject notes, chapter notes, school notes Pakistan",
+    keywords: "study notes, subject notes, chapter notes, school notes Pakistan, GHS Babi Khel notes",
     breadcrumbs: () => [baseBreadcrumb, { name: "Notes", path: "/notes" }],
+    // ✅ Course schema for the notes hub
+    jsonLd: () => notesCourseSchema,
   },
   {
     pattern: "/notes/:subject",
@@ -131,6 +275,21 @@ const ROUTES: RouteSEO[] = [
       { name: "Notes", path: "/notes" },
       { name: p.subject || "Subject", path: `/notes/${p.subject}` },
     ],
+    // ✅ Course schema per subject
+    jsonLd: (p) => ({
+      "@context": "https://schema.org",
+      "@type": "Course",
+      name: `${(p.subject || "Subject").charAt(0).toUpperCase() + (p.subject || "subject").slice(1)} Notes — GHS Babi Khel`,
+      description: `Chapter-wise study notes for ${p.subject || "the subject"} — comprehensive learning material for GHS Babi Khel students.`,
+      provider: {
+        "@type": "HighSchool",
+        "@id": `${SITE_URL}#organization`,
+        name: "Government High School Babi Khel",
+      },
+      url: `${SITE_URL}/notes/${p.subject}`,
+      educationalLevel: "Secondary",
+      isAccessibleForFree: true,
+    }),
   },
   {
     pattern: "/notes/:subject/:chapter",
@@ -145,51 +304,27 @@ const ROUTES: RouteSEO[] = [
       { name: p.subject || "Subject", path: `/notes/${p.subject}` },
       { name: p.chapter || "Chapter", path: `/notes/${p.subject}/${p.chapter}` },
     ],
+    // ✅ Article schema for chapter pages
+    jsonLd: (p) => ({
+      "@context": "https://schema.org",
+      "@type": "Article",
+      headline: `${p.chapter || "Chapter"} Notes — ${p.subject || "Subject"} | GHS Babi Khel`,
+      description: `Detailed notes for ${p.chapter || "chapter"} in ${p.subject || "subject"} — GHS Babi Khel study material.`,
+      url: `${SITE_URL}/notes/${p.subject}/${p.chapter}`,
+      author: { "@id": `${SITE_URL}#organization` },
+      publisher: { "@id": `${SITE_URL}#organization` },
+      educationalLevel: "Secondary",
+      inLanguage: "ur",
+    }),
   },
-  {
-    pattern: "/auth/signin",
-    title: "Sign In — Student, Teacher & Admin Login",
-    description:
-      "Sign in to your GHS Babi Khel account to access your dashboard, results, notes, online classes and personalised features.",
-    noIndex: true,
-  },
-  {
-    pattern: "/auth/signup",
-    title: "Create Account — Join GHS Babi Khel Online",
-    description:
-      "Create your GHS Babi Khel account to access notices, results, study notes and online classes after admin approval.",
-    noIndex: true,
-  },
-  {
-    pattern: "/auth/forgot-password",
-    title: "Forgot Password — Recover Your Account",
-    description: "Recover access to your GHS Babi Khel account by resetting your password securely.",
-    noIndex: true,
-  },
-  {
-    pattern: "/auth/reset-password",
-    title: "Reset Password — Set a New Password",
-    description: "Set a new password for your GHS Babi Khel account and regain secure access.",
-    noIndex: true,
-  },
-  {
-    pattern: "/dashboard",
-    title: "Student Dashboard — Your Personal Hub",
-    description: "Your personalised student dashboard at GHS Babi Khel — results, notes, classes and notifications.",
-    noIndex: true,
-  },
-  {
-    pattern: "/teacher",
-    title: "Teacher Dashboard — Manage Classes & Students",
-    description: "Teacher dashboard for managing classes, attendance, homework and student progress at GHS Babi Khel.",
-    noIndex: true,
-  },
-  {
-    pattern: "/admin",
-    title: "Admin Dashboard — School Management Console",
-    description: "Administrative console for managing GHS Babi Khel — users, content, attendance, exams and analytics.",
-    noIndex: true,
-  },
+  // ── Private / noindex pages ──
+  { pattern: "/auth/signin",         title: "Sign In — Student, Teacher & Admin Login",    description: "Sign in to your GHS Babi Khel account.",            noIndex: true },
+  { pattern: "/auth/signup",         title: "Create Account — Join GHS Babi Khel Online", description: "Create your GHS Babi Khel account.",                 noIndex: true },
+  { pattern: "/auth/forgot-password",title: "Forgot Password — Recover Your Account",     description: "Recover access to your GHS Babi Khel account.",     noIndex: true },
+  { pattern: "/auth/reset-password", title: "Reset Password — Set a New Password",        description: "Set a new password for your GHS Babi Khel account.", noIndex: true },
+  { pattern: "/dashboard",           title: "Student Dashboard — Your Personal Hub",       description: "Your personalised student dashboard at GHS Babi Khel.", noIndex: true },
+  { pattern: "/teacher",             title: "Teacher Dashboard — Manage Classes",          description: "Teacher dashboard at GHS Babi Khel.",               noIndex: true },
+  { pattern: "/admin",               title: "Admin Dashboard — School Management",         description: "Administrative console for GHS Babi Khel.",          noIndex: true },
 ];
 
 const NOT_FOUND: RouteSEO = {
@@ -249,8 +384,10 @@ const RouteSEOInjector = () => {
       noIndex={matched.noIndex}
       breadcrumbs={breadcrumbs}
       jsonLd={jsonLd}
+      hasUrdu={matched.hasUrdu}
     />
   );
 };
 
 export default RouteSEOInjector;
+                                         
