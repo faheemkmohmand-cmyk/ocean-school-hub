@@ -35,7 +35,11 @@ export function useLibraryFiles(options?: {
 
       if (category && category !== "All") query = query.eq("category", category);
       if (classFilter && classFilter !== "All") query = query.eq("class", classFilter);
-      if (search) query = query.ilike("title", `%${search}%`);
+      if (search) {
+        // Escape LIKE wildcards to prevent wildcard injection
+        const safe = search.replace(/%/g, "\\%").replace(/_/g, "\\_");
+        query = query.ilike("title", `%${safe}%`);
+      }
 
       const from = (page - 1) * perPage;
       query = query.range(from, from + perPage - 1);
