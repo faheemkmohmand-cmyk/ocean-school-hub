@@ -220,33 +220,16 @@ export async function submitAdmission(
     if (!row?.id || !row?.reference_no) throw new Error("No response from server. Please try again.");
     return { id: row.id, reference_no: row.reference_no };
   } catch (error) {
-    if (!isMissingRpcError(error)) {
-      throw new Error(`Submission failed: ${error instanceof Error ? error.message : "Please try again."}`);
+    // No insecure direct-insert fallback — always require the validated RPC.
+    // If the RPC is missing (PGRST202), surface a clear setup error instead of
+    // bypassing server-side duplicate-prevention and field validation.
+    if (isMissingRpcError(error)) {
+      throw new Error(
+        "Admission service is not configured correctly. Please contact the school administrator."
+      );
     }
+    throw new Error(`Submission failed: ${error instanceof Error ? error.message : "Please try again."}`);
   }
-
-  const id = crypto.randomUUID();
-  const reference_no = createFallbackReferenceNo();
-
-  const { error: admissionError } = await withTimeout(
-    supabase.from("admissions").insert([{ id, reference_no, ...payload }]),
-    25000,
-    "Admission submission"
-  );
-  if (admissionError) throw new Error(`Submission failed: ${admissionError.message}`);
-
-  if (documents.length > 0) {
-    const { error: docsError } = await withTimeout(
-      supabase.from("admission_documents").insert(
-        documents.map(doc => ({ admission_id: id, ...doc }))
-      ),
-      25000,
-      "Document save"
-    );
-    if (docsError) throw new Error(`Application saved, but document links failed to save: ${docsError.message}`);
-  }
-
-  return { id, reference_no };
 }
 
 // Uploads a single document to Cloudinary then records it in Supabase
@@ -269,3 +252,4 @@ export async function uploadAdmissionDocument(
 export function getDocUrl(path: string): string {
   return path;
     }
+    
