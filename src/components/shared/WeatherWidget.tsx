@@ -348,7 +348,7 @@ const WeatherWidget = () => {
 
   return (
     <m.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{duration:0.5}}
-      style={{background:bg, borderRadius:"20px", overflow:"hidden", position:"relative"}}
+      style={{background:bg, borderRadius:"20px", overflow:"hidden", position:"relative", isolation:"isolate"}}
       className="shadow-lg">
 
       {/* Decorative glow */}
@@ -378,7 +378,7 @@ const WeatherWidget = () => {
             <p style={{color:"rgba(255,255,255,0.75)",fontSize:"12px",marginTop:"3px"}}>{desc}</p>
           </div>
           <div style={{fontSize:"52px",lineHeight:1,filter:"drop-shadow(0 4px 12px rgba(0,0,0,0.3))",
-            animation:"wFloat 3s ease-in-out infinite"}}>
+            animation:"wFloat 3s ease-in-out infinite", willChange:"transform"}}>
             {emoji}
           </div>
         </div>
@@ -414,4 +414,4 @@ const WeatherWidget = () => {
 
 export default WeatherWidget;
 
-    
+        
