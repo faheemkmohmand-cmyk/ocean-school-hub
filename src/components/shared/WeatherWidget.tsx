@@ -10,33 +10,61 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Wind, Droplets, ArrowRight, MapPin } from "lucide-react";
 
-const API_KEY  = import.meta.env.VITE_OWM_KEY ?? "";
-const BASE_URL = "https://api.openweathermap.org/data/2.5";
+// Open-Meteo: completely free, no API key required
+// Docs: https://open-meteo.com/en/docs
+const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
 
-const EMOJI: Record<string,string> = {
-  "01d":"☀️","01n":"🌙","02d":"⛅","02n":"☁️","03d":"☁️","03n":"☁️","04d":"☁️","04n":"☁️",
-  "09d":"🌧️","09n":"🌧️","10d":"🌦️","10n":"🌧️","11d":"⛈️","11n":"⛈️","13d":"❄️","13n":"❄️","50d":"🌫️","50n":"🌫️",
+// EMOJI map removed — using WMO codes via wmoGet() instead
+
+// WMO code ranges: 0=clear, 1-3=cloudy, 45-48=fog, 51-67=rain/drizzle, 71-77=snow, 80-82=showers, 85-86=snow showers, 95-99=thunderstorm
+const gradient = (wmo:number, night:boolean) => {
+  if (wmo>=95)            return "linear-gradient(135deg,#1a1a2e,#2d3561)"; // thunderstorm
+  if (wmo>=71&&wmo<=77)   return "linear-gradient(135deg,#c5dff8,#a3c4f0)"; // snow
+  if (wmo>=51&&wmo<=67)   return "linear-gradient(135deg,#1e3a5f,#2d6a8c)"; // rain/drizzle
+  if (wmo>=80&&wmo<=82)   return "linear-gradient(135deg,#1e3a5f,#2d6a8c)"; // showers
+  if (wmo>=45&&wmo<=48)   return "linear-gradient(135deg,#b0bec5,#90a4ae)"; // fog
+  if (wmo===3)            return "linear-gradient(135deg,#4a5568,#718096)";  // overcast
+  if (wmo===0)            return night ? "linear-gradient(135deg,#0a0a2e,#1a1a4e)" : "linear-gradient(135deg,#1a6dff,#00d4ff)"; // clear
+  return night ? "linear-gradient(135deg,#1a2a4a,#2d4a6a)" : "linear-gradient(135deg,#2d6a9f,#4a9fd4)"; // partly cloudy
 };
 
-const gradient = (id:number, night:boolean) => {
-  if (id>=200&&id<300) return "linear-gradient(135deg,#1a1a2e,#2d3561)";
-  if (id>=300&&id<600) return "linear-gradient(135deg,#1e3a5f,#2d6a8c)";
-  if (id>=600&&id<700) return "linear-gradient(135deg,#c5dff8,#a3c4f0)";
-  if (id>=700&&id<800) return "linear-gradient(135deg,#b0bec5,#90a4ae)";
-  if (id===800) return night ? "linear-gradient(135deg,#0a0a2e,#1a1a4e)" : "linear-gradient(135deg,#1a6dff,#00d4ff)";
-  return "linear-gradient(135deg,#4a5568,#718096)";
+// WMO Weather Code → { emoji, description }
+const WMO: Record<number, { emoji: string; description: string }> = {
+  0:  { emoji: "☀️", description: "Clear sky" },
+  1:  { emoji: "🌤️", description: "Mainly clear" },
+  2:  { emoji: "⛅", description: "Partly cloudy" },
+  3:  { emoji: "☁️", description: "Overcast" },
+  45: { emoji: "🌫️", description: "Foggy" },
+  48: { emoji: "🌫️", description: "Icy fog" },
+  51: { emoji: "🌦️", description: "Light drizzle" },
+  53: { emoji: "🌦️", description: "Drizzle" },
+  55: { emoji: "🌧️", description: "Heavy drizzle" },
+  61: { emoji: "🌧️", description: "Slight rain" },
+  63: { emoji: "🌧️", description: "Rain" },
+  65: { emoji: "🌧️", description: "Heavy rain" },
+  71: { emoji: "❄️", description: "Slight snow" },
+  73: { emoji: "❄️", description: "Snow" },
+  75: { emoji: "❄️", description: "Heavy snow" },
+  80: { emoji: "🌦️", description: "Rain showers" },
+  81: { emoji: "🌧️", description: "Rain showers" },
+  82: { emoji: "⛈️", description: "Violent showers" },
+  95: { emoji: "⛈️", description: "Thunderstorm" },
+  99: { emoji: "⛈️", description: "Thunderstorm w/ hail" },
 };
+const wmoGet = (code: number) => WMO[code] ?? { emoji: "🌡️", description: "Unknown" };
 
 interface WData {
-  name: string;
-  sys: { country:string; sunrise:number; sunset:number };
-  main: { temp:number; humidity:number };
-  weather: Array<{ id:number; icon:string; description:string }>;
-  wind: { speed:number };
-  dt: number;
+  temp: number;
+  humidity: number;
+  windspeed: number;
+  weathercode: number;
+  is_day: number;
+  // mapped fields for display compatibility
+  description: string;
+  emoji: string;
 }
 
 const WeatherWidget = () => {
@@ -162,8 +190,25 @@ const WeatherWidget = () => {
   const fetchW = useCallback(async (lat:number, lon:number) => {
     coordsRef.current = { lat, lon };
     try {
-      const r = await fetch(`${BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}`);
-      if (r.ok) setData(await r.json());
+      const url = `${OPEN_METEO_URL}?latitude=${lat}&longitude=${lon}` +
+        `&current_weather=true&hourly=relativehumidity_2m&timezone=auto&forecast_days=1`;
+      const r = await fetch(url);
+      if (!r.ok) return;
+      const json = await r.json();
+      const cw = json.current_weather;
+      const { emoji, description } = wmoGet(cw.weathercode);
+      // humidity: pick the hourly value closest to current hour
+      const currentHourIdx = new Date().getHours();
+      const humidity = json.hourly?.relativehumidity_2m?.[currentHourIdx] ?? 0;
+      setData({
+        temp: Math.round(cw.temperature),
+        humidity,
+        windspeed: Math.round(cw.windspeed),
+        weathercode: cw.weathercode,
+        is_day: cw.is_day,
+        description,
+        emoji,
+      });
     } catch { /* silent */ }
     finally { setLoading(false); }
   }, []);
@@ -292,18 +337,17 @@ const WeatherWidget = () => {
   }
   if (!data) return null;
 
-  const tempC    = Math.round(data.main.temp - 273.15);
-  const icon     = data.weather[0].icon;
-  const id       = data.weather[0].id;
-  const isNight  = data.dt < data.sys.sunrise || data.dt > data.sys.sunset;
-  const bg       = gradient(id, isNight);
-  const emoji    = EMOJI[icon] || "🌤️";
-  const windKmh  = Math.round(data.wind.speed * 3.6);
-  const desc     = data.weather[0].description.replace(/\b\w/g, c => c.toUpperCase());
-  const nameDisp = locName || `${data.name}, ${data.sys.country}`;
+  // Open-Meteo returns temp already in °C — no Kelvin conversion needed
+  const tempC    = data.temp;
+  const isNight  = data.is_day === 0;
+  const bg       = gradient(data.weathercode, isNight);
+  const emoji    = data.emoji;
+  const windKmh  = data.windspeed; // already km/h from Open-Meteo
+  const desc     = data.description;
+  const nameDisp = locName || "Babi Khel, PK";
 
   return (
-    <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{duration:0.5}}
+    <m.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{duration:0.5}}
       style={{background:bg, borderRadius:"20px", overflow:"hidden", position:"relative"}}
       className="shadow-lg">
 
@@ -344,7 +388,7 @@ const WeatherWidget = () => {
           <div style={{display:"flex",gap:"12px"}}>
             <div style={{display:"flex",alignItems:"center",gap:"4px"}}>
               <Droplets size={12} color="rgba(255,255,255,0.7)"/>
-              <span style={{color:"rgba(255,255,255,0.8)",fontSize:"11px"}}>{data.main.humidity}%</span>
+              <span style={{color:"rgba(255,255,255,0.8)",fontSize:"11px"}}>{data.humidity}%</span>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:"4px"}}>
               <Wind size={12} color="rgba(255,255,255,0.7)"/>
@@ -364,9 +408,10 @@ const WeatherWidget = () => {
         @keyframes wFloat {0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
         @keyframes wPulse {0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.4)}}
       `}</style>
-    </motion.div>
+    </m.div>
   );
 };
 
 export default WeatherWidget;
+
     
