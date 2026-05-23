@@ -77,7 +77,7 @@ const NotificationBell = () => {
   const lastReadDate = lastReadAt ? new Date(lastReadAt) : new Date(0);
 
   const unreadCount = notices.filter(n => new Date(n.created_at) > lastReadDate).length;
-  const latest = notices.slice(0, 5);
+  const latest = notices.slice(0, 8);
 
   const markAllRead = () => {
     localStorage.setItem(storageKey, new Date().toISOString());
@@ -127,15 +127,18 @@ const NotificationBell = () => {
             initial={{ opacity: 0, y: -8, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
-            className="absolute right-0 top-full mt-2 w-80 bg-card border border-border rounded-xl shadow-elevated z-50 overflow-hidden"
+            className="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 bg-card border border-border rounded-xl shadow-elevated z-50 overflow-hidden"
           >
             <div className="p-3 border-b border-border flex items-center justify-between">
               <span className="font-heading font-semibold text-sm text-foreground">Notifications</span>
-              {unreadCount > 0 && (
-                <button onClick={markAllRead} className="text-xs text-primary hover:underline">
-                  Mark all read
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {unreadCount > 0 && (
+                  <button onClick={markAllRead} className="text-xs text-primary hover:underline">
+                    Mark all read
+                  </button>
+                )}
+                <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground text-lg leading-none sm:hidden" aria-label="Close">✕</button>
+              </div>
             </div>
             <div className="max-h-72 overflow-y-auto">
               {latest.length === 0 ? (
@@ -170,4 +173,5 @@ const NotificationBell = () => {
 };
 
 export default NotificationBell;
+
       
