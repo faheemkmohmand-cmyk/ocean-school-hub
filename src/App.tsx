@@ -3,48 +3,54 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { HelmetProvider } from "react-helmet-async";
-// ✅ FIX 9: LazyMotion + domAnimation replaces full framer-motion bundle.
-// This cuts the Framer Motion chunk by ~40% (~30KB gzipped saved).
-// All child components must use `m` from "framer-motion" instead of `motion`.
-// See: https://www.framer.com/motion/lazy-motion/
 import { LazyMotion, domAnimation } from "framer-motion";
 import ErrorBoundary from "./components/shared/ErrorBoundary";
 import OfflineBanner from "./components/shared/OfflineBanner";
 import { usePageTracker } from "./hooks/usePageTracker";
 import SiteSchema from "./components/seo/SiteSchema";
 import RouteSEOInjector from "./components/seo/RouteSEOInjector";
-// ✅ Route guards MUST be eagerly loaded — auth check runs before protected content renders
 import ProtectedRoute        from "./components/layout/ProtectedRoute";
 import AdminProtectedRoute   from "./components/layout/AdminProtectedRoute";
 import TeacherProtectedRoute from "./components/layout/TeacherProtectedRoute";
 
-// Invisible component — just runs the tracker hook inside BrowserRouter
 const PageTracker = () => { usePageTracker(); return null; };
 
-// ✅ All pages lazy-loaded for code splitting
-const Home             = lazy(() => import("./pages/Home"));
-const About            = lazy(() => import("./pages/About"));
-const Teachers         = lazy(() => import("./pages/Teachers"));
-const Notices          = lazy(() => import("./pages/Notices"));
-const News             = lazy(() => import("./pages/News"));
-const Results          = lazy(() => import("./pages/Results"));
-const Gallery          = lazy(() => import("./pages/Gallery"));
-const Library          = lazy(() => import("./pages/Library"));
-const ResultCard       = lazy(() => import("./pages/ResultCard"));
-const SignIn           = lazy(() => import("./pages/auth/SignIn"));
-const SignUp           = lazy(() => import("./pages/auth/SignUp"));
-const ForgotPassword   = lazy(() => import("./pages/auth/ForgotPassword"));
-const ResetPassword    = lazy(() => import("./pages/auth/ResetPassword"));
-const UserDashboard    = lazy(() => import("./pages/dashboard/UserDashboard"));
-const NotesPage        = lazy(() => import("./pages/notes/NotesPage"));
-const SubjectPage      = lazy(() => import("./pages/notes/SubjectPage"));
-const ChapterPage      = lazy(() => import("./pages/notes/ChapterPage"));
-const TeacherDashboard = lazy(() => import("./pages/dashboard/TeacherDashboard"));
-const AdminDashboard   = lazy(() => import("./pages/admin/AdminDashboard"));
-const Weather          = lazy(() => import("./pages/Weather"));
-const OnlineClasses    = lazy(() => import("./pages/OnlineClasses"));
-const NotFound         = lazy(() => import("./pages/NotFound"));
-const Admission        = lazy(() => import("./pages/Admission"));
+// ✅ lazyWithRetry: if a chunk fails to load (stale SW cache, network blip),
+// automatically reload the page ONCE. This fixes the infinite spinner on refresh.
+function lazyWithRetry(factory: () => Promise<any>) {
+  return lazy(() =>
+    factory().catch(() => {
+      // Chunk failed — force a full page reload to get fresh chunks from server
+      window.location.reload();
+      // Return a never-resolving promise so React doesn't render anything
+      return new Promise(() => {});
+    })
+  );
+}
+
+const Home             = lazyWithRetry(() => import("./pages/Home"));
+const About            = lazyWithRetry(() => import("./pages/About"));
+const Teachers         = lazyWithRetry(() => import("./pages/Teachers"));
+const Notices          = lazyWithRetry(() => import("./pages/Notices"));
+const News             = lazyWithRetry(() => import("./pages/News"));
+const Results          = lazyWithRetry(() => import("./pages/Results"));
+const Gallery          = lazyWithRetry(() => import("./pages/Gallery"));
+const Library          = lazyWithRetry(() => import("./pages/Library"));
+const ResultCard       = lazyWithRetry(() => import("./pages/ResultCard"));
+const SignIn           = lazyWithRetry(() => import("./pages/auth/SignIn"));
+const SignUp           = lazyWithRetry(() => import("./pages/auth/SignUp"));
+const ForgotPassword   = lazyWithRetry(() => import("./pages/auth/ForgotPassword"));
+const ResetPassword    = lazyWithRetry(() => import("./pages/auth/ResetPassword"));
+const UserDashboard    = lazyWithRetry(() => import("./pages/dashboard/UserDashboard"));
+const NotesPage        = lazyWithRetry(() => import("./pages/notes/NotesPage"));
+const SubjectPage      = lazyWithRetry(() => import("./pages/notes/SubjectPage"));
+const ChapterPage      = lazyWithRetry(() => import("./pages/notes/ChapterPage"));
+const TeacherDashboard = lazyWithRetry(() => import("./pages/dashboard/TeacherDashboard"));
+const AdminDashboard   = lazyWithRetry(() => import("./pages/admin/AdminDashboard"));
+const Weather          = lazyWithRetry(() => import("./pages/Weather"));
+const OnlineClasses    = lazyWithRetry(() => import("./pages/OnlineClasses"));
+const NotFound         = lazyWithRetry(() => import("./pages/NotFound"));
+const Admission        = lazyWithRetry(() => import("./pages/Admission"));
 
 const PageSkeleton = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -72,11 +78,6 @@ const App = () => (
   <ErrorBoundary>
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
-        {/*
-          ✅ FIX 9: LazyMotion wraps the ENTIRE app so every framer-motion component
-          inside benefits from the smaller domAnimation feature bundle automatically.
-          strict={true} warns in dev if a child uses `motion` instead of `m`.
-        */}
         <LazyMotion features={domAnimation} strict>
           <SiteSchema />
           <Toaster
@@ -144,4 +145,4 @@ const App = () => (
 );
 
 export default App;
-                
+  
