@@ -1,6 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-// Import BOTH Supabase clients so we can try the authenticated client as
-// fallback when the public one is blocked by RLS.
 import { supabase, supabasePublic } from "@/lib/supabase";
 
 export interface SchoolSettings {
@@ -44,10 +42,6 @@ export function safeMediaUrl(url: string | null | undefined): string | null {
   return url.replace(/^http:\/\//i, "https://");
 }
 
-/**
- * Helper: run the school_settings SELECT query on a given Supabase client
- * and return the data with safe (https) media URLs.
- */
 async function fetchSettings(client: typeof supabase) {
   const { data, error } = await client
     .from("school_settings")
@@ -69,33 +63,20 @@ export function useSchoolSettings() {
   return useQuery<SchoolSettings>({
     queryKey: ["school-settings"],
     queryFn: async () => {
-      // ── Attempt 1: Public client (no auth, no refresh loops) ──
-      // This works when the school_settings table has a public SELECT
-      // RLS policy (which is the correct database configuration).
+      // Attempt 1: Public (anon) client
       try {
         return await fetchSettings(supabasePublic);
       } catch (publicErr) {
         console.warn(
-          "[useSchoolSettings] Public client failed (RLS may be blocking), trying authenticated client:",
+          "[useSchoolSettings] Public client failed, trying authenticated client:",
           publicErr
         );
       }
 
-      // ── Attempt 2: Authenticated client with timeout ──
-      // This works when the user is signed in and RLS allows reads
-      // for authenticated users. We add a 5-second timeout so a
-      // stuck auth-refresh loop doesn't hang the page forever.
+      // Attempt 2: Authenticated client — NO timeout (timeout was causing
+      // the logo/banner to disappear after sign-in on mobile Chrome)
       try {
-        const result = await Promise.race([
-          fetchSettings(supabase),
-          new Promise<never>((_, reject) =>
-            setTimeout(
-              () => reject(new Error("Authenticated client timed out after 5s")),
-              5000
-            )
-          ),
-        ]);
-        return result;
+        return await fetchSettings(supabase);
       } catch (authErr) {
         console.warn(
           "[useSchoolSettings] Authenticated client also failed:",
@@ -103,17 +84,19 @@ export function useSchoolSettings() {
         );
       }
 
-      // ── Last resort: fallback data (logo_url/banner_url are null) ──
+      // Last resort: fallback (logo/banner will be null)
       console.error(
-        "[useSchoolSettings] ALL queries failed. Using fallback data with null logo/banner. " +
-        "Fix: Run the RLS migration SQL in Supabase SQL Editor to add a public SELECT policy on school_settings."
+        "[useSchoolSettings] ALL queries failed. Using fallback. " +
+        "Fix: Add a public SELECT RLS policy on school_settings in Supabase."
       );
       return fallbackSettings;
     },
-    staleTime: 10 * 60 * 1000,       // 10 min
-    gcTime: 60 * 60 * 1000,           // 1 hour
-    retry: 2,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+    retry: 1,
     refetchOnWindowFocus: false,
-    placeholderData: fallbackSettings,
+    // KEY FIX: keep showing previous data while a refetch is in progress
+    // This prevents logo/banner from flashing away during auth-triggered refetches
+    placeholderData: (previousData) => previousData ?? fallbackSettings,
   });
-}
+    }
