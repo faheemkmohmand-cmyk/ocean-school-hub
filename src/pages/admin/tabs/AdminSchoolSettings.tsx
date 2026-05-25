@@ -204,8 +204,7 @@ const AdminSchoolSettings = () => {
         setSaved(true);
         setSaveError(null);
         toast.success("Settings saved!");
-        queryClient.removeQueries({ queryKey: ["school-settings"] });
-        await queryClient.refetchQueries({ queryKey: ["school-settings"] });
+        await queryClient.invalidateQueries({ queryKey: ["school-settings"] });
         setTimeout(() => setSaved(false), 3000);
       }
     } catch (err: any) {
@@ -306,3 +305,4 @@ const AdminSchoolSettings = () => {
 };
 
 export default AdminSchoolSettings;
+            
