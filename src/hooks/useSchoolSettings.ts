@@ -36,7 +36,6 @@ export const fallbackSettings: SchoolSettings = {
   pass_percentage: 98,
 };
 
-// Force every media URL to https so mobile Chrome never blocks mixed-content
 export function safeMediaUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   return url.replace(/^http:\/\//i, "https://");
@@ -63,40 +62,32 @@ export function useSchoolSettings() {
   return useQuery<SchoolSettings>({
     queryKey: ["school-settings"],
     queryFn: async () => {
-      // Attempt 1: Public (anon) client
+      // Attempt 1: public client (works when not signed in)
       try {
         return await fetchSettings(supabasePublic);
       } catch (publicErr) {
-        console.warn(
-          "[useSchoolSettings] Public client failed, trying authenticated client:",
-          publicErr
-        );
+        console.warn("[useSchoolSettings] Public client failed:", publicErr);
       }
 
-      // Attempt 2: Authenticated client — NO timeout (timeout was causing
-      // the logo/banner to disappear after sign-in on mobile Chrome)
+      // Attempt 2: authenticated client — NO timeout
+      // The old 5-second timeout was the bug: after sign-in the public
+      // client fails, the authenticated client was killed by the timer,
+      // and fallbackSettings (null logo/banner) was returned instead.
       try {
         return await fetchSettings(supabase);
       } catch (authErr) {
-        console.warn(
-          "[useSchoolSettings] Authenticated client also failed:",
-          authErr
-        );
+        console.warn("[useSchoolSettings] Authenticated client failed:", authErr);
       }
 
-      // Last resort: fallback (logo/banner will be null)
-      console.error(
-        "[useSchoolSettings] ALL queries failed. Using fallback. " +
-        "Fix: Add a public SELECT RLS policy on school_settings in Supabase."
-      );
       return fallbackSettings;
     },
     staleTime: 10 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
     retry: 1,
     refetchOnWindowFocus: false,
-    // KEY FIX: keep showing previous data while a refetch is in progress
-    // This prevents logo/banner from flashing away during auth-triggered refetches
+    // KEY FIX: keep showing the previous real data (with logo/banner URLs)
+    // while a refetch is running after sign-in — instead of flashing
+    // fallbackSettings which has null logo/banner
     placeholderData: (previousData) => previousData ?? fallbackSettings,
   });
     }
