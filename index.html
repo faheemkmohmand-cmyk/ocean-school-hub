@@ -146,6 +146,20 @@
       "sameAs": ["https://ghsbabikhel.indevs.in"]
     }
     </script>
+
+    <!-- SW KILLER: Unregisters any old Service Worker immediately -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (var r of registrations) { r.unregister(); }
+        });
+        if (window.caches) {
+          caches.keys().then(function(names) {
+            for (var name of names) { caches.delete(name); }
+          });
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
