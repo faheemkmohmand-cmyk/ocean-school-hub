@@ -12,6 +12,7 @@ import RouteSEOInjector from "./components/seo/RouteSEOInjector";
 import ProtectedRoute        from "./components/layout/ProtectedRoute";
 import AdminProtectedRoute   from "./components/layout/AdminProtectedRoute";
 import TeacherProtectedRoute from "./components/layout/TeacherProtectedRoute";
+import { AuthProvider }      from "./contexts/AuthContext";
 
 const PageTracker = () => { usePageTracker(); return null; };
 
@@ -105,6 +106,7 @@ const App = () => (
   <ErrorBoundary>
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
+        <AuthProvider>
         <LazyMotion features={domAnimation} strict>
           <SiteSchema />
           <Toaster
@@ -167,6 +169,7 @@ const App = () => (
             </Suspense>
           </BrowserRouter>
         </LazyMotion>
+        </AuthProvider>
       </QueryClientProvider>
     </HelmetProvider>
   </ErrorBoundary>
