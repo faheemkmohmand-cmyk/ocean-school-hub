@@ -1,0 +1,30 @@
+# SPA Routing — redirect all non-file, non-folder requests to index.html
+# This fixes the "refresh hangs / goes to home page" issue on Apache/cPanel hosting
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Skip real files and directories
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+
+  # Rewrite everything else to index.html
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Caching headers
+<IfModule mod_expires.c>
+  ExpiresActive On
+  # HTML — always revalidate
+  ExpiresByType text/html                 "access plus 0 seconds"
+  # Assets with hashes — cache forever
+  ExpiresByType application/javascript    "access plus 1 year"
+  ExpiresByType text/css                  "access plus 1 year"
+  # Images
+  ExpiresByType image/png                 "access plus 1 month"
+  ExpiresByType image/jpeg                "access plus 1 month"
+  ExpiresByType image/ico                 "access plus 1 month"
+  ExpiresByType image/svg+xml             "access plus 1 month"
+  ExpiresByType application/json          "access plus 1 day"
+</IfModule>
