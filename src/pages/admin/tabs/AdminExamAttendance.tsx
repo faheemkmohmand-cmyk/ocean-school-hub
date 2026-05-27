@@ -370,7 +370,7 @@ const AdminExamAttendance = () => {
                     })}
                   </div>
 
-                {/* Desktop table */}
+                  {/* Desktop table */}
                   <div className="hidden sm:block">
                     <Card><CardContent className="p-0 overflow-x-auto">
                       <table className="w-full text-sm">
@@ -515,4 +515,4 @@ const AdminExamAttendance = () => {
   );
 };
 
-export default AdminExamAttendance;
+export default AdminExamAttendance; 
