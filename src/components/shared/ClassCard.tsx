@@ -71,20 +71,15 @@ export default function ClassCard({ cls, role = "student", onEdit, onDelete, ind
   return (
     <div
       className={`
-        relative overflow-hidden rounded-2xl border bg-card
+        rounded-2xl border bg-card
         shadow-[0_4px_24px_-4px_hsl(var(--primary)/0.10)]
         hover:shadow-[0_8px_32px_-4px_hsl(var(--primary)/0.18)]
         transition-shadow duration-300 group
         ${status === "live" ? "ring-2 ring-red-400/40 border-red-500/30" : `border-border ${statusConfig.border}`}
       `}
     >
-      {/* Live pulse glow */}
-      {status === "live" && (
-        <div className="absolute inset-0 rounded-2xl bg-red-500/5 opacity-60 pointer-events-none" />
-      )}
-
-      {/* Subject colour strip */}
-      <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${gradient} opacity-80`} />
+      {/* Subject colour strip — inline block, not absolute, avoids GPU layer creation */}
+      <div className={`rounded-t-2xl h-1 bg-gradient-to-r ${gradient} opacity-80`} />
 
       <div className="p-4 pt-5">
         {/* ── Header row ── */}
@@ -141,11 +136,7 @@ export default function ClassCard({ cls, role = "student", onEdit, onDelete, ind
 
         {/* ── Countdown ── */}
         {status === "upcoming" && countdown && (
-          <div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mt-2.5 flex items-center gap-1.5"
-          >
+          <div className="mt-2.5 flex items-center gap-1.5">
             <div className="flex-1 h-1 rounded-full bg-secondary overflow-hidden">
               <div className="h-full w-1/3 bg-gradient-to-r from-primary to-primary/60 rounded-full opacity-70" />
             </div>
@@ -167,12 +158,7 @@ export default function ClassCard({ cls, role = "student", onEdit, onDelete, ind
         )}
 
         {expanded && (
-          <div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mt-3 space-y-2"
-          >
+          <div className="mt-3 space-y-2">
             {cls.notes && (
               <div className="bg-secondary/60 rounded-xl p-3">
                 <p className="text-[11px] font-bold text-primary uppercase tracking-wider mb-1 flex items-center gap-1">
@@ -269,4 +255,4 @@ export default function ClassCard({ cls, role = "student", onEdit, onDelete, ind
       </div>
     </div>
   );
-}
+          }
