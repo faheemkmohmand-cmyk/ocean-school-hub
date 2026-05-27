@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import toast from "react-hot-toast";
 import { useSchoolSettings, safeMediaUrl } from "@/hooks/useSchoolSettings";
 
-// Timeout helper: rejects after `ms` milliseconds
+// Hard timeout wrapper — rejects if promise doesn't settle in time
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
     promise,
@@ -17,10 +17,10 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 const SignIn = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [logoFailed, setLogoFailed] = useState(false);
+  const [email, setEmail]             = useState("");
+  const [password, setPassword]       = useState("");
+  const [loading, setLoading]         = useState(false);
+  const [logoFailed, setLogoFailed]   = useState(false);
   const [pendingStatus, setPendingStatus] = useState<"pending" | "rejected" | null>(null);
   const navigate = useNavigate();
 
@@ -32,13 +32,11 @@ const SignIn = () => {
     setPendingStatus(null);
 
     try {
-      // Step 1: Authenticate — timeout after 10s
-      const authResult = await withTimeout(
+      // ── 1. Authenticate with hard 10s timeout ─────────────────────────────
+      const { data: authData, error: authError } = await withTimeout(
         supabase.auth.signInWithPassword({ email, password }),
         10000
       );
-
-      const { data: authData, error: authError } = authResult;
 
       if (authError || !authData.user) {
         toast.error(authError?.message || "Login failed.");
@@ -46,20 +44,21 @@ const SignIn = () => {
         return;
       }
 
-      // Step 2: Fetch profile — timeout after 6s, fall back gracefully
+      // ── 2. Fetch profile to check approval status (6s timeout each) ───────
       let profile: { role?: string; status?: string } | null = null;
 
       try {
-        const rpcResult = await withTimeout(
+        // Try RPC first
+        const { data: rpcData, error: rpcError } = await withTimeout(
           supabase.rpc("get_my_profile"),
           6000
         );
 
-        if (!rpcResult.error && rpcResult.data) {
-          profile = rpcResult.data;
+        if (!rpcError && rpcData) {
+          profile = rpcData;
         } else {
-          // Fallback: direct table query with its own timeout
-          const directResult = await withTimeout(
+          // Fallback to direct table query
+          const { data: directData } = await withTimeout(
             supabase
               .from("profiles")
               .select("role, status")
@@ -67,20 +66,20 @@ const SignIn = () => {
               .single(),
             6000
           );
-          profile = directResult.data ?? null;
+          profile = directData ?? null;
         }
       } catch {
-        // Profile fetch timed out — treat as pending to be safe
-        console.warn("Profile fetch timed out, treating as pending.");
+        // Both profile fetches timed out — sign out and tell the user
         await supabase.auth.signOut();
         toast.error("Server is slow. Please try again in a moment.");
         setLoading(false);
         return;
       }
 
-      const status = profile?.status || "pending";
-      const role = profile?.role;
+      const status = profile?.status ?? "pending";
+      const role   = profile?.role;
 
+      // ── 3. Block pending / rejected accounts ──────────────────────────────
       if (status === "pending") {
         await supabase.auth.signOut();
         setPendingStatus("pending");
@@ -95,8 +94,11 @@ const SignIn = () => {
         return;
       }
 
-      // Step 3: Navigate FIRST, then clear loading
+      // ── 4. Success — clear spinner THEN navigate ───────────────────────────
+      // We reset loading before navigate so the button never stays stuck
+      // if the component somehow stays mounted during the route transition.
       toast.success("Signed in successfully!");
+      setLoading(false);
 
       if (role === "admin") {
         navigate("/admin", { replace: true });
@@ -104,14 +106,13 @@ const SignIn = () => {
         navigate("/dashboard", { replace: true });
       }
 
-      setLoading(false);
     } catch (err) {
-      // Catches the top-level auth timeout or any unexpected error
-      const message =
-        err instanceof Error && err.message === "Request timed out"
+      const isTimeout = err instanceof Error && err.message === "Request timed out";
+      toast.error(
+        isTimeout
           ? "Sign in is taking too long. Check your connection and try again."
-          : "An unexpected error occurred. Please try again.";
-      toast.error(message);
+          : "An unexpected error occurred. Please try again."
+      );
       setLoading(false);
     }
   };
@@ -149,7 +150,6 @@ const SignIn = () => {
             </p>
           </div>
 
-          {/* Pending / Rejected banners */}
           {pendingStatus === "pending" && (
             <div className="mb-6 p-4 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-center">
               <Clock className="w-8 h-8 text-blue-500 mx-auto mb-2" />
@@ -229,4 +229,3 @@ const SignIn = () => {
 };
 
 export default SignIn;
-            
