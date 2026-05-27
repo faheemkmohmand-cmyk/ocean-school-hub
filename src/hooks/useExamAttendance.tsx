@@ -1,5 +1,5 @@
 /**
- * AdminExamAttendance.tsx
+ * AdminExamAttendance.tsx 
  * Admin tab — manage exam attendance per class, per paper.
  * View attendance records, manually mark absent/present/leave, initialize sheets, export.
  * Mobile-friendly: cards on mobile, table on desktop.
