@@ -28,7 +28,6 @@ interface UserProfile {
 }
 
 const roles = ["user", "student", "teacher", "parent", "admin"];
-const classes = ["6", "7", "8", "9", "10"];
 
 const roleColors: Record<string, string> = {
   admin:   "bg-blue-100 text-blue-800 dark:bg-blue-950/30 dark:text-blue-400",
@@ -51,9 +50,7 @@ const AdminUsers = () => {
     email: "",
     password: "",
     role: "student",
-    class: "",
     phone: "",
-    roll_number: "",
   });
   const [adding, setAdding] = useState(false);
 
@@ -104,15 +101,13 @@ const AdminUsers = () => {
   // ── Delete user ──────────────────────────────────────────────────────────
   const deleteUser = useMutation({
     mutationFn: async (id: string) => {
-      // Use RPC so it runs with SECURITY DEFINER and bypasses RLS.
-      // The function deletes from profiles (and cascades to students/teachers).
+      // admin_delete_user RPC must delete from auth.users (cascades to profiles)
       const { error } = await supabase.rpc("admin_delete_user", { target_user_id: id });
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("User removed");
+      toast.success("User permanently deleted");
       qc.invalidateQueries({ queryKey: ["admin-users"] });
-      qc.invalidateQueries({ queryKey: ["admin-students"] });
       qc.invalidateQueries({ queryKey: ["admin-teachers"] });
       qc.invalidateQueries({ queryKey: ["admin-pending-users"] });
     },
@@ -128,31 +123,6 @@ const AdminUsers = () => {
     if (addForm.password.length < 6) {
       toast.error("Password must be at least 6 characters");
       return;
-    }
-    if (addForm.role === "student" && !addForm.class) {
-      toast.error("Please select a class for the student");
-      return;
-    }
-    if (addForm.role === "student" && !addForm.roll_number.trim()) {
-      toast.error("Roll number is required for students");
-      return;
-    }
-
-    // ── Check duplicate roll_number in same class BEFORE creating auth user ──
-    if (addForm.role === "student" && addForm.class && addForm.roll_number.trim()) {
-      const { data: dupCheck } = await supabase
-        .from("students")
-        .select("id, full_name")
-        .eq("roll_number", addForm.roll_number.trim())
-        .eq("class", addForm.class)
-        .maybeSingle();
-
-      if (dupCheck) {
-        toast.error(
-          `Roll number ${addForm.roll_number} already exists in Class ${addForm.class} (${dupCheck.full_name}). Please use a different roll number.`
-        );
-        return;
-      }
     }
 
     setAdding(true);
@@ -175,40 +145,20 @@ const AdminUsers = () => {
         // Wait for trigger to create profile row
         await new Promise(r => setTimeout(r, 900));
 
-        // Update profile: role, class, phone, roll_number, status=approved (admin-added = auto-approved)
+        // Update profile: role, phone, status=approved (admin-added = auto-approved)
         const { error: updateError } = await supabase
           .from("profiles")
           .update({
             full_name: addForm.full_name.trim(),
             role: addForm.role,
-            class: addForm.class || null,
             phone: addForm.phone || null,
-            roll_number: addForm.roll_number || null,
-            status: "approved",  // admin-added users are auto-approved
+            status: "approved",
           })
           .eq("id", data.user.id);
 
         if (updateError) console.warn("Profile update:", updateError.message);
 
-        // ── Auto-add to STUDENTS table ──────────────────────────────────────
-        if (addForm.role === "student" && addForm.class && addForm.roll_number.trim()) {
-          const { error: stErr } = await supabase
-            .from("students")
-            .insert({
-              user_id: data.user.id,
-              full_name: addForm.full_name.trim(),
-              roll_number: addForm.roll_number.trim(),
-              class: addForm.class,
-              is_active: true,
-            });
-          if (stErr) {
-            toast.error(`Student saved but error adding to class list: ${stErr.message}`);
-          } else {
-            toast.success(`✅ "${addForm.full_name}" added to Class ${addForm.class}`);
-          }
-        }
-
-        // ── Auto-add to TEACHERS table ──────────────────────────────────────
+        // ── Auto-add to TEACHERS table only ────────────────────────────────
         if (addForm.role === "teacher") {
           await supabase
             .from("teachers")
@@ -218,17 +168,12 @@ const AdminUsers = () => {
               phone: addForm.phone || null,
               is_active: true,
             }, { onConflict: "user_id" });
-          toast.success(`✅ "${addForm.full_name}" added as Teacher`);
         }
 
-        if (addForm.role !== "student" && addForm.role !== "teacher") {
-          toast.success(`✅ User "${addForm.full_name}" added successfully`);
-        }
-
+        toast.success(`✅ User "${addForm.full_name}" added successfully`);
         setAddOpen(false);
-        setAddForm({ full_name: "", email: "", password: "", role: "student", class: "", phone: "", roll_number: "" });
+        setAddForm({ full_name: "", email: "", password: "", role: "student", phone: "" });
         qc.invalidateQueries({ queryKey: ["admin-users"] });
-        qc.invalidateQueries({ queryKey: ["admin-students"] });
         qc.invalidateQueries({ queryKey: ["admin-teachers"] });
       }
     } catch (err: any) {
@@ -439,8 +384,7 @@ const AdminUsers = () => {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Remove {u.full_name || "this user"}?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This removes their profile from the system. They will lose access to the dashboard.
-                                  This cannot be undone.
+                                  This will <strong>permanently delete</strong> {u.full_name || "this user"}'s account completely. They will need to sign up again from scratch. This cannot be undone.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -516,18 +460,6 @@ const AdminUsers = () => {
                 </Select>
               </div>
               <div>
-                <Label>Class</Label>
-                <Select value={addForm.class || "none"} onValueChange={v => setAddForm(p => ({ ...p, class: v === "none" ? "" : v }))}>
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">—</SelectItem>
-                    {classes.map(c => <SelectItem key={c} value={c}>Class {c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
                 <Label>Phone</Label>
                 <Input
                   value={addForm.phone}
@@ -535,20 +467,7 @@ const AdminUsers = () => {
                   placeholder="0300-0000000"
                 />
               </div>
-              <div>
-                <Label>Roll Number</Label>
-                <Input
-                  value={addForm.roll_number}
-                  onChange={e => setAddForm(p => ({ ...p, roll_number: e.target.value }))}
-                  placeholder="e.g. 001"
-                />
-              </div>
             </div>
-            {addForm.role === "student" && (
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800">
-                📋 <strong>Student auto-sync:</strong> When role is <strong>Student</strong>, filling in <strong>Class</strong> and <strong>Roll Number</strong> will automatically add this student to <strong>Manage Students</strong> as well.
-              </div>
-            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
@@ -564,3 +483,4 @@ const AdminUsers = () => {
 };
 
 export default AdminUsers;
+        
