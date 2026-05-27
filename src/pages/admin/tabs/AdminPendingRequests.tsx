@@ -66,50 +66,12 @@ const AdminPendingRequests = () => {
         throw new Error("This user is already approved.");
       }
 
-      // ── Student: check for duplicate roll_number in same class BEFORE approving ──
-      if (freshUser.role === "student" && freshUser.class && freshUser.roll_number) {
-        const { data: existing } = await supabase
-          .from("students")
-          .select("id, full_name")
-          .eq("roll_number", freshUser.roll_number)
-          .eq("class", freshUser.class)
-          .maybeSingle();
-
-        if (existing) {
-          throw new Error(
-            `Roll number ${freshUser.roll_number} already exists in Class ${freshUser.class} (${existing.full_name}). ` +
-            `Ask the student to use a different roll number, or edit their profile first.`
-          );
-        }
-      }
-
       // ── Approve the profile ───────────────────────────────────────────────
       const { error } = await supabase
         .from("profiles")
         .update({ status: "approved" })
         .eq("id", userId);
       if (error) throw error;
-
-      // ── Auto-add student to students table with correct composite conflict ──
-      if (freshUser.role === "student" && freshUser.class) {
-        const { error: studentError } = await supabase
-          .from("students")
-          .upsert(
-            {
-              user_id: userId,
-              full_name: freshUser.full_name || "Unknown",
-              roll_number: freshUser.roll_number || "",
-              class: freshUser.class,
-              is_active: true,
-            },
-            { onConflict: "roll_number,class" }
-          )
-          .select("id")
-          .single();
-        if (studentError) {
-          console.warn("Auto-add to students failed:", studentError.message);
-        }
-      }
 
       // ── Auto-add teacher to teachers table ───────────────────────────────
       if (freshUser.role === "teacher") {
@@ -127,10 +89,9 @@ const AdminPendingRequests = () => {
       }
     },
     onSuccess: () => {
-      toast.success("✅ User approved and added to the correct table!");
+      toast.success("✅ User approved successfully!");
       qc.invalidateQueries({ queryKey: ["admin-pending-users"] });
       qc.invalidateQueries({ queryKey: ["admin-users"] });
-      qc.invalidateQueries({ queryKey: ["admin-students"] });
       qc.invalidateQueries({ queryKey: ["admin-teachers"] });
     },
     onError: (err: any) => toast.error(`Approval failed: ${err.message}`),
@@ -338,4 +299,5 @@ const AdminPendingRequests = () => {
 export default AdminPendingRequests;
 
 
-                            
+
+      
