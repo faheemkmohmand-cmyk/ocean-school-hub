@@ -2,7 +2,8 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
   Users, GraduationCap, TrendingUp, Bell, ArrowRight,
-  BookOpen, BarChart3, Image, Trophy, Calendar, Newspaper, Shield
+  BookOpen, BarChart3, Image, Trophy, Calendar, Newspaper,
+  Shield, ChevronRight, Sparkles, Clock
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
@@ -14,12 +15,12 @@ import DailyQuoteCard from "@/components/shared/DailyQuoteCard";
 import WeatherWidget from "@/components/shared/WeatherWidget";
 
 const quickActions = [
-  { id: "timetable", label: "Timetable", icon: Calendar },
-  { id: "results", label: "Results", icon: BarChart3 },
-  { id: "notices", label: "Notices", icon: Bell },
-  { id: "library", label: "Library", icon: BookOpen },
-  { id: "gallery", label: "Gallery", icon: Image },
-  { id: "achievements", label: "Achievements", icon: Trophy },
+  { id: "timetable", label: "Timetable", icon: Calendar, desc: "View schedule" },
+  { id: "results", label: "Results", icon: BarChart3, desc: "Check scores" },
+  { id: "notices", label: "Notices", icon: Bell, desc: "Announcements" },
+  { id: "library", label: "Library", icon: BookOpen, desc: "Study resources" },
+  { id: "gallery", label: "Gallery", icon: Image, desc: "Photo gallery" },
+  { id: "achievements", label: "Achievements", icon: Trophy, desc: "Honor roll" },
 ];
 
 interface Props { onNavigate: (tab: string) => void; }
@@ -30,137 +31,183 @@ const OverviewTab = ({ onNavigate }: Props) => {
   const { data: notices = [], isLoading: noticesLoading } = useNotices(3);
   const { data: news = [], isLoading: newsLoading } = useNews(2);
 
-  // ✅ Check if admin
   const isAdmin = profile?.role === "admin";
 
   const statsCards = [
-    { icon: Users, label: "Students", value: settings?.total_students || 0, color: "gradient-hero" },
-    { icon: GraduationCap, label: "Teachers", value: settings?.total_teachers || 0, color: "gradient-accent" },
-    { icon: TrendingUp, label: "Pass Rate", value: `${settings?.pass_percentage || 0}%`, color: "gradient-hero" },
-    { icon: Bell, label: "Notices", value: notices.length, color: "gradient-accent" },
+    { icon: Users, label: "Total Students", value: settings?.total_students || 0, color: "from-blue-500 to-blue-600", light: "bg-blue-50 dark:bg-blue-950/40" },
+    { icon: GraduationCap, label: "Teaching Staff", value: settings?.total_teachers || 0, color: "from-emerald-500 to-emerald-600", light: "bg-emerald-50 dark:bg-emerald-950/40" },
+    { icon: TrendingUp, label: "Pass Rate", value: `${settings?.pass_percentage || 0}%`, color: "from-violet-500 to-violet-600", light: "bg-violet-50 dark:bg-violet-950/40" },
+    { icon: Bell, label: "Active Notices", value: notices.length, color: "from-amber-500 to-amber-600", light: "bg-amber-50 dark:bg-amber-950/40" },
   ];
 
-  return (
-    <div className="space-y-6">
-      {/* Welcome + Admin Button */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-start justify-between gap-4"
-      >
-        <div>
-          <h2 className="text-2xl font-heading font-bold text-foreground">
-            Welcome back, {profile?.full_name?.split(" ")[0] || "User"}! 👋
-          </h2>
-          <p className="text-muted-foreground text-sm mt-1">
-            Here's what's happening at GHS Babi Khel.
-          </p>
-        </div>
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
+  };
 
-        {/* ✅ Admin Panel button — only visible to admins */}
-        {isAdmin && (
-          <Link
-            to="/admin"
-            className="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-700 text-white font-semibold px-4 py-2.5 rounded-xl shadow-card hover:shadow-elevated transition-all duration-200 shrink-0 text-sm"
-          >
-            <Shield className="w-4 h-4" />
-            Admin Panel
-          </Link>
-        )}
+  return (
+    <div className="space-y-7">
+
+      {/* ── Hero Welcome Banner ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/70 p-6 shadow-lg"
+      >
+        {/* decorative circles */}
+        <div className="pointer-events-none absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
+        <div className="pointer-events-none absolute -bottom-6 -left-6 w-28 h-28 rounded-full bg-white/5" />
+
+        <div className="relative flex items-start justify-between gap-4">
+          <div>
+            <p className="text-primary-foreground/70 text-sm font-medium flex items-center gap-1.5 mb-1">
+              <Clock className="w-3.5 h-3.5" />
+              {format(new Date(), "EEEE, dd MMMM yyyy")}
+            </p>
+            <h2 className="text-2xl font-heading font-bold text-primary-foreground">
+              {greeting()}, {profile?.full_name?.split(" ")[0] || "User"}! 👋
+            </h2>
+            <p className="text-primary-foreground/65 text-sm mt-1 max-w-xs">
+              Here's your personalised school overview for today.
+            </p>
+          </div>
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className="inline-flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white font-semibold px-4 py-2.5 rounded-xl backdrop-blur-sm transition-all duration-200 shrink-0 text-sm border border-white/20"
+            >
+              <Shield className="w-4 h-4" />
+              Admin Panel
+            </Link>
+          )}
+        </div>
       </motion.div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {settingsLoading
-          ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)
-          : statsCards.map((s, i) => (
-              <motion.div
-                key={s.label}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.05 }}
-                className="bg-card rounded-xl p-4 shadow-card"
-              >
-                <div className={`w-9 h-9 rounded-lg ${s.color} flex items-center justify-center mb-2`}>
-                  <s.icon className="w-4 h-4 text-primary-foreground" />
-                </div>
-                <div className="text-xl font-heading font-bold text-foreground">{s.value}</div>
-                <div className="text-xs text-muted-foreground">{s.label}</div>
-              </motion.div>
-            ))}
+      {/* ── Key Stats ── */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles className="w-4 h-4 text-primary" />
+          <h3 className="font-heading font-semibold text-foreground text-sm uppercase tracking-wide">School Overview</h3>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {settingsLoading
+            ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)
+            : statsCards.map((s, i) => (
+                <motion.div
+                  key={s.label}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.07 }}
+                  className={`relative overflow-hidden rounded-2xl p-5 shadow-card ${s.light} border border-border/40`}
+                >
+                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center mb-3 shadow-sm`}>
+                    <s.icon className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="text-2xl font-heading font-bold text-foreground">{s.value}</div>
+                  <div className="text-xs text-muted-foreground font-medium mt-0.5">{s.label}</div>
+                </motion.div>
+              ))}
+        </div>
       </div>
 
-      {/* Latest notices */}
+      {/* ── Quick Access ── */}
       <div>
-        <div className="flex items-center justify-between mb-3">
+        <h3 className="font-heading font-semibold text-foreground mb-4">Quick Access</h3>
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+          {quickActions.map((a, i) => (
+            <motion.button
+              key={a.id}
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.04 }}
+              onClick={() => onNavigate(a.id)}
+              className="bg-card rounded-2xl p-4 shadow-card hover:shadow-elevated transition-all text-center group border border-border/30 hover:border-primary/30"
+            >
+              <div className="w-11 h-11 rounded-xl gradient-hero flex items-center justify-center mx-auto mb-2.5 group-hover:scale-110 transition-transform shadow-sm">
+                <a.icon className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <span className="text-xs font-semibold text-foreground block">{a.label}</span>
+              <span className="text-[10px] text-muted-foreground hidden md:block mt-0.5">{a.desc}</span>
+            </motion.button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Latest Notices ── */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
           <h3 className="font-heading font-semibold text-foreground">Latest Notices</h3>
           <button
             onClick={() => onNavigate("notices")}
             className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
           >
-            View All <ArrowRight className="w-3 h-3" />
+            View All <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {noticesLoading
-            ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)
+            ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)
             : notices.length === 0
             ? (
-              <div className="bg-card rounded-lg p-6 text-center text-muted-foreground text-sm shadow-card">
+              <div className="bg-card rounded-xl p-6 text-center text-muted-foreground text-sm shadow-card border border-border/30">
                 No notices yet.
               </div>
             )
             : notices.map((n) => (
-                <div
+                <motion.div
                   key={n.id}
-                  className={`bg-card rounded-lg p-3 shadow-card border-l-4 ${n.is_urgent ? "border-l-destructive" : "border-l-primary"} flex items-center gap-3`}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className={`bg-card rounded-xl p-4 shadow-card border border-border/30 border-l-4 ${n.is_urgent ? "border-l-destructive" : "border-l-primary"} flex items-center gap-3`}
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{n.title}</p>
-                    <p className="text-xs text-muted-foreground">{format(new Date(n.created_at), "dd MMM yyyy")}</p>
+                    <p className="text-sm font-semibold text-foreground truncate">{n.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{format(new Date(n.created_at), "dd MMM yyyy")}</p>
                   </div>
                   {n.is_urgent && (
-                    <span className="text-xs font-semibold bg-destructive/10 text-destructive px-2 py-0.5 rounded-full shrink-0">
+                    <span className="text-[10px] font-bold bg-destructive/10 text-destructive px-2.5 py-1 rounded-full shrink-0 uppercase tracking-wide">
                       Urgent
                     </span>
                   )}
-                </div>
+                </motion.div>
               ))}
         </div>
       </div>
 
-      {/* Latest news */}
+      {/* ── Latest News ── */}
       <div>
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-4">
           <h3 className="font-heading font-semibold text-foreground">Latest News</h3>
           <button
             onClick={() => onNavigate("news")}
             className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
           >
-            View All <ArrowRight className="w-3 h-3" />
+            View All <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {newsLoading
-            ? Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)
+            ? Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-36 rounded-2xl" />)
             : news.length === 0
             ? (
-              <div className="bg-card rounded-xl p-6 text-center text-muted-foreground text-sm shadow-card col-span-2">
+              <div className="bg-card rounded-2xl p-6 text-center text-muted-foreground text-sm shadow-card border border-border/30 col-span-2">
                 No news yet.
               </div>
             )
             : news.map((item) => (
-                <div key={item.id} className="bg-card rounded-xl overflow-hidden shadow-card flex">
+                <div key={item.id} className="bg-card rounded-2xl overflow-hidden shadow-card border border-border/30 flex group hover:shadow-elevated transition-all">
                   {item.image_url ? (
-                    <img src={item.image_url} alt="" className="w-24 h-full object-cover shrink-0" loading="lazy" />
+                    <img src={item.image_url} alt="" className="w-28 h-full object-cover shrink-0" loading="lazy" />
                   ) : (
-                    <div className="w-24 gradient-hero flex items-center justify-center shrink-0">
+                    <div className="w-28 gradient-hero flex items-center justify-center shrink-0">
                       <Newspaper className="w-6 h-6 text-primary-foreground/40" />
                     </div>
                   )}
-                  <div className="p-3 flex-1 min-w-0">
-                    <p className="text-xs text-muted-foreground">{format(new Date(item.created_at), "dd MMM yyyy")}</p>
-                    <h4 className="text-sm font-semibold text-foreground mt-0.5 line-clamp-2">{item.title}</h4>
+                  <div className="p-4 flex-1 min-w-0 flex flex-col justify-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">{format(new Date(item.created_at), "dd MMM yyyy")}</p>
+                    <h4 className="text-sm font-semibold text-foreground mt-1 line-clamp-2 group-hover:text-primary transition-colors">{item.title}</h4>
                   </div>
                 </div>
               ))}
@@ -173,28 +220,9 @@ const OverviewTab = ({ onNavigate }: Props) => {
       {/* Live Weather Widget */}
       <WeatherWidget />
 
-      {/* Quick Access */}
-      <div>
-        <h3 className="font-heading font-semibold text-foreground mb-3">Quick Access</h3>
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-          {quickActions.map((a) => (
-            <button
-              key={a.id}
-              onClick={() => onNavigate(a.id)}
-              className="bg-card rounded-xl p-4 shadow-card hover:shadow-elevated transition-all text-center group"
-            >
-              <div className="w-10 h-10 rounded-lg gradient-hero flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
-                <a.icon className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <span className="text-xs font-medium text-foreground">{a.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };
 
 export default OverviewTab;
-     
- 
+                            
