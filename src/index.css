@@ -20,6 +20,16 @@
   transform: none !important;
 }
 
+/* ✅ ANDROID CHROME GRADIENT FIX: diagonal gradients (bg-gradient-to-br/tr/tl/bl)
+   inside scrollable containers cause texture corruption on Android Chrome.
+   Force them to render as their start-color only. */
+[class*="bg-gradient-to-br"],
+[class*="bg-gradient-to-tr"],
+[class*="bg-gradient-to-tl"],
+[class*="bg-gradient-to-bl"] {
+  background-image: none !important;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -425,4 +435,5 @@
   .shadow-card, .shadow-elevated { box-shadow: none !important; }
   * { break-inside: avoid; }
                                 }
-  
+
+     
