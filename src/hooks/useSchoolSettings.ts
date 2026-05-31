@@ -6,6 +6,7 @@ export interface SchoolSettings {
   school_name: string;
   tagline: string;
   description: string | null;
+  about_text: string | null;
   logo_url: string | null;
   banner_url: string | null;
   emis_code: string;
@@ -16,6 +17,8 @@ export interface SchoolSettings {
   total_students: number;
   total_teachers: number;
   pass_percentage: number;
+  location_lat: number | null;
+  location_lng: number | null;
 }
 
 export const fallbackSettings: SchoolSettings = {
@@ -24,6 +27,7 @@ export const fallbackSettings: SchoolSettings = {
   tagline: "Excellence in Education",
   description:
     "Government High School Babi Khel is committed to providing quality education and nurturing the future leaders of Pakistan.",
+  about_text: null,
   logo_url: null,
   banner_url: null,
   emis_code: "60673",
@@ -34,6 +38,8 @@ export const fallbackSettings: SchoolSettings = {
   total_students: 500,
   total_teachers: 25,
   pass_percentage: 98,
+  location_lat: 34.4084,
+  location_lng: 71.3707,
 };
 
 export function safeMediaUrl(url: string | null | undefined): string | null {
@@ -46,7 +52,7 @@ export function safeMediaUrl(url: string | null | undefined): string | null {
 // after sign-in/sign-out on mobile Chrome" bug: even if Supabase fetch
 // fails or is slow during an auth state change, we still have the last
 // known good settings on disk so the UI never shows the empty fallback.
-const CACHE_KEY = "ghs-school-settings-v1";
+const CACHE_KEY = "ghs-school-settings-v2";
 
 function readCache(): SchoolSettings | null {
   if (typeof window === "undefined") return null;
@@ -76,7 +82,7 @@ async function fetchSettings(client: typeof supabase) {
   const { data, error } = await client
     .from("school_settings")
     .select(
-      "id, school_name, tagline, description, logo_url, banner_url, emis_code, address, phone, email, established_year, total_students, total_teachers, pass_percentage"
+      "id, school_name, tagline, description, about_text, logo_url, banner_url, emis_code, address, phone, email, established_year, total_students, total_teachers, pass_percentage, location_lat, location_lng"
     )
     .eq("id", 1)
     .single();
@@ -129,4 +135,4 @@ export function useSchoolSettings() {
     // Keep showing previous data while refetching — never blank out.
     placeholderData: (previousData) => previousData ?? readCache() ?? fallbackSettings,
   });
-}
+    }
