@@ -52,7 +52,9 @@ export function safeMediaUrl(url: string | null | undefined): string | null {
 // after sign-in/sign-out on mobile Chrome" bug: even if Supabase fetch
 // fails or is slow during an auth state change, we still have the last
 // known good settings on disk so the UI never shows the empty fallback.
-const CACHE_KEY = "ghs-school-settings-v2";
+// Keep the same cache key as before — changing it wipes every browser's
+// cached logo/banner URLs and causes them to disappear until Supabase refetches.
+const CACHE_KEY = "ghs-school-settings-v1";
 
 function readCache(): SchoolSettings | null {
   if (typeof window === "undefined") return null;
@@ -135,4 +137,4 @@ export function useSchoolSettings() {
     // Keep showing previous data while refetching — never blank out.
     placeholderData: (previousData) => previousData ?? readCache() ?? fallbackSettings,
   });
-    }
+}
