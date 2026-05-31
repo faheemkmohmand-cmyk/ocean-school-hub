@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Save, Loader2, ImageIcon, CheckCircle, AlertTriangle, RefreshCw } from "lucide-react";
+import { Save, Loader2, ImageIcon, CheckCircle, AlertTriangle, RefreshCw, MapPin, Navigation, ExternalLink } from "lucide-react";
 import toast from "react-hot-toast";
 import { useDropzone } from "react-dropzone";
 
@@ -128,6 +128,143 @@ const ImageUploader = ({
   );
 };
 
+// ─── Map Location Picker ────────────────────────────────────────────────────
+interface MapPickerProps {
+  lat: number | null;
+  lng: number | null;
+  onChange: (lat: number, lng: number) => void;
+}
+
+const MapPicker = ({ lat, lng, onChange }: MapPickerProps) => {
+  const [inputLat, setInputLat] = useState(lat?.toString() ?? "");
+  const [inputLng, setInputLng] = useState(lng?.toString() ?? "");
+  const [detecting, setDetecting] = useState(false);
+
+  useEffect(() => {
+    setInputLat(lat?.toString() ?? "");
+    setInputLng(lng?.toString() ?? "");
+  }, [lat, lng]);
+
+  const applyManual = () => {
+    const parsedLat = parseFloat(inputLat);
+    const parsedLng = parseFloat(inputLng);
+    if (isNaN(parsedLat) || isNaN(parsedLng)) {
+      toast.error("Enter valid latitude and longitude numbers.");
+      return;
+    }
+    if (parsedLat < -90 || parsedLat > 90 || parsedLng < -180 || parsedLng > 180) {
+      toast.error("Latitude must be -90 to 90, longitude -180 to 180.");
+      return;
+    }
+    onChange(parsedLat, parsedLng);
+    toast.success("Location updated!");
+  };
+
+  const detectLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation not supported by your browser.");
+      return;
+    }
+    setDetecting(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setInputLat(latitude.toFixed(6));
+        setInputLng(longitude.toFixed(6));
+        onChange(latitude, longitude);
+        setDetecting(false);
+        toast.success("Location detected!");
+      },
+      () => {
+        toast.error("Could not detect location. Enter coordinates manually.");
+        setDetecting(false);
+      },
+      { timeout: 10000 }
+    );
+  };
+
+  const hasLocation = lat !== null && lng !== null;
+  const mapsUrl = hasLocation
+    ? `https://www.google.com/maps?q=${lat},${lng}`
+    : null;
+  const embedUrl = hasLocation
+    ? `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`
+    : null;
+
+  return (
+    <div className="space-y-4">
+      {/* Map preview */}
+      {embedUrl ? (
+        <div className="rounded-xl overflow-hidden border border-border shadow-sm">
+          <iframe
+            src={embedUrl}
+            width="100%"
+            height="300"
+            style={{ border: 0 }}
+            allowFullScreen
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            title="School Location Preview"
+          />
+        </div>
+      ) : (
+        <div className="rounded-xl border-2 border-dashed border-border bg-secondary/30 h-48 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+          <MapPin className="w-8 h-8 opacity-40" />
+          <p className="text-sm font-medium">No location set yet</p>
+          <p className="text-xs opacity-60">Use the options below to set your school location</p>
+        </div>
+      )}
+
+      {/* Coordinate inputs */}
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs">Latitude</Label>
+          <Input
+            placeholder="e.g. 34.408400"
+            value={inputLat}
+            onChange={e => setInputLat(e.target.value)}
+            className="font-mono text-sm"
+          />
+        </div>
+        <div>
+          <Label className="text-xs">Longitude</Label>
+          <Input
+            placeholder="e.g. 71.370700"
+            value={inputLng}
+            onChange={e => setInputLng(e.target.value)}
+            className="font-mono text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" size="sm" onClick={applyManual} className="gap-1.5">
+          <MapPin className="w-3.5 h-3.5" /> Apply Coordinates
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={detectLocation} disabled={detecting} className="gap-1.5">
+          {detecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Navigation className="w-3.5 h-3.5" />}
+          {detecting ? "Detecting..." : "Use My Device Location"}
+        </Button>
+        {mapsUrl && (
+          <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
+            <Button type="button" variant="ghost" size="sm" className="gap-1.5 text-primary">
+              <ExternalLink className="w-3.5 h-3.5" /> View on Google Maps
+            </Button>
+          </a>
+        )}
+      </div>
+
+      <p className="text-xs text-muted-foreground bg-secondary/40 rounded-lg px-3 py-2">
+        💡 <strong>Tip:</strong> Open{" "}
+        <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+          Google Maps
+        </a>
+        , right-click your school, and copy the coordinates shown at the top of the popup.
+      </p>
+    </div>
+  );
+};
+
 // ─── Main ──────────────────────────────────────────────────────────────────
 const AdminSchoolSettings = () => {
   const { data: settings, isLoading } = useSchoolSettings();
@@ -137,11 +274,13 @@ const AdminSchoolSettings = () => {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    school_name: "", tagline: "", description: "", emis_code: "",
+    school_name: "", tagline: "", description: "", about_text: "", emis_code: "",
     address: "", phone: "", email: "",
     established_year: 2018, total_students: 0, total_teachers: 0, pass_percentage: 0,
     logo_url: null as string | null,
     banner_url: null as string | null,
+    location_lat: null as number | null,
+    location_lng: null as number | null,
   });
 
   useEffect(() => {
@@ -150,6 +289,7 @@ const AdminSchoolSettings = () => {
         school_name: settings.school_name || "",
         tagline: settings.tagline || "",
         description: settings.description || "",
+        about_text: settings.about_text || "",
         emis_code: settings.emis_code || "",
         address: settings.address || "",
         phone: settings.phone || "",
@@ -160,6 +300,8 @@ const AdminSchoolSettings = () => {
         pass_percentage: settings.pass_percentage || 0,
         logo_url: settings.logo_url || null,
         banner_url: settings.banner_url || null,
+        location_lat: settings.location_lat ?? null,
+        location_lng: settings.location_lng ?? null,
       });
     }
   }, [settings]);
@@ -249,6 +391,10 @@ const AdminSchoolSettings = () => {
           </div>
           <div><Label>Description</Label>
             <Textarea rows={3} value={form.description} onChange={e => set("description", e.target.value)} /></div>
+          <div>
+            <Label>About the School <span className="text-xs text-muted-foreground font-normal">(shown on the About page)</span></Label>
+            <Textarea rows={5} placeholder="Write a detailed description of the school's history, values, achievements, and community..." value={form.about_text} onChange={e => set("about_text", e.target.value)} />
+          </div>
           <div className="grid sm:grid-cols-2 gap-4">
             <div><Label>EMIS Code</Label>
               <Input value={form.emis_code} onChange={e => set("emis_code", e.target.value)} /></div>
@@ -279,6 +425,22 @@ const AdminSchoolSettings = () => {
       </Card>
 
       <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-primary" /> School Location
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">Pin your school on the map — visitors will see it on the About page.</p>
+        </CardHeader>
+        <CardContent>
+          <MapPicker
+            lat={form.location_lat}
+            lng={form.location_lng}
+            onChange={(lat, lng) => setForm(p => ({ ...p, location_lat: lat, location_lng: lng }))}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader><CardTitle className="text-base">Branding</CardTitle></CardHeader>
         <CardContent className="grid sm:grid-cols-2 gap-6">
           <ImageUploader label="School Logo" currentUrl={form.logo_url} folder="branding"
@@ -305,4 +467,5 @@ const AdminSchoolSettings = () => {
 };
 
 export default AdminSchoolSettings;
-            
+
+          
