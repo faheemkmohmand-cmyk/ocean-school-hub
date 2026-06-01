@@ -1,15 +1,15 @@
 /**
  * Duty.tsx — GHS Babi Khel
  *
- * Public-facing School Duty Board
- * Shows all duty role assignments per class (6–10) and the Chief Proctor.
- * Data is read from localStorage (ghs.duty.v1) set by the admin.
- *
- * Blue-light / Copilot-inspired palette.
+ * Public-facing School Duty Board.
+ * Data is read from Supabase `duty_board` table (set by admin).
+ * Works on ALL devices — no localStorage dependency.
  */
 
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { supabasePublic } from "@/lib/supabase";
 import PageLayout from "@/components/layout/PageLayout";
 import PageBanner from "@/components/shared/PageBanner";
 import {
@@ -18,7 +18,7 @@ import {
   RefreshCw, Info, ChevronDown, ChevronUp
 } from "lucide-react";
 
-// ── Types (mirrors AdminDuty) ─────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 type ClassId = "6" | "7" | "8" | "9" | "10";
 
 interface ClassDuty {
@@ -32,19 +32,14 @@ interface ClassDuty {
 interface DutyData {
   classes: Record<ClassId, ClassDuty>;
   chief_proctor: string;
-  updatedAt: number;
+  updated_at: string;
 }
 
 const CLASSES: ClassId[] = ["6", "7", "8", "9", "10"];
-const STORAGE_KEY = "ghs.duty.v1";
 
-function loadDuty(): DutyData | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as DutyData;
-  } catch { return null; }
-}
+const emptyClass = (): ClassDuty => ({
+  monitor: "", proctor: "", social_worker: "", head_boy: "", nazira: "",
+});
 
 // ── Role config ────────────────────────────────────────────────────────────────
 interface RoleCfg {
@@ -111,7 +106,30 @@ const ROLES: RoleCfg[] = [
   },
 ];
 
-// ── Animated badge card ────────────────────────────────────────────────────────
+// ── Supabase fetch ─────────────────────────────────────────────────────────────
+async function fetchDuty(): Promise<DutyData> {
+  const { data, error } = await supabasePublic
+    .from("duty_board")
+    .select("classes, chief_proctor, updated_at")
+    .eq("id", 1)
+    .single();
+
+  if (error) throw error;
+
+  // Ensure all classes exist with fallback empty structure
+  const classes = {} as Record<ClassId, ClassDuty>;
+  for (const cls of CLASSES) {
+    classes[cls] = { ...emptyClass(), ...(data.classes?.[cls] ?? {}) };
+  }
+
+  return {
+    classes,
+    chief_proctor: data.chief_proctor ?? "",
+    updated_at: data.updated_at ?? "",
+  };
+}
+
+// ── Badge card ─────────────────────────────────────────────────────────────────
 function BadgeCard({ role, name, index }: { role: RoleCfg; name: string; index: number }) {
   return (
     <motion.div
@@ -120,34 +138,25 @@ function BadgeCard({ role, name, index }: { role: RoleCfg; name: string; index: 
       transition={{ delay: index * 0.06, duration: 0.35, ease: "easeOut" }}
       className={`relative rounded-2xl bg-white dark:bg-slate-900 border border-blue-100 dark:border-slate-700 shadow-lg ${role.glow} overflow-hidden group`}
     >
-      {/* Top gradient strip */}
       <div className={`h-1.5 w-full bg-gradient-to-r ${role.gradient}`} />
-
       <div className="p-4 flex items-start gap-3">
-        {/* Icon circle */}
         <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${role.gradient} flex items-center justify-center text-white shadow-lg shrink-0 group-hover:scale-105 transition-transform`}>
           {role.icon}
         </div>
-
-        {/* Text */}
         <div className="min-w-0 flex-1">
           <p className="text-base font-bold text-foreground truncate leading-tight">{name}</p>
           <span className={`inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 mt-1 ${role.ribbon}`}>
             {role.emoji} {role.label}
           </span>
         </div>
-
-        {/* Verified tick */}
         <BadgeCheck className="w-5 h-5 text-blue-400 dark:text-blue-500 shrink-0 mt-0.5" />
       </div>
-
-      {/* Subtle shimmer on hover */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gradient-to-br from-white/5 to-transparent" />
     </motion.div>
   );
 }
 
-// ── Empty badge placeholder ────────────────────────────────────────────────────
+// ── Empty badge ────────────────────────────────────────────────────────────────
 function EmptyBadge({ role }: { role: RoleCfg }) {
   return (
     <div className="rounded-2xl border border-dashed border-blue-200 dark:border-slate-700 bg-blue-50/30 dark:bg-slate-900/30 p-4 flex items-center gap-3 opacity-50">
@@ -177,7 +186,6 @@ function ClassSection({ cls, duty, index }: { cls: ClassId; duty: ClassDuty; ind
       transition={{ delay: index * 0.08, duration: 0.4 }}
       className="rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-white dark:bg-slate-900/80 shadow-md overflow-hidden"
     >
-      {/* Class header */}
       <button
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-blue-600 to-sky-500 text-white"
@@ -223,26 +231,19 @@ function ClassSection({ cls, duty, index }: { cls: ClassId; duty: ClassDuty; ind
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 const DutyPage = () => {
-  const [data, setData] = useState<DutyData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const refresh = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setData(loadDuty());
-      setLoading(false);
-    }, 300);
-  };
-
-  useEffect(() => { refresh(); }, []);
+  const { data, isLoading, isError, refetch, isFetching } = useQuery({
+    queryKey: ["duty-board"],
+    queryFn: fetchDuty,
+    staleTime: 2 * 60 * 1000,
+  });
 
   const hasAnyData = data && (
     data.chief_proctor?.trim() ||
     CLASSES.some((cls) => ROLES.some((r) => data.classes?.[cls]?.[r.key]?.trim()))
   );
 
-  const updatedStr = data?.updatedAt
-    ? new Date(data.updatedAt).toLocaleDateString("en-PK", {
+  const updatedStr = data?.updated_at
+    ? new Date(data.updated_at).toLocaleDateString("en-PK", {
         day: "numeric", month: "long", year: "numeric",
       })
     : null;
@@ -262,25 +263,49 @@ const DutyPage = () => {
             <Info className="w-4 h-4 text-blue-500 shrink-0" />
             <span>
               Duty assignments are managed by the school administration.
-              {updatedStr && <span className="ml-1">Last updated: <strong className="text-foreground">{updatedStr}</strong></span>}
+              {updatedStr && (
+                <span className="ml-1">
+                  Last updated: <strong className="text-foreground">{updatedStr}</strong>
+                </span>
+              )}
             </span>
           </div>
           <button
-            onClick={refresh}
-            className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors disabled:opacity-50"
           >
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} />
+            Refresh
           </button>
         </div>
 
-        {loading ? (
+        {/* Loading */}
+        {isLoading && (
           <div className="flex items-center justify-center py-24">
             <div className="flex flex-col items-center gap-3 text-muted-foreground">
               <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
               <p className="text-sm font-medium">Loading duty assignments…</p>
             </div>
           </div>
-        ) : !hasAnyData ? (
+        )}
+
+        {/* Error */}
+        {isError && (
+          <div className="text-center py-24 space-y-3">
+            <p className="text-lg font-bold text-destructive">Failed to load duty board</p>
+            <p className="text-muted-foreground text-sm">Please check your connection and try again.</p>
+            <button
+              onClick={() => refetch()}
+              className="mt-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!isLoading && !isError && !hasAnyData && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -295,27 +320,25 @@ const DutyPage = () => {
               Please check back later or contact your class teacher.
             </p>
           </motion.div>
-        ) : (
+        )}
+
+        {/* Content */}
+        {!isLoading && !isError && hasAnyData && data && (
           <>
-            {/* Chief Proctor — prominent card */}
-            {data?.chief_proctor?.trim() && (
+            {/* Chief Proctor card */}
+            {data.chief_proctor?.trim() && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.4 }}
                 className="relative rounded-3xl overflow-hidden shadow-2xl"
               >
-                {/* Background gradient */}
                 <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 via-orange-400 to-yellow-600 opacity-90" />
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.2),transparent)]" />
-
                 <div className="relative px-6 py-8 flex flex-col sm:flex-row items-center gap-6">
-                  {/* Crown icon */}
                   <div className="w-20 h-20 rounded-2xl bg-white/25 backdrop-blur-sm flex items-center justify-center shadow-xl shrink-0">
                     <Crown className="w-10 h-10 text-white" />
                   </div>
-
-                  {/* Text */}
                   <div className="text-center sm:text-left">
                     <p className="text-white/80 text-sm font-semibold uppercase tracking-widest mb-1">
                       Chief Proctor — GHS Babi Khel
@@ -325,8 +348,6 @@ const DutyPage = () => {
                     </p>
                     <p className="text-white/70 text-sm mt-1">Whole School Supervisor</p>
                   </div>
-
-                  {/* Award badge */}
                   <div className="sm:ml-auto flex flex-col items-center gap-1">
                     <Award className="w-12 h-12 text-white/70" />
                     <span className="text-white/60 text-[10px] font-semibold uppercase tracking-wider">Verified</span>
@@ -355,17 +376,16 @@ const DutyPage = () => {
                 <ClassSection
                   key={cls}
                   cls={cls}
-                  duty={data?.classes?.[cls] ?? {
-                    monitor: "", proctor: "", social_worker: "", head_boy: "", nazira: ""
-                  }}
+                  duty={data.classes?.[cls] ?? emptyClass()}
                   index={i}
                 />
               ))}
             </div>
 
-            {/* Footer note */}
+            {/* Footer */}
             <p className="text-center text-xs text-muted-foreground pt-4 pb-8">
-              GHS Babi Khel · District Mohmand · KPK — Duty Board{updatedStr ? ` · Updated ${updatedStr}` : ""}
+              GHS Babi Khel · District Mohmand · KPK — Duty Board
+              {updatedStr ? ` · Updated ${updatedStr}` : ""}
             </p>
           </>
         )}
@@ -375,3 +395,4 @@ const DutyPage = () => {
 };
 
 export default DutyPage;
+      
