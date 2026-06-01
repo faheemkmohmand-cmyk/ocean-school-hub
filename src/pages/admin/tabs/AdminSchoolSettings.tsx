@@ -196,30 +196,75 @@ const MapPicker = ({ lat, lng, onChange }: MapPickerProps) => {
   };
 
   const hasLocation = lat !== null && lng !== null;
-  // OpenStreetMap embed — free, no API key, never blocked
-  const osmEmbedUrl = hasLocation
-    ? `https://www.openstreetmap.org/export/embed.html?bbox=${lng! - 0.01},${lat! - 0.01},${lng! + 0.01},${lat! + 0.01}&layer=mapnik&marker=${lat},${lng}`
-    : null;
-  const googleMapsUrl = hasLocation
-    ? `https://www.google.com/maps?q=${lat},${lng}`
-    : null;
-  const osmUrl = hasLocation
-    ? `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=15/${lat}/${lng}`
-    : null;
+  const googleMapsUrl = hasLocation ? `https://www.google.com/maps?q=${lat},${lng}` : null;
+  const osmUrl = hasLocation ? `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=15/${lat}/${lng}` : null;
+
+  // Build a static map image using OpenStreetMap tiles — no iframe, CSP-safe
+  // Uses tile.openstreetmap.org which serves plain <img> tags, never blocked by CSP
+  const zoom = 15;
+  const tileX = hasLocation ? Math.floor(((lng! + 180) / 360) * Math.pow(2, zoom)) : 0;
+  const tileY = hasLocation
+    ? Math.floor(
+        ((1 - Math.log(Math.tan((lat! * Math.PI) / 180) + 1 / Math.cos((lat! * Math.PI) / 180)) / Math.PI) / 2) *
+          Math.pow(2, zoom)
+      )
+    : 0;
+  // 3x3 grid of tiles centered on location
+  const tiles = hasLocation
+    ? [-1, 0, 1].flatMap(dy =>
+        [-1, 0, 1].map(dx => ({
+          url: `https://tile.openstreetmap.org/${zoom}/${tileX + dx}/${tileY + dy}.png`,
+          dx,
+          dy,
+        }))
+      )
+    : [];
 
   return (
     <div className="space-y-4">
-      {/* Map preview — OpenStreetMap, no API key needed */}
-      {osmEmbedUrl ? (
+      {/* Map preview — pure <img> tiles, no iframe, no CSP issues */}
+      {hasLocation ? (
         <div className="rounded-xl overflow-hidden border border-border shadow-sm">
-          <iframe
-            src={osmEmbedUrl}
-            width="100%"
-            height="300"
-            style={{ border: 0 }}
-            loading="lazy"
-            title="School Location Preview"
-          />
+          <div
+            className="relative bg-secondary/20 overflow-hidden"
+            style={{ height: 260 }}
+          >
+            {/* Render 3x3 tile grid */}
+            <div
+              className="absolute inset-0"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 256px)",
+                gridTemplateRows: "repeat(3, 256px)",
+                left: "50%",
+                top: "50%",
+                transform: "translate(-384px, -384px)",
+              }}
+            >
+              {tiles.map(({ url, dx, dy }) => (
+                <img
+                  key={`${dx},${dy}`}
+                  src={url}
+                  width={256}
+                  height={256}
+                  alt=""
+                  style={{ display: "block" }}
+                  draggable={false}
+                />
+              ))}
+            </div>
+            {/* Red pin in center */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ paddingBottom: 24 }}>
+              <div className="flex flex-col items-center drop-shadow-lg">
+                <div className="w-5 h-5 bg-red-500 rounded-full border-2 border-white shadow-md" />
+                <div className="w-0.5 h-4 bg-red-500" />
+              </div>
+            </div>
+            {/* OSM attribution (required) */}
+            <div className="absolute bottom-0 right-0 bg-white/80 text-[10px] px-1 text-gray-600">
+              © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap</a>
+            </div>
+          </div>
           <div className="bg-secondary/40 px-3 py-2 flex items-center justify-between gap-2 flex-wrap text-xs text-muted-foreground">
             <span className="font-mono">{lat?.toFixed(6)}, {lng?.toFixed(6)}</span>
             <div className="flex gap-3">
@@ -398,8 +443,7 @@ const AdminSchoolSettings = () => {
           </div>
         </div>
       )}
-
-      <Card>
+<Card>
         <CardHeader><CardTitle className="text-base">Basic Information</CardTitle></CardHeader>
         <CardContent className="grid gap-4">
           <div className="grid sm:grid-cols-2 gap-4">
@@ -458,7 +502,8 @@ const AdminSchoolSettings = () => {
           />
         </CardContent>
       </Card>
-<Card>
+
+      <Card>
         <CardHeader><CardTitle className="text-base">Branding</CardTitle></CardHeader>
         <CardContent className="grid sm:grid-cols-2 gap-6">
           <ImageUploader label="School Logo" currentUrl={form.logo_url} folder="branding"
@@ -485,4 +530,3 @@ const AdminSchoolSettings = () => {
 };
 
 export default AdminSchoolSettings;
-            
