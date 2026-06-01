@@ -1,10 +1,12 @@
 import { motion } from "framer-motion";
+import { lazy, Suspense } from "react";
 import { GraduationCap, Target, Eye, MapPin, Calendar, Users, Award, BookOpen, History } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import PageBanner from "@/components/shared/PageBanner";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 import { useCountUp } from "@/hooks/useCountUp";
 import { Skeleton } from "@/components/ui/skeleton";
+const SchoolMap = lazy(() => import("@/components/SchoolMap"));
 
 const CountStat = ({ value, label, suffix = "" }: { value: number; label: string; suffix?: string }) => {
   const { count, ref } = useCountUp(value);
@@ -148,76 +150,46 @@ const About = () => {
             </p>
           </motion.div>
 
-          {settings?.location_lat && settings?.location_lng ? (() => {
-            const lat = settings.location_lat!;
-            const lng = settings.location_lng!;
-            const zoom = 15;
-            const tileX = Math.floor(((lng + 180) / 360) * Math.pow(2, zoom));
-            const tileY = Math.floor(
-              ((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) *
-                Math.pow(2, zoom)
-            );
-            const tiles = [-1, 0, 1].flatMap(dy =>
-              [-1, 0, 1].map(dx => ({
-                url: `https://tile.openstreetmap.org/${zoom}/${tileX + dx}/${tileY + dy}.png`,
-                dx, dy,
-              }))
-            );
-            return (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="rounded-2xl overflow-hidden shadow-card border border-border"
-              >
-                <div className="relative bg-secondary/20 overflow-hidden" style={{ height: 360 }}>
-                  <div
-                    className="absolute"
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(3, 256px)",
-                      gridTemplateRows: "repeat(3, 256px)",
-                      left: "50%",
-                      top: "50%",
-                      transform: "translate(-384px, -384px)",
-                    }}
-                  >
-                    {tiles.map(({ url, dx, dy }) => (
-                      <img key={`${dx},${dy}`} src={url} width={256} height={256} alt="" style={{ display: "block" }} draggable={false} />
-                    ))}
-                  </div>
-                  {/* Pin */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ paddingBottom: 24 }}>
-                    <div className="flex flex-col items-center drop-shadow-lg">
-                      <div className="w-6 h-6 bg-red-500 rounded-full border-2 border-white shadow-md" />
-                      <div className="w-0.5 h-5 bg-red-500" />
-                    </div>
-                  </div>
-                  <div className="absolute bottom-0 right-0 bg-white/80 text-[10px] px-1 text-gray-600">
-                    © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap</a>
-                  </div>
+          {settings?.location_lat && settings?.location_lng ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="rounded-2xl overflow-hidden shadow-card border border-border"
+            >
+              <Suspense fallback={
+                <div className="h-[360px] bg-secondary/30 flex items-center justify-center text-sm text-muted-foreground">
+                  Loading map…
                 </div>
-                <div className="bg-card px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPin className="w-4 h-4 text-primary shrink-0" />
-                    <span>{settings.address || "Babi Khel, District Mohmand, KPK"}</span>
-                  </div>
-                  <div className="flex gap-4">
-                    <a
-                      href={`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=15/${lat}/${lng}`}
-                      target="_blank" rel="noopener noreferrer"
-                      className="text-xs font-semibold text-primary hover:underline"
-                    >OpenStreetMap ↗</a>
-                    <a
-                      href={`https://www.google.com/maps?q=${lat},${lng}`}
-                      target="_blank" rel="noopener noreferrer"
-                      className="text-xs font-semibold text-primary hover:underline"
-                    >Google Maps ↗</a>
-                  </div>
+              }>
+                <SchoolMap
+                  lat={settings.location_lat}
+                  lng={settings.location_lng}
+                  label={settings.school_name || "School Location"}
+                  height={360}
+                  zoom={16}
+                />
+              </Suspense>
+              <div className="bg-card px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <MapPin className="w-4 h-4 text-primary shrink-0" />
+                  <span>{settings.address || "Babi Khel, District Mohmand, KPK"}</span>
                 </div>
-              </motion.div>
-            );
-          })() : null}
+                <div className="flex gap-4">
+                  <a
+                    href={`https://www.openstreetmap.org/?mlat=${settings.location_lat}&mlon=${settings.location_lng}#map=16/${settings.location_lat}/${settings.location_lng}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="text-xs font-semibold text-primary hover:underline"
+                  >OpenStreetMap ↗</a>
+                  <a
+                    href={`https://www.google.com/maps?q=${settings.location_lat},${settings.location_lng}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="text-xs font-semibold text-primary hover:underline"
+                  >Google Maps ↗</a>
+                </div>
+              </div>
+            </motion.div>
+          ) : null}
         </div>
       </section>
     </PageLayout>
@@ -225,4 +197,3 @@ const About = () => {
 };
 
 export default About;
-                
