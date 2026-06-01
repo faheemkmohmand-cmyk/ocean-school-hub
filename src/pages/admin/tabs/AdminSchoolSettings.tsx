@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 import { supabase } from "@/lib/supabase";
 import { uploadToCloudinary, type UploadProgress } from "@/lib/cloudinary";
 import { useQueryClient } from "@tanstack/react-query";
+const SchoolMap = lazy(() => import("@/components/SchoolMap"));
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -197,74 +198,20 @@ const MapPicker = ({ lat, lng, onChange }: MapPickerProps) => {
 
   const hasLocation = lat !== null && lng !== null;
   const googleMapsUrl = hasLocation ? `https://www.google.com/maps?q=${lat},${lng}` : null;
-  const osmUrl = hasLocation ? `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=15/${lat}/${lng}` : null;
-
-  // Build a static map image using OpenStreetMap tiles — no iframe, CSP-safe
-  // Uses tile.openstreetmap.org which serves plain <img> tags, never blocked by CSP
-  const zoom = 15;
-  const tileX = hasLocation ? Math.floor(((lng! + 180) / 360) * Math.pow(2, zoom)) : 0;
-  const tileY = hasLocation
-    ? Math.floor(
-        ((1 - Math.log(Math.tan((lat! * Math.PI) / 180) + 1 / Math.cos((lat! * Math.PI) / 180)) / Math.PI) / 2) *
-          Math.pow(2, zoom)
-      )
-    : 0;
-  // 3x3 grid of tiles centered on location
-  const tiles = hasLocation
-    ? [-1, 0, 1].flatMap(dy =>
-        [-1, 0, 1].map(dx => ({
-          url: `https://tile.openstreetmap.org/${zoom}/${tileX + dx}/${tileY + dy}.png`,
-          dx,
-          dy,
-        }))
-      )
-    : [];
+  const osmUrl = hasLocation ? `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=16/${lat}/${lng}` : null;
 
   return (
     <div className="space-y-4">
-      {/* Map preview — pure <img> tiles, no iframe, no CSP issues */}
+      {/* Interactive Leaflet map — zoom, pan, street + satellite layers */}
       {hasLocation ? (
         <div className="rounded-xl overflow-hidden border border-border shadow-sm">
-          <div
-            className="relative bg-secondary/20 overflow-hidden"
-            style={{ height: 260 }}
-          >
-            {/* Render 3x3 tile grid */}
-            <div
-              className="absolute inset-0"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 256px)",
-                gridTemplateRows: "repeat(3, 256px)",
-                left: "50%",
-                top: "50%",
-                transform: "translate(-384px, -384px)",
-              }}
-            >
-              {tiles.map(({ url, dx, dy }) => (
-                <img
-                  key={`${dx},${dy}`}
-                  src={url}
-                  width={256}
-                  height={256}
-                  alt=""
-                  style={{ display: "block" }}
-                  draggable={false}
-                />
-              ))}
+          <Suspense fallback={
+            <div className="h-[320px] bg-secondary/30 flex items-center justify-center text-sm text-muted-foreground">
+              <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading map…
             </div>
-            {/* Red pin in center */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ paddingBottom: 24 }}>
-              <div className="flex flex-col items-center drop-shadow-lg">
-                <div className="w-5 h-5 bg-red-500 rounded-full border-2 border-white shadow-md" />
-                <div className="w-0.5 h-4 bg-red-500" />
-              </div>
-            </div>
-            {/* OSM attribution (required) */}
-            <div className="absolute bottom-0 right-0 bg-white/80 text-[10px] px-1 text-gray-600">
-              © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap</a>
-            </div>
-          </div>
+          }>
+            <SchoolMap lat={lat!} lng={lng!} label="School Location" height={320} zoom={16} />
+          </Suspense>
           <div className="bg-secondary/40 px-3 py-2 flex items-center justify-between gap-2 flex-wrap text-xs text-muted-foreground">
             <span className="font-mono">{lat?.toFixed(6)}, {lng?.toFixed(6)}</span>
             <div className="flex gap-3">
@@ -443,7 +390,8 @@ const AdminSchoolSettings = () => {
           </div>
         </div>
       )}
-<Card>
+
+      <Card>
         <CardHeader><CardTitle className="text-base">Basic Information</CardTitle></CardHeader>
         <CardContent className="grid gap-4">
           <div className="grid sm:grid-cols-2 gap-4">
