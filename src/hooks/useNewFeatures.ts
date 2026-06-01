@@ -1,31 +1,11 @@
 // src/hooks/useNewFeatures.ts
-// Hooks for: Homework, Quotes, ExamSchedule, HonorRoll, AttendanceStats
+// Hooks for: Quotes, ExamSchedule, HonorRoll, AttendanceStats
 // Used by all new feature tabs/components
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
-
-export interface Homework {
-  id: string;
-  title: string;
-  description: string | null;
-  class: string;
-  subject: string;
-  due_date: string;
-  posted_by: string | null;
-  teacher_name: string | null;
-  is_active: boolean;
-  created_at: string;
-}
-
-export interface HomeworkCompletion {
-  id: string;
-  homework_id: string;
-  student_id: string;
-  completed_at: string;
-}
 
 export interface DailyQuote {
   id: string;
@@ -72,116 +52,6 @@ export interface MeritList {
   is_published: boolean;
   published_at: string | null;
   created_at: string;
-}
-
-// ─── HOMEWORK HOOKS ───────────────────────────────────────────────────────────
-
-export function useHomework(classFilter?: string) {
-  return useQuery<Homework[]>({
-    queryKey: ["homework", classFilter],
-    queryFn: async () => {
-      let q = supabase
-        .from("homework")
-        .select("*")
-        .eq("is_active", true)
-        .order("due_date", { ascending: true });
-      if (classFilter && classFilter !== "all") q = q.eq("class", classFilter);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data ?? [];
-    },
-    staleTime: 2 * 60 * 1000,
-  });
-}
-
-export function useMyHomeworkCompletions(userId: string | undefined) {
-  return useQuery<HomeworkCompletion[]>({
-    queryKey: ["my-completions", userId],
-    queryFn: async () => {
-      if (!userId) return [];
-      const { data, error } = await supabase
-        .from("homework_completions")
-        .select("*")
-        .eq("student_id", userId);
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: !!userId,
-    staleTime: 1 * 60 * 1000,
-  });
-}
-
-export function useHomeworkCompletions(homeworkId: string) {
-  return useQuery<HomeworkCompletion[]>({
-    queryKey: ["hw-completions", homeworkId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("homework_completions")
-        .select("*, profiles(full_name, roll_number, class)")
-        .eq("homework_id", homeworkId);
-      if (error) throw error;
-      return data ?? [];
-    },
-    staleTime: 1 * 60 * 1000,
-  });
-}
-
-export function useToggleHomeworkComplete() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ homeworkId, userId, isCompleted }: { homeworkId: string; userId: string; isCompleted: boolean }) => {
-      if (isCompleted) {
-        const { error } = await supabase
-          .from("homework_completions")
-          .delete()
-          .eq("homework_id", homeworkId)
-          .eq("student_id", userId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("homework_completions")
-          .insert({ homework_id: homeworkId, student_id: userId });
-        if (error) throw error;
-      }
-    },
-    onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: ["my-completions", vars.userId] });
-      qc.invalidateQueries({ queryKey: ["hw-completions", vars.homeworkId] });
-    },
-  });
-}
-
-export function useCreateHomework() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (payload: Omit<Homework, "id" | "created_at" | "is_active">) => {
-      const { error } = await supabase.from("homework").insert({ ...payload, is_active: true });
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["homework"] }),
-  });
-}
-
-export function useUpdateHomework() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, ...payload }: Partial<Homework> & { id: string }) => {
-      const { error } = await supabase.from("homework").update(payload).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["homework"] }),
-  });
-}
-
-export function useDeleteHomework() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("homework").update({ is_active: false }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["homework"] }),
-  });
 }
 
 // ─── QUOTES HOOKS ─────────────────────────────────────────────────────────────
@@ -492,4 +362,5 @@ export function useClassAttendanceSummary(cls: string, month: number, year: numb
     enabled: !!cls,
     staleTime: 5 * 60 * 1000,
   });
-}
+    }
+    
