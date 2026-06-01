@@ -10,15 +10,15 @@ import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
 import ThemeSwitcher, { ThemeInlineSelector } from "@/components/shared/ThemeSwitcher";
 
-// ✅ FIX 7: Added /news and /library — both were missing from desktop AND mobile nav.
-// Reordered so News sits logically after Notices, Library after Notes.
 const navLinks = [
   { to: "/",               label: "Home" },
   { to: "/about",          label: "About" },
   { to: "/teachers",       label: "Teachers" },
   { to: "/results",        label: "Results" },
   { to: "/notes",          label: "Notes" },
-  { to: "/library",        label: "Library" },     // ✅ ADDED
+  { to: "/library",        label: "Library" },
+  { to: "/notices",        label: "Notices" },
+  { to: "/gallery",        label: "Gallery" },
   { to: "/weather",        label: "Weather" },
   { to: "/online-classes", label: "Online Classes" },
   { to: "/admission",      label: "Admission" },
@@ -316,4 +316,4 @@ export default Navbar;
 
 
 
-                      
+
