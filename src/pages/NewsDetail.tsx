@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import PageLayout from "@/components/layout/PageLayout";
 import SEO from "@/components/seo/SEO";
 import { useNewsItem } from "@/hooks/useNews";
-import { LazyImage } from "@/components/shared/LazyImage";
+import LazyImage from "@/components/shared/LazyImage";
 
 const NewsDetail = () => {
   const { id } = useParams<{ id: string }>();
