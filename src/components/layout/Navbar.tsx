@@ -1,31 +1,39 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Menu, X, GraduationCap, LogIn, UserPlus,
-  LayoutDashboard, LogOut, Shield,
+  LayoutDashboard, LogOut, Shield, ChevronDown, Search,
 } from "lucide-react";
 import { useSchoolSettings, safeMediaUrl } from "@/hooks/useSchoolSettings";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
 import ThemeSwitcher, { ThemeInlineSelector } from "@/components/shared/ThemeSwitcher";
 
-const navLinks = [
-  { to: "/",               label: "Home" },
-  { to: "/about",          label: "About" },
-  { to: "/teachers",       label: "Teachers" },
-  { to: "/results",        label: "Results" },
-  { to: "/notes",          label: "Notes" },
-  { to: "/library",        label: "Library" },
-  { to: "/notices",        label: "Notices" },
-  { to: "/gallery",        label: "Gallery" },
-  { to: "/weather",        label: "Weather" },
-  { to: "/online-classes", label: "Online Classes" },
-  { to: "/admission",      label: "Admission" },
+const primaryLinks = [
+  { to: "/",          label: "Home" },
+  { to: "/about",     label: "About" },
+  { to: "/results",   label: "Results" },
+  { to: "/notes",     label: "Notes" },
+  { to: "/notices",   label: "Notices" },
+  { to: "/admission", label: "Admission" },
 ];
+
+const moreLinks = [
+  { to: "/teachers",       label: "Teachers" },
+  { to: "/library",        label: "Library" },
+  { to: "/gallery",        label: "Gallery" },
+  { to: "/online-classes", label: "Online Classes" },
+  { to: "/weather",        label: "Weather" },
+  { to: "/news",           label: "News" },
+];
+
+const navLinks = [...primaryLinks, ...moreLinks];
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
   const location = useLocation();
@@ -36,13 +44,24 @@ const Navbar = () => {
   // Reset logo failed state when URL changes
   useEffect(() => { setLogoFailed(false); }, [settings?.logo_url]);
 
-  useEffect(() => { setOpen(false); }, [location.pathname]);
+  useEffect(() => { setOpen(false); setMoreOpen(false); }, [location.pathname]);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", fn, { passive: true });
     return () => window.removeEventListener("scroll", fn);
   }, []);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
+    };
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [moreOpen]);
 
   return (
     <nav
@@ -80,8 +99,8 @@ const Navbar = () => {
         </Link>
 
         {/* Desktop nav links — hidden below lg breakpoint */}
-        <div className="hidden lg:flex items-center gap-0.5 overflow-x-auto">
-          {navLinks.map((link) => {
+        <div className="hidden lg:flex items-center gap-0.5">
+          {primaryLinks.map((link) => {
             const active = location.pathname === link.to;
             return (
               <Link
@@ -100,6 +119,60 @@ const Navbar = () => {
               </Link>
             );
           })}
+
+          {/* More dropdown */}
+          <div className="relative" ref={moreRef}>
+            <button
+              onClick={() => setMoreOpen((v) => !v)}
+              className={`inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+                moreLinks.some((l) => l.to === location.pathname)
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+              }`}
+              aria-expanded={moreOpen}
+              aria-haspopup="true"
+            >
+              More <ChevronDown className={`w-3.5 h-3.5 transition-transform ${moreOpen ? "rotate-180" : ""}`} />
+            </button>
+            <AnimatePresence>
+              {moreOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 mt-2 min-w-[200px] bg-card border border-border rounded-xl shadow-card overflow-hidden z-50"
+                >
+                  {moreLinks.map((link) => {
+                    const active = location.pathname === link.to;
+                    return (
+                      <Link
+                        key={link.to}
+                        to={link.to}
+                        onClick={() => setMoreOpen(false)}
+                        className={`block px-4 py-2.5 text-sm font-medium transition-colors ${
+                          active
+                            ? "bg-primary/10 text-primary"
+                            : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        }`}
+                      >
+                        {link.label}
+                      </Link>
+                    );
+                  })}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Search icon */}
+          <Link
+            to="/search"
+            aria-label="Search"
+            className="ml-1 p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
+            <Search className="w-4 h-4" />
+          </Link>
         </div>
 
         {/* Desktop right-side controls */}
@@ -212,6 +285,31 @@ const Navbar = () => {
                   </Link>
                 );
               })}
+
+              {/* Search link in mobile menu */}
+              <Link
+                to="/search"
+                onClick={() => setOpen(false)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  padding: "11px 16px",
+                  borderRadius: "12px",
+                  marginBottom: "2px",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  textDecoration: "none",
+                  backgroundColor: location.pathname === "/search" ? "hsl(var(--primary))" : "transparent",
+                  color: location.pathname === "/search"
+                    ? "hsl(var(--primary-foreground))"
+                    : "hsl(var(--muted-foreground))",
+                }}
+              >
+                <Search style={{ width: "18px", height: "18px" }} />
+                Search
+              </Link>
+
 
               {/* ── Divider ── */}
               <div style={{ height: "1px", backgroundColor: "hsl(var(--border))", margin: "12px 0" }} />
