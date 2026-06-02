@@ -3,43 +3,36 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Menu, X, GraduationCap, LogIn, UserPlus,
-  LayoutDashboard, LogOut, Shield, ChevronDown, Search,
+  LayoutDashboard, LogOut, Shield, Search,
 } from "lucide-react";
 import { useSchoolSettings, safeMediaUrl } from "@/hooks/useSchoolSettings";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/shared/NotificationBell";
 import ThemeSwitcher, { ThemeInlineSelector } from "@/components/shared/ThemeSwitcher";
 
-const primaryLinks = [
+const navLinks = [
   { to: "/",          label: "Home" },
   { to: "/about",     label: "About" },
+  { to: "/news",      label: "News" },
+  { to: "/notices",   label: "Notices" },
   { to: "/results",   label: "Results" },
   { to: "/notes",     label: "Notes" },
-  { to: "/notices",   label: "Notices" },
+  { to: "/gallery",   label: "Gallery" },
+  { to: "/library",   label: "Library" },
   { to: "/admission", label: "Admission" },
 ];
 
-const moreLinks = [
-  { to: "/teachers",       label: "Teachers" },
-  { to: "/library",        label: "Library" },
-  { to: "/gallery",        label: "Gallery" },
-  { to: "/online-classes", label: "Online Classes" },
-  { to: "/weather",        label: "Weather" },
-  { to: "/news",           label: "News" },
-];
-
-const navLinks = [...primaryLinks, ...moreLinks];
+const primaryLinks = navLinks;
+const moreLinks: { to: string; label: string }[] = [];
 
 const Navbar = () => {
   const [open, setOpen]           = useState(false);
-  const [moreOpen, setMoreOpen]   = useState(false);
   // Desktop inline search state
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchVal, setSearchVal]   = useState("");
   // Mobile search state
   const [mobileSearch, setMobileSearch] = useState("");
 
-  const moreRef        = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const mobileSearchRef = useRef<HTMLInputElement>(null);
 
@@ -52,25 +45,13 @@ const Navbar = () => {
   const isAdmin = profile?.role === "admin";
 
   useEffect(() => { setLogoFailed(false); }, [settings?.logo_url]);
-  useEffect(() => { setOpen(false); setMoreOpen(false); setSearchOpen(false); setSearchVal(""); }, [location.pathname]);
+  useEffect(() => { setOpen(false); setSearchOpen(false); setSearchVal(""); }, [location.pathname]);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", fn, { passive: true });
     return () => window.removeEventListener("scroll", fn);
   }, []);
-
-  // Close "More" dropdown on outside click
-  useEffect(() => {
-    if (!moreOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
-        setMoreOpen(false);
-      }
-    };
-    document.addEventListener("click", handler);
-    return () => document.removeEventListener("click", handler);
-  }, [moreOpen]);
 
   // Focus search input when it opens
   useEffect(() => {
@@ -173,52 +154,7 @@ const Navbar = () => {
             );
           })}
 
-          {/* More dropdown */}
-          <div className="relative" ref={moreRef}>
-            <button
-              onClick={() => setMoreOpen((v) => !v)}
-              className={`inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 ${
-                moreLinks.some((l) => l.to === location.pathname)
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-              }`}
-              aria-expanded={moreOpen}
-              aria-haspopup="true"
-            >
-              More <ChevronDown className={`w-3.5 h-3.5 transition-transform ${moreOpen ? "rotate-180" : ""}`} />
-            </button>
-            <AnimatePresence>
-              {moreOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute right-0 mt-2 min-w-[200px] bg-card border border-border rounded-xl shadow-card overflow-hidden z-50"
-                >
-                  {moreLinks.map((link) => {
-                    const active = location.pathname === link.to;
-                    return (
-                      <Link
-                        key={link.to}
-                        to={link.to}
-                        onClick={() => setMoreOpen(false)}
-                        className={`block px-4 py-2.5 text-sm font-medium transition-colors ${
-                          active
-                            ? "bg-primary/10 text-primary"
-                            : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                        }`}
-                      >
-                        {link.label}
-                      </Link>
-                    );
-                  })}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* ── Inline Search (replaces bare icon link) ── */}
+          {/* ── Inline Search ── */}
           <div className="relative ml-1 flex items-center">
             <AnimatePresence mode="wait">
               {searchOpen ? (
@@ -333,17 +269,90 @@ const Navbar = () => {
           )}
         </div>
 
-        {/* Hamburger — mobile only */}
-        <button
-          onClick={() => setOpen(!open)}
-          className="lg:hidden p-2 rounded-lg text-foreground hover:bg-secondary transition-colors shrink-0 ml-2"
-          aria-label={open ? "Close menu" : "Open menu"}
-          aria-expanded={open}
-          aria-controls="mobile-menu"
-        >
-          {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+        {/* Mobile: Search icon + Hamburger — outside the drawer */}
+        <div className="lg:hidden flex items-center gap-1 shrink-0 ml-2">
+          <button
+            onClick={() => { setOpen(false); setSearchOpen((v) => !v); }}
+            className="p-2 rounded-lg text-foreground hover:bg-secondary transition-colors"
+            aria-label="Toggle search"
+          >
+            {searchOpen ? <X className="w-5 h-5" /> : <Search className="w-5 h-5" />}
+          </button>
+          <button
+            onClick={() => { setSearchOpen(false); setOpen(!open); }}
+            className="p-2 rounded-lg text-foreground hover:bg-secondary transition-colors"
+            aria-label={open ? "Close menu" : "Open menu"}
+            aria-expanded={open}
+            aria-controls="mobile-menu"
+          >
+            {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
       </div>
+
+      {/* Mobile search bar — slides in below top bar */}
+      <AnimatePresence>
+        {searchOpen && !open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18 }}
+            className="lg:hidden border-b border-border bg-card px-4 py-3"
+          >
+            <form
+              onSubmit={handleMobileSearch}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "8px 12px",
+                borderRadius: "12px",
+                border: "1.5px solid hsl(var(--border))",
+                backgroundColor: "hsl(var(--background))",
+              }}
+            >
+              <Search style={{ width: 16, height: 16, color: "hsl(var(--muted-foreground))", flexShrink: 0 }} />
+              <input
+                ref={mobileSearchRef}
+                value={mobileSearch}
+                onChange={(e) => setMobileSearch(e.target.value)}
+                placeholder="Search notices, news, teachers…"
+                aria-label="Search site"
+                autoFocus
+                style={{
+                  flex: 1,
+                  background: "transparent",
+                  border: "none",
+                  outline: "none",
+                  fontSize: "14px",
+                  color: "hsl(var(--foreground))",
+                  minWidth: 0,
+                }}
+              />
+              {mobileSearch.trim() && (
+                <button
+                  type="submit"
+                  aria-label="Search"
+                  style={{
+                    flexShrink: 0,
+                    padding: "4px 10px",
+                    borderRadius: "8px",
+                    border: "none",
+                    backgroundColor: "hsl(var(--primary))",
+                    color: "hsl(var(--primary-foreground))",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Go
+                </button>
+              )}
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ════════════ MOBILE MENU ════════════ */}
       <AnimatePresence>
@@ -366,57 +375,7 @@ const Navbar = () => {
           >
             <div style={{ padding: "12px 12px 24px" }}>
 
-              {/* ── Mobile inline search bar — top of menu ── */}
-              <form
-                onSubmit={handleMobileSearch}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  padding: "8px 12px",
-                  borderRadius: "12px",
-                  border: "1.5px solid hsl(var(--border))",
-                  backgroundColor: "hsl(var(--background))",
-                  marginBottom: "10px",
-                }}
-              >
-                <Search style={{ width: 16, height: 16, color: "hsl(var(--muted-foreground))", flexShrink: 0 }} />
-                <input
-                  ref={mobileSearchRef}
-                  value={mobileSearch}
-                  onChange={(e) => setMobileSearch(e.target.value)}
-                  placeholder="Search notices, news, teachers…"
-                  aria-label="Search site"
-                  style={{
-                    flex: 1,
-                    background: "transparent",
-                    border: "none",
-                    outline: "none",
-                    fontSize: "14px",
-                    color: "hsl(var(--foreground))",
-                    minWidth: 0,
-                  }}
-                />
-                {mobileSearch.trim() && (
-                  <button
-                    type="submit"
-                    aria-label="Search"
-                    style={{
-                      flexShrink: 0,
-                      padding: "4px 10px",
-                      borderRadius: "8px",
-                      border: "none",
-                      backgroundColor: "hsl(var(--primary))",
-                      color: "hsl(var(--primary-foreground))",
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Go
-                  </button>
-                )}
-              </form>
+
 
               {/* ── Nav links ── */}
               {navLinks.map((link) => {
