@@ -308,6 +308,8 @@ const Navbar = () => {
               >
                 <Search style={{ width: "18px", height: "18px" }} />
                 Search
+              </Link>
+
 
               {/* ── Divider ── */}
               <div style={{ height: "1px", backgroundColor: "hsl(var(--border))", margin: "12px 0" }} />
