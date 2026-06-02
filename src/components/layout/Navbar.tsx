@@ -32,6 +32,8 @@ const navLinks = [...primaryLinks, ...moreLinks];
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
   const location = useLocation();
@@ -42,13 +44,24 @@ const Navbar = () => {
   // Reset logo failed state when URL changes
   useEffect(() => { setLogoFailed(false); }, [settings?.logo_url]);
 
-  useEffect(() => { setOpen(false); }, [location.pathname]);
+  useEffect(() => { setOpen(false); setMoreOpen(false); }, [location.pathname]);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", fn, { passive: true });
     return () => window.removeEventListener("scroll", fn);
   }, []);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
+    };
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [moreOpen]);
 
   return (
     <nav
