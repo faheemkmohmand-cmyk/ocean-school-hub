@@ -107,9 +107,9 @@ export function generateExamICS(
       entry.notes       ? `Notes: ${entry.notes}`           : "",
       "",
       `GHS Babi Khel — ghsbabikhel.indevs.in`,
-    ].filter((l) => l !== undefined);
+    ];
 
-    const description = esc(descParts.filter(Boolean).join("\\n"));
+    const description = esc(descParts.filter(Boolean).join("\n"));
     const location    = entry.hall ? esc(`${entry.hall}, ${schoolName}`) : esc(schoolName);
     const uid         = makeUID(entry, slug);
 
