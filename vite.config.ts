@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+import { plausiblePlugin } from "./vite-plugin-plausible";
 
 export default defineConfig(({ mode }) => ({
   server: {
@@ -11,6 +12,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
+    plausiblePlugin(),
     mode === "development" && componentTagger(),
     // ✅ VitePWA completely removed — the Service Worker was causing
     // pages to hang on refresh by serving stale/broken cached JS chunks.
