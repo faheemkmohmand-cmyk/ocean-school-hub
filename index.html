@@ -50,8 +50,25 @@
     <link rel="dns-prefetch" href="https://supabase.co" />
     <link rel="dns-prefetch" href="https://res.cloudinary.com" />
 
-    <!-- Fonts are loaded via @import in src/index.css with display=swap -->
+    <!--
+      ── Plausible Analytics ──────────────────────────────────────────────────
+      Loaded only when VITE_PLAUSIBLE_DOMAIN is set at build time.
+      The React usePlausible() hook handles SPA route-change pageviews.
+      This tag gives Plausible the initial pageload hit for non-JS crawlers
+      and covers the very first paint before React hydrates.
 
+      TO ENABLE:
+        1. Sign up at https://plausible.io (free 30-day trial, then ~$9/mo)
+           OR self-host: https://plausible.io/docs/self-hosting
+        2. Add your site domain in the Plausible dashboard
+        3. Set VITE_PLAUSIBLE_DOMAIN=ghsbabikhel.indevs.in in Vercel env vars
+        4. Redeploy — this script tag appears automatically
+
+      The "plausible-script" id prevents the React hook from double-injecting.
+    -->
+    <!-- PLAUSIBLE_INJECT_PLACEHOLDER -->
+
+    <!-- Fonts are loaded via @import in src/index.css with display=swap -->
 
     <!-- Inline critical CSS -->
     <style>
