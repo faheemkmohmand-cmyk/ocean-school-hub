@@ -10,52 +10,41 @@ interface Fact {
   found: boolean;
 }
 
-// 1️⃣ Try our own Vercel serverless proxy at /api/numbers (no CORS issue).
-// 2️⃣ If the proxy returns 404/500 (e.g. local dev), fall back to hitting
-//    numbersapi.com directly — it supports CORS so browsers can fetch it.
+// Fetches via our Vercel serverless proxy at /api/numbers.
+// The proxy hits numbersapi.com server-side (no CORS issue).
+// ROOT CAUSES FIXED in this file:
+//   1. Timeout raised 10 s → 15 s — Vercel functions have cold-start latency.
+//   2. Error message is now specific (shows HTTP status) so you can debug faster.
+//   3. AbortError / TimeoutError are caught separately and surface a clear message.
 async function fetchFact(path: string): Promise<Fact | null> {
-  // --- Attempt 1: proxy ---
   try {
     const res = await fetch(`/api/numbers?path=${encodeURIComponent(path)}`, {
-      signal: AbortSignal.timeout(10000),
+      // FIX: 15 s — matches the raised timeout inside api/numbers.js
+      signal: AbortSignal.timeout(15000),
     });
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.text) return data as Fact;
-    }
-    // 404 means the serverless function isn't deployed here — fall through
-    if (res.status !== 404 && res.status !== 500) {
-      // Any other non-ok status (e.g. 429) → surface the error, don't retry
-      throw new Error(`Proxy returned ${res.status}`);
-    }
-  } catch (e: unknown) {
-    // Only swallow 404/timeout so we can try the fallback
-    const msg = e instanceof Error ? e.message : String(e);
-    if (!msg.includes("404") && !msg.includes("Failed to fetch") && !msg.includes("AbortError")) {
-      console.error("NumberFacts fetch error:", e);
+
+    if (!res.ok) {
+      // Log the actual status so it's visible in the console
+      console.error(`NumberFacts proxy error: HTTP ${res.status} for path "${path}"`);
       return null;
     }
-  }
 
-  // --- Attempt 2: direct (CORS-enabled) ---
-  try {
-    const res = await fetch(`https://numbersapi.com/${path}?json`, {
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!res.ok) throw new Error(`numbersapi.com returned ${res.status}`);
-    const contentType = res.headers.get("content-type") || "";
-    if (contentType.includes("json")) {
-      return (await res.json()) as Fact;
+    const data = await res.json();
+    return data as Fact;
+  } catch (e: unknown) {
+    if (e instanceof Error && (e.name === "AbortError" || e.name === "TimeoutError")) {
+      console.error("NumberFacts fetch error: request timed out after 15 s");
+    } else {
+      console.error("NumberFacts fetch error:", e);
     }
-    const text = await res.text();
-    return { text, found: true, type: "trivia", number: 0 };
-  } catch (e) {
-    console.error("NumberFacts fetch error:", e);
     return null;
   }
 }
 
-const TYPE_META: Record<FactType, { label: string; emoji: string; color: string; desc: string; placeholder: string }> = {
+const TYPE_META: Record<
+  FactType,
+  { label: string; emoji: string; color: string; desc: string; placeholder: string }
+> = {
   trivia: { label: "Trivia",   emoji: "🎯", color: "from-violet-500 to-purple-600", desc: "Interesting fact",       placeholder: "e.g. 42, 7, 100" },
   math:   { label: "Math",     emoji: "📐", color: "from-blue-500 to-indigo-600",   desc: "Mathematical property", placeholder: "e.g. 42, 12, 256" },
   year:   { label: "Year",     emoji: "📅", color: "from-amber-500 to-orange-600",  desc: "Historical year fact",  placeholder: "e.g. 1947, 1969"  },
@@ -63,24 +52,29 @@ const TYPE_META: Record<FactType, { label: string; emoji: string; color: string;
 };
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const DAYS_IN: Record<number, number> = {1:31,2:29,3:31,4:30,5:31,6:30,7:31,8:31,9:30,10:31,11:30,12:31};
+const DAYS_IN: Record<number, number> = {
+  1:31, 2:29, 3:31, 4:30, 5:31, 6:30,
+  7:31, 8:31, 9:30, 10:31, 11:30, 12:31,
+};
 
 export default function NumberFacts() {
   const [activeMode, setActiveMode] = useState<FactType>("trivia");
-  const [numInput, setNumInput] = useState("");
-  const [bdMonth, setBdMonth] = useState(1);
-  const [bdDay, setBdDay]     = useState(1);
-  const [fact, setFact]       = useState<Fact | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState<string | null>(null);
+  const [numInput, setNumInput]     = useState("");
+  const [bdMonth, setBdMonth]       = useState(1);
+  const [bdDay, setBdDay]           = useState(1);
+  const [fact, setFact]             = useState<Fact | null>(null);
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState<string | null>(null);
   const [queryLabel, setQueryLabel] = useState("");
 
   const maxDay = DAYS_IN[bdMonth] ?? 31;
 
   const go = async (pathOverride?: string, labelOverride?: string) => {
-    setLoading(true); setError(null); setFact(null);
+    setLoading(true);
+    setError(null);
+    setFact(null);
 
-    let path = pathOverride ?? "";
+    let path  = pathOverride ?? "";
     let label = labelOverride ?? "";
 
     if (!pathOverride) {
@@ -111,7 +105,7 @@ export default function NumberFacts() {
   };
 
   const goRandom = async () => {
-    const n = Math.floor(Math.random() * 999) + 1;
+    const n    = Math.floor(Math.random() * 999) + 1;
     const mode = activeMode === "date" ? "trivia" : activeMode;
     setNumInput(String(n));
     await go(`${n}/${mode}`, String(n));
@@ -134,7 +128,7 @@ export default function NumberFacts() {
       {/* Mode cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {(Object.keys(TYPE_META) as FactType[]).map((mode) => {
-          const m = TYPE_META[mode];
+          const m      = TYPE_META[mode];
           const active = activeMode === mode;
           return (
             <button
@@ -162,7 +156,11 @@ export default function NumberFacts() {
             <div className="flex gap-2">
               <select
                 value={bdMonth}
-                onChange={(e) => { const m = Number(e.target.value); setBdMonth(m); if (bdDay > (DAYS_IN[m] ?? 31)) setBdDay(1); }}
+                onChange={(e) => {
+                  const m = Number(e.target.value);
+                  setBdMonth(m);
+                  if (bdDay > (DAYS_IN[m] ?? 31)) setBdDay(1);
+                }}
                 className="flex-1 bg-secondary border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/40"
               >
                 {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
@@ -172,7 +170,9 @@ export default function NumberFacts() {
                 onChange={(e) => setBdDay(Number(e.target.value))}
                 className="w-24 bg-secondary border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/40"
               >
-                {Array.from({ length: maxDay }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{d}</option>)}
+                {Array.from({ length: maxDay }, (_, i) => i + 1).map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
               </select>
             </div>
             <p className="text-[10px] text-muted-foreground mt-1.5">
@@ -202,10 +202,14 @@ export default function NumberFacts() {
             disabled={loading}
             className="flex-1 bg-primary text-white rounded-xl py-2.5 text-sm font-bold hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
           >
-            {loading
-              ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Looking up…</>
-              : <>{meta.emoji} Get {meta.label} Fact</>
-            }
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Looking up…
+              </>
+            ) : (
+              <>{meta.emoji} Get {meta.label} Fact</>
+            )}
           </button>
           <button
             onClick={goRandom}
@@ -232,7 +236,9 @@ export default function NumberFacts() {
             <div className="flex items-center gap-3">
               <span className="text-3xl">{meta.emoji}</span>
               <div>
-                <p className="text-white/70 text-[11px] font-semibold uppercase tracking-wider">{meta.label} fact</p>
+                <p className="text-white/70 text-[11px] font-semibold uppercase tracking-wider">
+                  {meta.label} fact
+                </p>
                 <p className="text-white font-black text-lg leading-tight">{queryLabel}</p>
               </div>
             </div>
@@ -242,10 +248,10 @@ export default function NumberFacts() {
             <div className="bg-secondary rounded-xl px-4 py-2.5 flex items-start gap-2">
               <span className="text-base shrink-0">💡</span>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                {activeMode === "date"   ? "Every date holds a story. Try your own birthday!" :
-                 activeMode === "math"   ? "Mathematics is the language of the universe — every number has a story." :
-                 activeMode === "year"   ? "Try 1947 — the year Pakistan was founded!" :
-                                          "Try your roll number, your age, or any number you like!"}
+                {activeMode === "date"  ? "Every date holds a story. Try your own birthday!" :
+                 activeMode === "math"  ? "Mathematics is the language of the universe — every number has a story." :
+                 activeMode === "year"  ? "Try 1947 — the year Pakistan was founded!" :
+                                         "Try your roll number, your age, or any number you like!"}
               </p>
             </div>
             <p className="text-[9px] text-muted-foreground/40 text-center">
@@ -268,5 +274,5 @@ export default function NumberFacts() {
       )}
     </div>
   );
-           }
-        
+    }
+          
