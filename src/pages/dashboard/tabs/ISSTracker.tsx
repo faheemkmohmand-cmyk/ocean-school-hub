@@ -16,7 +16,11 @@ interface AstronautData {
 }
 
 // CORS proxy helper
-const PROXY = "https://api.allorigins.win/raw?url=";
+// CORS proxy helpers (allorigins is flaky / 400s under load — corsproxy.io is the primary fallback)
+const PROXIES = [
+  (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+  (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+];
 
 // Pulsing ISS icon
 const issIcon = L.divIcon({
