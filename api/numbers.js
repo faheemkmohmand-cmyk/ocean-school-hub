@@ -1,18 +1,6 @@
 // api/numbers.js
-// Vercel Serverless Function — proxies numbersapi.com server-side.
-// Browser calls /api/numbers?path=42/trivia → this fetches numbersapi.com/42/trivia
-//
-// ROOT CAUSES FIXED:
-//   1. Removed Accept: "application/json" header → was causing 406 Not Acceptable.
-//      numbersapi.com uses the ?json query param (already appended below), NOT the
-//      Accept header, to switch response format. Sending that header makes it reject
-//      the request entirely with 406.
-//   2. Changed http:// → https:// for the upstream URL. Vercel serverless functions
-//      on the Edge/Node runtime may block plain-HTTP outbound requests, and the site
-//      already sets upgrade-insecure-requests in its CSP.
-//   3. Increased timeout 8 s → 15 s to survive Vercel cold-start latency.
-//   4. Hardened plain-text fallback: numbersapi sometimes returns text/plain even
-//      with ?json (e.g. for unknown/edge-case numbers); we now always parse safely.
+// Vercel Serverless Function — Vercel auto-routes this as /api/numbers (no rewrite needed).
+// Browser → /api/numbers?path=42/trivia → this function → numbersapi.com/42/trivia
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -29,51 +17,42 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Missing path parameter" });
   }
 
-  // Allow digits, slashes, and lowercase letters only (prevents path injection)
+  // Allow digits, slashes, lowercase letters only
   if (!/^[\d\/a-z]+$/.test(path)) {
     return res.status(400).json({ error: "Invalid path" });
   }
 
-  // FIX #2: https:// not http:// — avoids Vercel blocking plain-HTTP outbound
-  // FIX #1: ?json tells numbersapi to respond with JSON — do NOT also send
-  //         Accept: application/json, that header causes a 406 from numbersapi.
+  // FIX A: https:// not http:// — Vercel blocks plain-HTTP outbound requests
   const url = `https://numbersapi.com/${path}?json`;
 
   try {
     const upstream = await fetch(url, {
       headers: {
-        // FIX #1: Only User-Agent here — NO Accept header.
-        // numbersapi uses the ?json query param, not the Accept header.
-        // Sending Accept: application/json triggers a 406 Not Acceptable.
+        // FIX B: NO Accept header — numbersapi uses Express res.format() with only
+        // text/plain registered. Sending Accept: application/json returns 406.
+        // The ?json query param (above) is the correct way to request JSON.
         "User-Agent": "GHS-BabiKhel-School/1.0",
       },
-      // FIX #3: 15 s to cover Vercel cold starts (was 8 s)
+      // FIX C: 15s covers Vercel cold-start latency (was 8s)
       signal: AbortSignal.timeout(15000),
     });
 
     if (!upstream.ok) {
-      return res
-        .status(upstream.status)
-        .json({ error: `Numbers API returned ${upstream.status}` });
+      return res.status(upstream.status).json({ error: `Numbers API returned ${upstream.status}` });
     }
 
     const contentType = upstream.headers.get("content-type") || "";
-    let body;
 
     if (contentType.includes("json")) {
-      body = await upstream.json();
+      const body = await upstream.json();
+      return res.status(200).json(body);
     } else {
-      // FIX #4: numbersapi returns plain text for some edge-case numbers
-      // even when ?json is present — wrap it into our standard shape.
+      // numbersapi falls back to plain text for some edge-case inputs
       const text = await upstream.text();
-      body = { text: text.trim(), found: true, type: "trivia", number: 0 };
+      return res.status(200).json({ text: text.trim(), found: true, type: "trivia", number: 0 });
     }
-
-    return res.status(200).json(body);
   } catch (err) {
     console.error("Numbers API proxy error:", err);
-    return res
-      .status(500)
-      .json({ error: "Failed to fetch from Numbers API", detail: err.message });
+    return res.status(500).json({ error: "Failed to fetch from Numbers API", detail: err.message });
   }
 }
