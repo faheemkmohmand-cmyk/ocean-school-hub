@@ -104,6 +104,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // fetchProfile already has its own internal timeout
           const prof = await fetchProfile(sess.user.id);
           if (mounted) setProfile(prof);
+          // Subscribe to realtime changes for this user's profile row
+          if (mounted) subscribeToProfileChanges(sess.user.id);
         }
       } catch (err) {
         console.warn("Auth init error:", err);
@@ -149,9 +151,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
+    // ── STEP 3: realtime watch on the current user's profile row ────────────
+    // Without this, when an admin approves or rejects a user the profile
+    // sitting in memory stays stale — the user never sees the status change
+    // until they manually refresh the page.
+    // This channel re-fetches the profile whenever the DB row is updated,
+    // so ProtectedRoute immediately reflects the new status (approved / rejected).
+    let profileChannel: ReturnType<typeof supabase.channel> | null = null;
+
+    const subscribeToProfileChanges = (userId: string) => {
+      // Remove any existing channel before creating a new one
+      if (profileChannel) supabase.removeChannel(profileChannel);
+
+      profileChannel = supabase
+        .channel(`profile-status-${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "profiles",
+            filter: `id=eq.${userId}`,
+          },
+          async () => {
+            // Re-fetch from DB so we always get the authoritative value
+            if (!mounted) return;
+            const fresh = await fetchProfile(userId);
+            if (mounted) setProfile(fresh);
+          }
+        )
+        .subscribe();
+    };
+
+    // Also re-subscribe whenever the user signs in/changes
+    const { data: { subscription: authSub2 } } = supabase.auth.onAuthStateChange(
+      (_event, sess) => {
+        if (!mounted) return;
+        if (sess?.user) {
+          subscribeToProfileChanges(sess.user.id);
+        } else {
+          if (profileChannel) {
+            supabase.removeChannel(profileChannel);
+            profileChannel = null;
+          }
+        }
+      }
+    );
+
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      authSub2.unsubscribe();
+      if (profileChannel) supabase.removeChannel(profileChannel);
     };
   }, [fetchProfile]);
 
@@ -181,4 +232,5 @@ export function useAuth(): AuthContextValue {
   if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
   return ctx;
                      }
-            
+
+        
