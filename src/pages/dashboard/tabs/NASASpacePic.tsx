@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 
 const NASA_API_KEY = "I7E0FR0gL0Lvt9cnxh5jsRSvAzWlJVzeYFZRQTKy";
+const CACHE_KEY_PREFIX = "nasa_apod_";
 
 interface APODData {
   title: string;
@@ -13,17 +14,55 @@ interface APODData {
   copyright?: string;
 }
 
+// ── Cache helpers ──────────────────────────────────────────────────
+// Cache is keyed by date (e.g. "nasa_apod_2026-06-06") so each day's
+// picture is stored separately. Old entries are automatically ignored
+// because the key won't match today's date.
+function getCached(date: string): APODData | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY_PREFIX + date);
+    if (!raw) return null;
+    return JSON.parse(raw) as APODData;
+  } catch {
+    return null;
+  }
+}
+
+function setCache(date: string, data: APODData): void {
+  try {
+    // Clean up any old APOD cache entries to avoid filling localStorage
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith(CACHE_KEY_PREFIX) && key !== CACHE_KEY_PREFIX + date) {
+        localStorage.removeItem(key);
+      }
+    }
+    localStorage.setItem(CACHE_KEY_PREFIX + date, JSON.stringify(data));
+  } catch {
+    // localStorage full or unavailable — silently skip caching
+  }
+}
+
 export default function NASASpacePic() {
-  const [apod, setApod] = useState<APODData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const todayStr = new Date().toISOString().split("T")[0];
+
+  const [apod, setApod] = useState<APODData | null>(() => getCached(todayStr));
+  const [loading, setLoading] = useState<boolean>(() => getCached(todayStr) === null);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(() => {
-    return new Date().toISOString().split("T")[0];
-  });
+  const [selectedDate, setSelectedDate] = useState(todayStr);
 
-  const fetchAPOD = async (date: string) => {
+  const fetchAPOD = async (date: string, force = false) => {
+    // If we already have a valid cache for this date, skip the network call
+    // unless the user explicitly hit Retry (force=true)
+    const cached = getCached(date);
+    if (cached && !force) {
+      setApod(cached);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setImgLoaded(false);
@@ -37,6 +76,7 @@ export default function NASASpacePic() {
         throw new Error(`NASA API error (${res.status}): ${body.slice(0, 120)}`);
       }
       const data: APODData = await res.json();
+      setCache(date, data);
       setApod(data);
     } catch (e: any) {
       setError(e.message || "Failed to load NASA Picture of the Day.");
@@ -148,7 +188,7 @@ export default function NASASpacePic() {
           <p className="text-3xl mb-2">🛑</p>
           <p className="text-sm font-semibold text-red-600 dark:text-red-400">{error}</p>
           <button
-            onClick={() => fetchAPOD(selectedDate)}
+            onClick={() => fetchAPOD(selectedDate, true)}
             className="mt-3 text-xs bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
           >
             Retry
@@ -241,4 +281,5 @@ export default function NASASpacePic() {
     </div>
   );
       }
-                  
+
+        
