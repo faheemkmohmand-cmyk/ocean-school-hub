@@ -84,6 +84,11 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
     { label: "NASA",           sublabel: "Extra",          tabId: "extra" },
     { label: "Space Picture",  sublabel: "Extra",          tabId: "extra" },
     { label: "Astronomy",      sublabel: "Extra",          tabId: "extra" },
+    { label: "World Explorer",    sublabel: "Extra",          tabId: "extra" },
+    { label: "Country Profiles",  sublabel: "Extra",          tabId: "extra" },
+    { label: "Flag Quiz",         sublabel: "Extra",          tabId: "extra" },
+    { label: "Country Compare",   sublabel: "Extra",          tabId: "extra" },
+    { label: "Country of Week",   sublabel: "Extra",          tabId: "extra" },
     // library hub
     { label: "School Files",   sublabel: "Library",        tabId: "library" },
     { label: "Virtual Library", sublabel: "Library",       tabId: "library" },
@@ -399,7 +404,7 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
                           : "text-muted-foreground hover:bg-secondary"
                       }`}
                     >
-                      <navItem.icon className="w-4 h-4 shrink-0" style={activeTab !== result.tabId ? { color: navItem.color } : undefined} />
+                       <navItem.icon className="w-4 h-4 shrink-0" style={activeTab !== result.tabId ? { color: navItem.color } : undefined} />
                       <span className="flex-1 text-left">
                         {result.label}
                         {result.sublabel && (
@@ -417,7 +422,7 @@ const DashboardLayout = ({ activeTab, onTabChange, children }: DashboardLayoutPr
                 onClick={() => setSidebarOpen(false)}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary"
               >
-        <ExternalLink className="w-4 h-4" />
+                <ExternalLink className="w-4 h-4" />
                 Main Website
               </Link>
               <button
