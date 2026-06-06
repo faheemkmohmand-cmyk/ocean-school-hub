@@ -10,24 +10,24 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/hooks/useDarkMode";
 
 const navItems = [
-  { id: "overview",          label: "Overview",              icon: BarChart3      },
-  { id: "settings",          label: "School Settings",       icon: Settings       },
-  { id: "credentials",       label: "Student Credentials",   icon: KeyRound       },
-  { id: "teachers",          label: "Manage Teachers",       icon: Users          },
-  { id: "students",          label: "Manage Students",       icon: GraduationCap  },
-  { id: "admissions",        label: "Admissions",            icon: GraduationCap  },
-  { id: "results",           label: "Manage Results",        icon: ClipboardList  },
-  { id: "attendance",        label: "Attendance",            icon: CheckSquare    },
-  { id: "timetables",        label: "Timetables",            icon: Calendar       },
-  { id: "announcements",     label: "Announcements",         icon: Bell           },
-  { id: "library",           label: "Library",               icon: BookOpen       },
-  { id: "exam-rolls",        label: "Exam Roll Numbers",     icon: Hash           },
-  { id: "notes",             label: "Notes Manager",         icon: BookMarked     },
-  { id: "videos",            label: "Videos & Gallery",      icon: Video          },
-  { id: "online-classes",    label: "Online Classes",        icon: Video          },
-  { id: "analytics",         label: "Analytics",             icon: TrendingUp     },
-  { id: "extras",            label: "Extras",                icon: Star           },
-  { id: "site-analytics",    label: "Site Analytics",        icon: Globe          },
+  { id: "overview",          label: "Overview",              icon: BarChart3,     color: "#3b82f6" }, // blue
+  { id: "settings",          label: "School Settings",       icon: Settings,      color: "#6b7280" }, // gray
+  { id: "credentials",       label: "Student Credentials",   icon: KeyRound,      color: "#6366f1" }, // indigo
+  { id: "teachers",          label: "Manage Teachers",       icon: Users,         color: "#0ea5e9" }, // sky
+  { id: "students",          label: "Manage Students",       icon: GraduationCap, color: "#10b981" }, // emerald
+  { id: "admissions",        label: "Admissions",            icon: GraduationCap, color: "#14b8a6" }, // teal
+  { id: "results",           label: "Manage Results",        icon: ClipboardList, color: "#f59e0b" }, // amber
+  { id: "attendance",        label: "Attendance",            icon: CheckSquare,   color: "#22c55e" }, // green
+  { id: "timetables",        label: "Timetables",            icon: Calendar,      color: "#8b5cf6" }, // violet
+  { id: "announcements",     label: "Announcements",         icon: Bell,          color: "#f97316" }, // orange
+  { id: "library",           label: "Library",               icon: BookOpen,      color: "#84cc16" }, // lime
+  { id: "exam-rolls",        label: "Exam Roll Numbers",     icon: Hash,          color: "#ef4444" }, // red
+  { id: "notes",             label: "Notes Manager",         icon: BookMarked,    color: "#06b6d4" }, // cyan
+  { id: "videos",            label: "Videos & Gallery",      icon: Video,         color: "#ec4899" }, // pink
+  { id: "online-classes",    label: "Online Classes",        icon: Video,         color: "#f43f5e" }, // rose
+  { id: "analytics",         label: "Analytics",             icon: TrendingUp,    color: "#14b8a6" }, // teal
+  { id: "extras",            label: "Extras",                icon: Star,          color: "#eab308" }, // yellow
+  { id: "site-analytics",    label: "Site Analytics",        icon: Globe,         color: "#a855f7" }, // purple
 ];
 
 interface AdminLayoutProps {
@@ -157,10 +157,13 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   activeTab === result.tabId
                     ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                    : "hover:bg-secondary"
                 }`}
               >
-                <navItem.icon className="w-4 h-4 shrink-0" />
+                <navItem.icon
+                  className="w-4 h-4 shrink-0"
+                  style={{ color: activeTab === result.tabId ? undefined : navItem.color }}
+                />
                 <span className="flex-1 text-left">
                   {result.label}
                   {result.sublabel && (
@@ -184,10 +187,13 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
               activeTab === item.id
                 ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                : "hover:bg-secondary"
             }`}
           >
-            <item.icon className="w-4 h-4 shrink-0" />
+            <item.icon
+              className="w-4 h-4 shrink-0"
+              style={{ color: activeTab === item.id ? undefined : item.color }}
+            />
             {item.label}
           </button>
         ))}
@@ -419,5 +425,3 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
 };
 
 export default AdminLayout;
-
-              
