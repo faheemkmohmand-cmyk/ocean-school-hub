@@ -1,9 +1,8 @@
 // src/pages/dashboard/tabs/ExtraTab.tsx
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Satellite, Telescope, Hash, Globe } from "lucide-react";
+import { Satellite, Telescope, Globe } from "lucide-react";
 import ISSTracker from "./ISSTracker";
 import NASASpacePic from "./NASASpacePic";
-import NumberFacts from "./NumberFacts";
 import WorldExplorer from "./WorldExplorer";
 
 const ExtraTab = () => (
@@ -13,7 +12,7 @@ const ExtraTab = () => (
         ✨ Extra
       </h2>
       <p className="text-sm text-muted-foreground mt-0.5">
-        World Explorer · Space science · ISS tracker · NASA photos · Number facts
+        World Explorer · Space science · ISS tracker · NASA photos
       </p>
     </div>
 
@@ -31,10 +30,6 @@ const ExtraTab = () => (
           <Telescope className="w-3.5 h-3.5" />
           <span>Space Picture</span>
         </TabsTrigger>
-        <TabsTrigger value="numbers" className="gap-1.5 text-xs sm:text-sm shrink-0 px-3 py-2">
-          <Hash className="w-3.5 h-3.5" />
-          <span>Number Facts</span>
-        </TabsTrigger>
       </TabsList>
       <TabsContent value="world" className="mt-4">
         <WorldExplorer />
@@ -44,9 +39,6 @@ const ExtraTab = () => (
       </TabsContent>
       <TabsContent value="nasa" className="mt-4">
         <NASASpacePic />
-      </TabsContent>
-      <TabsContent value="numbers" className="mt-4">
-        <NumberFacts />
       </TabsContent>
     </Tabs>
   </div>
