@@ -55,21 +55,33 @@ const tabs: { id: CredTab; label: string; shortLabel: string; icon: React.ReactN
     id: "id-cards",
     label: "Student ID Cards",
     shortLabel: "Cards",
-    icon: <CreditCard className="w-4 h-4 shrink-0" />,
+    icon: (
+      <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/40 shrink-0">
+        <CreditCard className="w-4 h-4 text-blue-500" />
+      </span>
+    ),
     desc: "View and download your student identity card",
   },
   {
     id: "monitor-pass",
     label: "Monitor Pass",
     shortLabel: "Pass",
-    icon: <ShieldCheck className="w-4 h-4 shrink-0" />,
+    icon: (
+      <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
+        <ShieldCheck className="w-4 h-4 text-emerald-500" />
+      </span>
+    ),
     desc: "View issued monitor / hall passes for each class",
   },
   {
     id: "duty",
     label: "Duty",
     shortLabel: "Duty",
-    icon: <Shield className="w-4 h-4 shrink-0" />,
+    icon: (
+      <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-violet-100 dark:bg-violet-900/40 shrink-0">
+        <Shield className="w-4 h-4 text-violet-500" />
+      </span>
+    ),
     desc: "School duty role assignments — Monitor, Proctor, Head Boy & more",
   },
 ];
@@ -446,3 +458,4 @@ const UserCredentialsHub = ({ onNavigate }: { onNavigate?: (tab: string) => void
 };
 
 export default UserCredentialsHub;
+            
