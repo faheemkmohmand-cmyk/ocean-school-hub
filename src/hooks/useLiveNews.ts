@@ -15,15 +15,9 @@ export interface LiveNewsArticle {
   language: string;
 }
 
-interface NewsDataResponse {
-  status: string;
-  totalResults: number;
-  results: LiveNewsArticle[];
-  nextPage?: string;
-}
-
 const CACHE_KEY = "live_news_cache";
 const CACHE_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+const API_KEY = "pub_e9403661363c4276af32547fc26d0ed9";
 
 interface CacheEntry {
   data: LiveNewsArticle[];
@@ -38,7 +32,6 @@ function getCache(query: string): LiveNewsArticle[] | null {
     const entry: CacheEntry = JSON.parse(raw);
     if (entry.query !== query) return null;
     if (Date.now() - entry.timestamp > CACHE_DURATION_MS) return null;
-    // Guard against corrupted cache (e.g. error objects stored before fix)
     if (!Array.isArray(entry.data)) {
       localStorage.removeItem(CACHE_KEY);
       return null;
@@ -59,15 +52,44 @@ function setCache(query: string, data: LiveNewsArticle[]) {
   }
 }
 
+async function fetchNewsData(url: string): Promise<Response> {
+  // Primary: direct fetch (works when CSP allows newsdata.io)
+  try {
+    const res = await fetch(url, { headers: { "Accept": "application/json" } });
+    if (res.ok) return res;
+    // If 4xx (bad API key, quota, etc.) throw immediately — no proxy will help
+    if (res.status >= 400 && res.status < 500) {
+      throw new Error(`NewsData.io error: ${res.status}`);
+    }
+  } catch (err: unknown) {
+    // Network/CORS block — fall through to proxy
+    const isNetworkErr =
+      err instanceof TypeError ||
+      (err instanceof Error && (err.message.includes("CORS") || err.message.includes("Failed to fetch") || err.message.includes("NetworkError")));
+    if (!isNetworkErr) throw err;
+  }
+
+  // Fallback: allorigins CORS proxy
+  const proxied = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+  const proxyRes = await fetch(proxied);
+  if (!proxyRes.ok) throw new Error(`Proxy error: ${proxyRes.status}`);
+
+  const proxyJson = await proxyRes.json();
+  const inner = JSON.parse(proxyJson.contents);
+
+  // Wrap in a fake Response so the caller can call .json() uniformly
+  return new Response(JSON.stringify(inner), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 export function useLiveNews(
   query: string = "",
   language: string = "en",
   pageSize: number = 10
 ) {
-  const apiKey = "pub_e9403661363c4276af32547fc26d0ed9";
-
-  // NewsData.io free plan allows a maximum page size of 10.
-  // Anything above 10 triggers: "The size provided is invalid".
+  // NewsData.io free plan: max size = 10
   const safeSize = Math.min(pageSize, 10);
 
   return useQuery<LiveNewsArticle[]>({
@@ -78,20 +100,16 @@ export function useLiveNews(
       if (cached) return cached;
 
       const params = new URLSearchParams({
-        apikey: apiKey,
+        apikey: API_KEY,
         language,
         size: String(safeSize),
       });
       if (query) params.set("q", query);
 
-      const res = await fetch(
-        `https://newsdata.io/api/1/latest?${params.toString()}`
-      );
-      if (!res.ok) throw new Error(`NewsData.io error: ${res.status}`);
+      const url = `https://newsdata.io/api/1/latest?${params.toString()}`;
+      const res = await fetchNewsData(url);
       const json = await res.json();
 
-      // The API returns { status: "error", results: { message, code } }
-      // on failure, so we must check status before accessing results.
       if (json.status === "error") {
         const msg =
           json.results?.message || json.message || "Unknown NewsData.io error";
@@ -106,6 +124,7 @@ export function useLiveNews(
     },
     staleTime: CACHE_DURATION_MS,
     gcTime: 30 * 60 * 1000,
-    retry: 1,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
   });
-}
+               }
