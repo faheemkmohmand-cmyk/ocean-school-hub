@@ -479,10 +479,42 @@ type AnnTab = "notices" | "news" | "achievements" | "merit-list";
 const AnnouncementTabs = () => {
   const [active, setActive] = useState<AnnTab>("notices");
   const tabs: { id: AnnTab; label: string; icon: React.ReactNode }[] = [
-    { id: "notices",      label: "Notices",      icon: <Bell className="w-3.5 h-3.5 shrink-0" /> },
-    { id: "news",         label: "News",         icon: <Newspaper className="w-3.5 h-3.5 shrink-0" /> },
-    { id: "achievements", label: "Achievements", icon: <Trophy className="w-3.5 h-3.5 shrink-0" /> },
-    { id: "merit-list",   label: "Merit List",   icon: <TrendingUp className="w-3.5 h-3.5 shrink-0" /> },
+    {
+      id: "notices",
+      label: "Notices",
+      icon: (
+        <span className="flex items-center justify-center w-6 h-6 rounded-md bg-amber-100 dark:bg-amber-900/40 shrink-0">
+          <Bell className="w-3.5 h-3.5 text-amber-500" />
+        </span>
+      ),
+    },
+    {
+      id: "news",
+      label: "News",
+      icon: (
+        <span className="flex items-center justify-center w-6 h-6 rounded-md bg-sky-100 dark:bg-sky-900/40 shrink-0">
+          <Newspaper className="w-3.5 h-3.5 text-sky-500" />
+        </span>
+      ),
+    },
+    {
+      id: "achievements",
+      label: "Achievements",
+      icon: (
+        <span className="flex items-center justify-center w-6 h-6 rounded-md bg-yellow-100 dark:bg-yellow-900/40 shrink-0">
+          <Trophy className="w-3.5 h-3.5 text-yellow-500" />
+        </span>
+      ),
+    },
+    {
+      id: "merit-list",
+      label: "Merit List",
+      icon: (
+        <span className="flex items-center justify-center w-6 h-6 rounded-md bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
+          <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+        </span>
+      ),
+    },
   ];
   return (
     <div className="w-full" style={{ contain: "layout style" }}>
