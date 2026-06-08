@@ -1,33 +1,97 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  BarChart3, Settings, Users, GraduationCap, ClipboardList, CheckSquare,
-  Calendar, Bell, BookOpen, LogOut,
-  Menu, X, ExternalLink, Shield, Moon, Sun, Video, Hash,
-  BookMarked, TrendingUp, Star, Globe, Search, KeyRound
-} from "lucide-react";
+import { LogOut, Menu, X, ExternalLink, Moon, Sun, Search, Shield, GraduationCap } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/hooks/useDarkMode";
 
-const navItems = [
-  { id: "overview",          label: "Overview",              icon: BarChart3,     color: "#3b82f6" }, // blue
-  { id: "settings",          label: "School Settings",       icon: Settings,      color: "#6b7280" }, // gray
-  { id: "credentials",       label: "Student Credentials",   icon: KeyRound,      color: "#6366f1" }, // indigo
-  { id: "teachers",          label: "Manage Teachers",       icon: Users,         color: "#0ea5e9" }, // sky
-  { id: "students",          label: "Manage Students",       icon: GraduationCap, color: "#10b981" }, // emerald
-  { id: "admissions",        label: "Admissions",            icon: GraduationCap, color: "#14b8a6" }, // teal
-  { id: "results",           label: "Manage Results",        icon: ClipboardList, color: "#f59e0b" }, // amber
-  { id: "attendance",        label: "Attendance",            icon: CheckSquare,   color: "#22c55e" }, // green
-  { id: "timetables",        label: "Timetables",            icon: Calendar,      color: "#8b5cf6" }, // violet
-  { id: "announcements",     label: "Announcements",         icon: Bell,          color: "#f97316" }, // orange
-  { id: "library",           label: "Library",               icon: BookOpen,      color: "#84cc16" }, // lime
-  { id: "exam-rolls",        label: "Exam Roll Numbers",     icon: Hash,          color: "#ef4444" }, // red
-  { id: "notes",             label: "Notes Manager",         icon: BookMarked,    color: "#06b6d4" }, // cyan
-  { id: "videos",            label: "Videos & Gallery",      icon: Video,         color: "#ec4899" }, // pink
-  { id: "online-classes",    label: "Online Classes",        icon: Video,         color: "#f43f5e" }, // rose
-  { id: "analytics",         label: "Analytics",             icon: TrendingUp,    color: "#14b8a6" }, // teal
-  { id: "extras",            label: "Extras",                icon: Star,          color: "#eab308" }, // yellow
-  { id: "site-analytics",    label: "Site Analytics",        icon: Globe,         color: "#a855f7" }, // purple
+// ── Emoji icon component ──────────────────────────────────────────────────────
+const EmojiIcon = ({ emoji, size = "w-5 h-5" }: { emoji: string; size?: string }) => (
+  <span className={`${size} flex items-center justify-center text-base leading-none select-none`} aria-hidden>
+    {emoji}
+  </span>
+);
+
+// ── Nav structure with sections ───────────────────────────────────────────────
+interface NavItem {
+  id: string;
+  label: string;
+  emoji: string;
+}
+interface NavSection {
+  heading: string;
+  items: NavItem[];
+}
+
+const navSections: NavSection[] = [
+  {
+    heading: "OVERVIEW",
+    items: [
+      { id: "overview",       label: "Dashboard",             emoji: "📊" },
+      { id: "settings",       label: "School Settings",       emoji: "⚙️" },
+      { id: "analytics",      label: "Analytics",             emoji: "📈" },
+      { id: "site-analytics", label: "Site Analytics",        emoji: "🌐" },
+    ],
+  },
+  {
+    heading: "STUDENTS",
+    items: [
+      { id: "students",     label: "Manage Students",     emoji: "🎓" },
+      { id: "admissions",   label: "Admissions",          emoji: "📋" },
+      { id: "results",      label: "Manage Results",      emoji: "📝" },
+      { id: "attendance",   label: "Attendance",          emoji: "✅" },
+      { id: "exam-rolls",   label: "Exam Roll Numbers",   emoji: "🔢" },
+      { id: "credentials",  label: "Student Credentials", emoji: "🪪" },
+    ],
+  },
+  {
+    heading: "SCHOOL",
+    items: [
+      { id: "teachers",      label: "Manage Teachers",   emoji: "👨‍🏫" },
+      { id: "timetables",    label: "Timetables",        emoji: "📅" },
+      { id: "announcements", label: "Announcements",     emoji: "📢" },
+      { id: "library",       label: "Library",           emoji: "📚" },
+      { id: "online-classes",label: "Online Classes",    emoji: "💻" },
+    ],
+  },
+  {
+    heading: "CONTENT",
+    items: [
+      { id: "notes",   label: "Notes Manager",    emoji: "📓" },
+      { id: "videos",  label: "Videos & Gallery", emoji: "🎬" },
+      { id: "extras",  label: "Extras",           emoji: "⭐" },
+    ],
+  },
+];
+
+// Flat list for searching
+const allNavItems: NavItem[] = navSections.flatMap(s => s.items);
+
+// Deep search index
+const searchIndex: { label: string; sublabel?: string; tabId: string }[] = [
+  ...allNavItems.map(item => ({ label: item.label, tabId: item.id })),
+  { label: "Notices",          sublabel: "Announcements",        tabId: "announcements" },
+  { label: "News",             sublabel: "Announcements",        tabId: "announcements" },
+  { label: "Achievements",     sublabel: "Announcements",        tabId: "announcements" },
+  { label: "Merit List",       sublabel: "Announcements",        tabId: "announcements" },
+  { label: "Videos",           sublabel: "Videos & Gallery",     tabId: "videos" },
+  { label: "Gallery",          sublabel: "Videos & Gallery",     tabId: "videos" },
+  { label: "YouTube",          sublabel: "Videos & Gallery",     tabId: "videos" },
+  { label: "Daily Quotes",     sublabel: "Extras",               tabId: "extras" },
+  { label: "Honor Roll",       sublabel: "Extras",               tabId: "extras" },
+  { label: "Exam Schedule",    sublabel: "Extras",               tabId: "extras" },
+  { label: "Users",            sublabel: "Extras",               tabId: "extras" },
+  { label: "Mark Attendance",  sublabel: "Attendance",           tabId: "attendance" },
+  { label: "Monthly Report",   sublabel: "Attendance",           tabId: "attendance" },
+  { label: "Upload Results",   sublabel: "Manage Results",       tabId: "results" },
+  { label: "Marksheet",        sublabel: "Manage Results",       tabId: "results" },
+  { label: "Class Timetable",  sublabel: "Timetables",           tabId: "timetables" },
+  { label: "Exam Timetable",   sublabel: "Timetables",           tabId: "timetables" },
+  { label: "Student ID Cards", sublabel: "Student Credentials",  tabId: "credentials" },
+  { label: "Monitor Pass",     sublabel: "Student Credentials",  tabId: "credentials" },
+  { label: "Hall Pass",        sublabel: "Student Credentials",  tabId: "credentials" },
+  { label: "School Files",     sublabel: "Library",              tabId: "library" },
+  { label: "Virtual Library",  sublabel: "Library",              tabId: "library" },
+  { label: "Free Books",       sublabel: "Library",              tabId: "library" },
 ];
 
 interface AdminLayoutProps {
@@ -40,8 +104,11 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
   const { profile, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const mobileNavRef = useRef<HTMLElement>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const navigate = useNavigate();
+  const { isDark, toggle } = useDarkMode();
 
-  // When sidebar opens, scroll the active nav item into the center of the list
   useEffect(() => {
     if (!sidebarOpen) return;
     requestAnimationFrame(() => {
@@ -54,150 +121,65 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
       }
     });
   }, [sidebarOpen]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
-  const navigate = useNavigate();
-  const { isDark, toggle } = useDarkMode();
-
-  // Deep search index: every sub-feature maps to its parent nav tab
-  const searchIndex: { label: string; sublabel?: string; tabId: string }[] = [
-    // Direct nav items
-    ...navItems.map((item) => ({ label: item.label, tabId: item.id })),
-    // announcements sub-tabs
-    { label: "Notices",        sublabel: "Announcements", tabId: "announcements" },
-    { label: "News",           sublabel: "Announcements", tabId: "announcements" },
-    { label: "Achievements",   sublabel: "Announcements", tabId: "announcements" },
-    { label: "Merit List",     sublabel: "Announcements", tabId: "announcements" },
-    // videos sub-tabs
-    { label: "Videos",         sublabel: "Videos & Gallery", tabId: "videos" },
-    { label: "Gallery",        sublabel: "Videos & Gallery", tabId: "videos" },
-    { label: "YouTube",        sublabel: "Videos & Gallery", tabId: "videos" },
-    // extras sub-tabs
-    { label: "Daily Quotes",   sublabel: "Extras", tabId: "extras" },
-    { label: "Quotes",         sublabel: "Extras", tabId: "extras" },
-    { label: "Honor Roll",     sublabel: "Extras", tabId: "extras" },
-    { label: "Exam Schedule",  sublabel: "Extras", tabId: "extras" },
-    { label: "Users",          sublabel: "Extras", tabId: "extras" },
-    // attendance sub-tabs
-    { label: "Mark Attendance",   sublabel: "Attendance", tabId: "attendance" },
-    { label: "Monthly Report",    sublabel: "Attendance", tabId: "attendance" },
-    // results sub-tabs
-    { label: "Upload Results",    sublabel: "Manage Results", tabId: "results" },
-    { label: "Marksheet",         sublabel: "Manage Results", tabId: "results" },
-    // timetables sub-tabs
-    { label: "Class Timetable",   sublabel: "Timetables", tabId: "timetables" },
-    { label: "Exam Timetable",    sublabel: "Timetables", tabId: "timetables" },
-    // credentials sub-tabs ← NEW
-    { label: "Student ID Cards",  sublabel: "Student Credentials", tabId: "credentials" },
-    { label: "ID Cards",          sublabel: "Student Credentials", tabId: "credentials" },
-    { label: "Monitor Pass",      sublabel: "Student Credentials", tabId: "credentials" },
-    { label: "Hall Pass",         sublabel: "Student Credentials", tabId: "credentials" },
-    { label: "Class Monitor",     sublabel: "Student Credentials", tabId: "credentials" },
-    { label: "Pass",              sublabel: "Student Credentials", tabId: "credentials" },
-    { label: "Duty",              sublabel: "Student Credentials", tabId: "credentials" },
-    { label: "Monitor",           sublabel: "Student Credentials", tabId: "credentials" },
-    { label: "Proctor",           sublabel: "Student Credentials", tabId: "credentials" },
-    { label: "Head Boy",          sublabel: "Student Credentials", tabId: "credentials" },
-    { label: "Chief Proctor",     sublabel: "Student Credentials", tabId: "credentials" },
-    { label: "Nazira",            sublabel: "Student Credentials", tabId: "credentials" },
-    { label: "Social Worker",     sublabel: "Student Credentials", tabId: "credentials" },
-    // library hub
-    { label: "School Files",      sublabel: "Library", tabId: "library" },
-    { label: "Virtual Library",   sublabel: "Library", tabId: "library" },
-    { label: "Free Books",        sublabel: "Library", tabId: "library" },
-    { label: "Ebooks",            sublabel: "Library", tabId: "library" },
-    { label: "Gutenberg",         sublabel: "Library", tabId: "library" },
-    { label: "Open Library",      sublabel: "Library", tabId: "library" },
-  ];
 
   const searchResults = searchQuery.trim()
-    ? searchIndex.filter((entry) =>
-        entry.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (entry.sublabel?.toLowerCase().includes(searchQuery.toLowerCase()))
+    ? searchIndex.filter(e =>
+        e.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.sublabel?.toLowerCase().includes(searchQuery.toLowerCase())
       ).reduce<typeof searchIndex>((acc, entry) => {
-        if (!acc.find((e) => e.tabId === entry.tabId && !e.sublabel)) {
-          acc.push(entry);
-        } else if (!acc.find((e) => e.tabId === entry.tabId && e.label === entry.label)) {
-          acc.push(entry);
-        }
+        if (!acc.find(e => e.tabId === entry.tabId && !e.sublabel)) acc.push(entry);
+        else if (!acc.find(e => e.tabId === entry.tabId && e.label === entry.label)) acc.push(entry);
         return acc;
       }, [])
     : null;
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
-  };
+  const handleSignOut = async () => { await signOut(); navigate("/"); };
 
   const initials = profile?.full_name
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase() || "A";
+    ?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "A";
 
-  const NavList = ({ onItemClick }: { onItemClick?: () => void }) => {
-    const items = searchResults !== null
-      ? navItems.filter((item) => searchResults.some((r) => r.tabId === item.id))
-      : navItems;
+  // ── Single nav button ──
+  const NavBtn = ({ item, onItemClick }: { item: NavItem; onItemClick?: () => void }) => (
+    <button
+      key={item.id}
+      data-active={activeTab === item.id ? "true" : "false"}
+      onClick={() => { onTabChange(item.id); onItemClick?.(); }}
+      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+        activeTab === item.id
+          ? "bg-primary text-primary-foreground shadow-sm"
+          : "hover:bg-secondary text-foreground"
+      }`}
+    >
+      <EmojiIcon emoji={item.emoji} size="w-5 h-5" />
+      <span className="truncate">{item.label}</span>
+    </button>
+  );
 
-    if (searchResults !== null && searchResults.length === 0) {
-      return <p className="text-xs text-muted-foreground text-center py-4">No results found</p>;
-    }
-
+  // ── Full sectioned nav list ──
+  const SectionedNav = ({ onItemClick }: { onItemClick?: () => void }) => {
     if (searchResults !== null) {
+      if (searchResults.length === 0)
+        return <p className="text-xs text-muted-foreground text-center py-4">No results found</p>;
+      const matchedItems = allNavItems.filter(item => searchResults.some(r => r.tabId === item.id));
       return (
-        <>
-          {searchResults.map((result) => {
-            const navItem = navItems.find((n) => n.id === result.tabId)!;
-            return (
-              <button
-                key={result.label + result.tabId}
-                onClick={() => { onTabChange(result.tabId); onItemClick?.(); }}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === result.tabId
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "hover:bg-secondary"
-                }`}
-              >
-                <navItem.icon
-                  className="w-4 h-4 shrink-0"
-                  style={{ color: activeTab === result.tabId ? undefined : navItem.color }}
-                />
-                <span className="flex-1 text-left">
-                  {result.label}
-                  {result.sublabel && (
-                    <span className="block text-[10px] opacity-60 font-normal">{result.sublabel}</span>
-                  )}
-                </span>
-              </button>
-            );
-          })}
-        </>
+        <div className="space-y-0.5">
+          {matchedItems.map(item => <NavBtn key={item.id} item={item} onItemClick={onItemClick} />)}
+        </div>
       );
     }
-
     return (
-      <>
-        {items.map((item) => (
-          <button
-            key={item.id}
-            data-active={activeTab === item.id ? "true" : "false"}
-            onClick={() => { onTabChange(item.id); onItemClick?.(); }}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === item.id
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "hover:bg-secondary"
-            }`}
-          >
-            <item.icon
-              className="w-4 h-4 shrink-0"
-              style={{ color: activeTab === item.id ? undefined : item.color }}
-            />
-            {item.label}
-          </button>
+      <div className="space-y-4">
+        {navSections.map(section => (
+          <div key={section.heading}>
+            <p className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase px-3 mb-1.5">
+              {section.heading}
+            </p>
+            <div className="space-y-0.5">
+              {section.items.map(item => <NavBtn key={item.id} item={item} onItemClick={onItemClick} />)}
+            </div>
+          </div>
         ))}
-      </>
+      </div>
     );
   };
 
@@ -243,37 +225,25 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
               type="text"
               placeholder="Search menu..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
         </div>
 
-        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          <NavList />
+        <nav className="flex-1 p-3 overflow-y-auto">
+          <SectionedNav />
         </nav>
 
         <div className="p-3 border-t border-border space-y-1">
-          <Link
-            to="/"
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
-          >
-            <ExternalLink className="w-4 h-4" />
-            Main Website
+          <Link to="/" className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors">
+            <ExternalLink className="w-4 h-4" /> Main Website
           </Link>
-          <Link
-            to="/dashboard"
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
-          >
-            <GraduationCap className="w-4 h-4" />
-            User Dashboard
+          <Link to="/dashboard" className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors">
+            <GraduationCap className="w-4 h-4" /> User Dashboard
           </Link>
-          <button
-            onClick={handleSignOut}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign Out
+          <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors">
+            <LogOut className="w-4 h-4" /> Sign Out
           </button>
         </div>
       </aside>
@@ -284,10 +254,9 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
             <Menu className="w-5 h-5" />
           </button>
           <h1 className="font-heading font-semibold text-foreground">
-            {navItems.find((n) => n.id === activeTab)?.label || "Admin Dashboard"}
+            {allNavItems.find(n => n.id === activeTab)?.label || "Admin Dashboard"}
           </h1>
           <div className="ml-auto flex items-center gap-2">
-            {/* Header search toggle */}
             <div className="hidden sm:flex items-center">
               {searchOpen ? (
                 <div className="flex items-center gap-1">
@@ -298,45 +267,27 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
                       type="text"
                       placeholder="Search sections..."
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={e => setSearchQuery(e.target.value)}
                       className="pl-8 pr-3 py-1.5 text-xs w-48 rounded-lg bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                   </div>
-                  <button
-                    onClick={() => { setSearchOpen(false); setSearchQuery(""); }}
-                    className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground"
-                  >
+                  <button onClick={() => { setSearchOpen(false); setSearchQuery(""); }} className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
-                <button
-                  onClick={() => setSearchOpen(true)}
-                  className="p-2 rounded-lg hover:bg-secondary text-muted-foreground transition-colors"
-                  title="Search sections"
-                >
+                <button onClick={() => setSearchOpen(true)} className="p-2 rounded-lg hover:bg-secondary text-muted-foreground transition-colors" title="Search sections">
                   <Search className="w-4 h-4" />
                 </button>
               )}
             </div>
-            <a
-              href="/"
-              className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg hover:bg-secondary transition-colors"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              View Website
+            <a href="/" className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg hover:bg-secondary transition-colors">
+              <ExternalLink className="w-3.5 h-3.5" /> View Website
             </a>
-            <button
-              onClick={toggle}
-              className="p-2 rounded-lg hover:bg-secondary text-muted-foreground transition-colors"
-              title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            >
+            <button onClick={toggle} className="p-2 rounded-lg hover:bg-secondary text-muted-foreground transition-colors" title={isDark ? "Switch to light mode" : "Switch to dark mode"}>
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-1.5 text-xs font-medium text-destructive px-3 py-1.5 rounded-lg hover:bg-destructive/10 transition-colors"
-            >
+            <button onClick={handleSignOut} className="flex items-center gap-1.5 text-xs font-medium text-destructive px-3 py-1.5 rounded-lg hover:bg-destructive/10 transition-colors">
               <LogOut className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Sign Out</span>
             </button>
@@ -349,24 +300,15 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
       {/* Mobile bottom bar */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card border-t border-border">
         <div className="flex items-center justify-around py-1">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="flex flex-col items-center gap-0.5 p-2 min-w-[3.5rem] text-muted-foreground"
-          >
+          <button onClick={() => setSidebarOpen(true)} className="flex flex-col items-center gap-0.5 p-2 min-w-[3.5rem] text-muted-foreground">
             <Menu className="w-5 h-5" />
             <span className="text-[10px] font-medium">Menu</span>
           </button>
-          <Link
-            to="/"
-            className="flex flex-col items-center gap-0.5 p-2 min-w-[3.5rem] text-primary"
-          >
+          <Link to="/" className="flex flex-col items-center gap-0.5 p-2 min-w-[3.5rem] text-primary">
             <ExternalLink className="w-5 h-5" />
             <span className="text-[10px] font-medium">Website</span>
           </Link>
-          <button
-            onClick={handleSignOut}
-            className="flex flex-col items-center gap-0.5 p-2 min-w-[3.5rem] text-destructive"
-          >
+          <button onClick={handleSignOut} className="flex flex-col items-center gap-0.5 p-2 min-w-[3.5rem] text-destructive">
             <LogOut className="w-5 h-5" />
             <span className="text-[10px] font-medium">Sign Out</span>
           </button>
@@ -384,7 +326,6 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
                 <X className="w-5 h-5" />
               </button>
             </div>
-            {/* Mobile search */}
             <div className="px-3 py-2 border-b border-border">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
@@ -392,29 +333,20 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
                   type="text"
                   placeholder="Search menu..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={e => setSearchQuery(e.target.value)}
                   className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
             </div>
-            <nav ref={mobileNavRef} className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-              <NavList onItemClick={() => setSidebarOpen(false)} />
+            <nav ref={mobileNavRef} className="flex-1 p-3 overflow-y-auto">
+              <SectionedNav onItemClick={() => setSidebarOpen(false)} />
             </nav>
             <div className="p-3 border-t border-border space-y-1">
-              <Link
-                to="/"
-                onClick={() => setSidebarOpen(false)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" />
-                Main Website
+              <Link to="/" onClick={() => setSidebarOpen(false)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-primary hover:bg-primary/10 transition-colors">
+                <ExternalLink className="w-4 h-4" /> Main Website
               </Link>
-              <button
-                onClick={handleSignOut}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10"
-              >
-                <LogOut className="w-4 h-4" />
-                Sign Out
+              <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10">
+                <LogOut className="w-4 h-4" /> Sign Out
               </button>
             </div>
           </div>
@@ -425,3 +357,4 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
 };
 
 export default AdminLayout;
+        
