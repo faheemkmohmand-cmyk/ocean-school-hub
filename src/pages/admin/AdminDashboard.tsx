@@ -18,9 +18,7 @@ const AdminNotes             = lazy(() => import("../notes/AdminNotes"));
 // ── New feature admin tabs ──
 const AdminExtras            = lazy(() => import("./tabs/AdminExtras"));
 const AdminOnlineClasses     = lazy(() => import("./tabs/AdminOnlineClasses") as any);
-const AdminSiteAnalytics     = lazy(() => import("./tabs/AdminSiteAnalytics"));
 const AdminAdmissions        = lazy(() => import("./tabs/AdminAdmissions"));
-const AdminSchoolAnalytics   = lazy(() => import("../dashboard/tabs/SchoolAnalyticsTab"));
 // ── Student Credentials (ID Cards + Monitor Pass) ──
 const AdminStudentCredentials = lazy(() => import("./tabs/AdminStudentCredentials"));
 // ── Fee Management ──
@@ -28,8 +26,6 @@ const AdminFees = lazy(() => import("./tabs/AdminFees"));
 
 const tabMap: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
   overview:           AdminOverview,
-  "analytics":        AdminSchoolAnalytics,
-  "site-analytics":   AdminSiteAnalytics,
   settings:           AdminSchoolSettings,
   teachers:           AdminTeachers,
   students:           AdminStudents,
