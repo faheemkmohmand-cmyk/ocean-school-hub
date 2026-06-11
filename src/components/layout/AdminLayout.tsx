@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { LogOut, Menu, X, ExternalLink, Moon, Sun, Search, Shield, GraduationCap } from "lucide-react";
+import { LogOut, Menu, X, ExternalLink, Moon, Sun, Search, Shield, GraduationCap, BarChart2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/hooks/useDarkMode";
 
@@ -16,6 +16,8 @@ interface NavItem {
   id: string;
   label: string;
   emoji: string;
+  lucideIcon?: React.ElementType;
+  lucideColor?: string;
 }
 interface NavSection {
   heading: string;
@@ -26,9 +28,10 @@ const navSections: NavSection[] = [
   {
     heading: "OVERVIEW",
     items: [
-      { id: "overview",       label: "Dashboard",             emoji: "📊" },
-      { id: "settings",       label: "School Settings",       emoji: "⚙️" },
-
+      { id: "overview",         label: "Overview",              emoji: "📊" },
+      { id: "settings",         label: "School Settings",       emoji: "⚙️" },
+      { id: "site-analytics",   label: "Site Analytics",        emoji: "📈",
+        lucideIcon: BarChart2,  lucideColor: "text-violet-500" },
     ],
   },
   {
@@ -69,6 +72,9 @@ const allNavItems: NavItem[] = navSections.flatMap(s => s.items);
 // Deep search index
 const searchIndex: { label: string; sublabel?: string; tabId: string }[] = [
   ...allNavItems.map(item => ({ label: item.label, tabId: item.id })),
+  { label: "Analytics",         sublabel: "Site Analytics",          tabId: "site-analytics" },
+  { label: "Page Views",        sublabel: "Site Analytics",          tabId: "site-analytics" },
+  { label: "Visitors",          sublabel: "Site Analytics",          tabId: "site-analytics" },
   { label: "Notices",          sublabel: "Announcements",        tabId: "announcements" },
   { label: "News",             sublabel: "Announcements",        tabId: "announcements" },
   { label: "Achievements",     sublabel: "Announcements",        tabId: "announcements" },
@@ -144,21 +150,30 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
     ?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "A";
 
   // ── Single nav button ──
-  const NavBtn = ({ item, onItemClick }: { item: NavItem; onItemClick?: () => void }) => (
-    <button
-      key={item.id}
-      data-active={activeTab === item.id ? "true" : "false"}
-      onClick={() => { onTabChange(item.id); onItemClick?.(); }}
-      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-        activeTab === item.id
-          ? "bg-primary text-primary-foreground shadow-sm"
-          : "hover:bg-secondary text-foreground"
-      }`}
-    >
-      <EmojiIcon emoji={item.emoji} size="w-5 h-5" />
-      <span className="truncate">{item.label}</span>
-    </button>
-  );
+  const NavBtn = ({ item, onItemClick }: { item: NavItem; onItemClick?: () => void }) => {
+    const isActive = activeTab === item.id;
+    return (
+      <button
+        key={item.id}
+        data-active={isActive ? "true" : "false"}
+        onClick={() => { onTabChange(item.id); onItemClick?.(); }}
+        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+          isActive
+            ? "bg-primary text-primary-foreground shadow-sm"
+            : "hover:bg-secondary text-foreground"
+        }`}
+      >
+        {item.lucideIcon ? (
+          <item.lucideIcon
+            className={`w-5 h-5 shrink-0 ${isActive ? "text-primary-foreground" : item.lucideColor ?? "text-muted-foreground"}`}
+          />
+        ) : (
+          <EmojiIcon emoji={item.emoji} size="w-5 h-5" />
+        )}
+        <span className="truncate">{item.label}</span>
+      </button>
+    );
+  };
 
   // ── Full sectioned nav list ──
   const SectionedNav = ({ onItemClick }: { onItemClick?: () => void }) => {
@@ -363,4 +378,5 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
 
 export default AdminLayout;
 
-        
+
+    
