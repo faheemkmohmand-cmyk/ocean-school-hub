@@ -1,65 +1,15 @@
-import { Component, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
-import SiteAnalytics from "@/components/admin/SiteAnalytics";
 import {
   Users, GraduationCap, Bell, Newspaper, BookOpen, Image,
   Trophy, UserCog, TrendingUp, ClipboardList, Calendar,
   CheckCircle, Clock, AlertCircle, Activity, ArrowUpRight,
   FileText, Video, DollarSign, BookMarked, Shield,
-  RefreshCw, BarChart3,
+  RefreshCw,
 } from "lucide-react";
-
-/* ─── Inline Error Boundary for SiteAnalytics ────────────────── */
-interface EBProps { children: ReactNode }
-interface EBState { hasError: boolean; error?: Error }
-
-class SiteAnalyticsBoundary extends Component<EBProps, EBState> {
-  constructor(props: EBProps) {
-    super(props);
-    this.state = { hasError: false };
-  }
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="space-y-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                <BarChart3 className="w-4 h-4 text-primary" />
-              </div>
-              <h3 className="text-base font-bold text-foreground">Site Analytics</h3>
-            </div>
-            <button
-              onClick={() => this.setState({ hasError: false })}
-              className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-colors"
-              title="Retry"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="bg-card border border-border rounded-2xl p-6 text-center">
-            <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center mx-auto mb-3">
-              <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-            </div>
-            <h4 className="text-sm font-bold text-foreground mb-1">Site Analytics failed to load</h4>
-            <p className="text-xs text-muted-foreground mb-2">
-              Make sure the <code className="font-mono bg-secondary px-1 py-0.5 rounded text-[10px]">site_visits</code> table exists in Supabase and the SQL migration has been run.
-            </p>
-            <p className="text-[10px] text-muted-foreground/70 font-mono break-all">{this.state.error?.message || "Unknown error"}</p>
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 /* ─── Data hook ─────────────────────────────────────────────── */
 const useAdminStats = () =>
@@ -306,11 +256,6 @@ const AdminOverview = () => {
         </div>
       </div>
 
-      {/* ── Site Analytics (wrapped in error boundary) ── */}
-      <SiteAnalyticsBoundary>
-        <SiteAnalytics />
-      </SiteAnalyticsBoundary>
-
       {/* ── Content & Resources ── */}
       <div>
         <SectionHeader icon={BookOpen} title="Content & Resources" />
@@ -429,3 +374,4 @@ const AdminOverview = () => {
 };
 
 export default AdminOverview;
+      
