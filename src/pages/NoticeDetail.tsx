@@ -41,6 +41,7 @@ const NoticeDetail = () => {
 
   const dateText = (() => { try { return format(new Date(item.created_at), "d MMMM yyyy"); } catch { return ""; } })();
   const description = (item.content || "").replace(/\s+/g, " ").slice(0, 160);
+  const publishedISO = (() => { try { return new Date(item.created_at).toISOString(); } catch { return undefined; } })();
 
   return (
     <PageLayout>
@@ -49,6 +50,7 @@ const NoticeDetail = () => {
         description={description}
         path={`/notices/${item.id}`}
         type="article"
+        publishedTime={publishedISO}
         breadcrumbs={[
           { name: "Home", path: "/" },
           { name: "Notices", path: "/notices" },
