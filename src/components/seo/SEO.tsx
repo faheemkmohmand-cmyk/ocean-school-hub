@@ -25,6 +25,10 @@ export interface SEOProps {
   breadcrumbs?: { name: string; path: string }[];
   /** Pass true on pages that have Urdu content — adds ur hreflang */
   hasUrdu?: boolean;
+  /** ISO 8601 date string for article:published_time OG tag */
+  publishedTime?: string;
+  /** ISO 8601 date string for article:modified_time OG tag */
+  modifiedTime?: string;
 }
 
 /**
@@ -44,6 +48,8 @@ const SEO = ({
   jsonLd,
   breadcrumbs,
   hasUrdu = false,
+  publishedTime,
+  modifiedTime,
 }: SEOProps) => {
   const fullTitle = title.includes(SITE_NAME)
     ? title
@@ -110,6 +116,8 @@ const SEO = ({
       <meta property="og:site_name" content={SITE_NAME} />
       <meta property="og:locale" content="en_PK" />
       {hasUrdu && <meta property="og:locale:alternate" content="ur_PK" />}
+      {type === "article" && publishedTime && <meta property="article:published_time" content={publishedTime} />}
+      {type === "article" && modifiedTime && <meta property="article:modified_time" content={modifiedTime} />}
 
       {/* ✅ Twitter — twitter:site added so card is attributed to school handle */}
       <meta name="twitter:card" content="summary_large_image" />
@@ -130,4 +138,3 @@ const SEO = ({
 
 export default SEO;
 export { DEFAULT_IMAGE };
-        
