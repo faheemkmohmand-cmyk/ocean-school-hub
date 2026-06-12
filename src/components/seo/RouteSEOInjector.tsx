@@ -325,12 +325,21 @@ const ROUTES: RouteSEO[] = [
   { pattern: "/dashboard",           title: "Student Dashboard — Your Personal Hub",       description: "Your personalised student dashboard at GHS Babi Khel.", noIndex: true },
   { pattern: "/teacher",             title: "Teacher Dashboard — Manage Classes",          description: "Teacher dashboard at GHS Babi Khel.",               noIndex: true },
   { pattern: "/admin",               title: "Admin Dashboard — School Management",         description: "Administrative console for GHS Babi Khel.",          noIndex: true },
-  {
+      {
     pattern: "/search",
     title: "Search — GHS Babi Khel",
     description: "Search across notices, news, teachers and notes at Government High School Babi Khel.",
+    noIndex: true,  // ← ADDED: prevents thin-content search page from being indexed
     breadcrumbs: () => [baseBreadcrumb, { name: "Search", path: "/search" }],
   },
+     {
+    pattern: "/duty",
+    title: "School Duty Board — GHS Babi Khel | Class Monitors & Proctors",
+    description: "View official duty assignments for GHS Babi Khel — class monitors, proctors, social workers, head boys and nazira for Classes 6 to 10.",
+    keywords: "school duty board, class monitor, proctor, head boy, GHS Babi Khel duty",
+    breadcrumbs: () => [baseBreadcrumb, { name: "Duty Board", path: "/duty" }],
+  },
+  
   {
     pattern: "/news/:id",
     title: "News Article — GHS Babi Khel",
